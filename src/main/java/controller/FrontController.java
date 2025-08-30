@@ -12,10 +12,11 @@ import jakarta.servlet.http.HttpServletResponse;
 import jakarta.servlet.http.HttpSession;
 
 import domain.LoginUser;
+import service.AssignmentService;
 import service.CommonService;
+import service.ContactService;
 import service.CustomerService;
 import service.SecretaryService;
-import service.AssignmentService;
 
 /**
  * Servlet implementation class FrontController
@@ -107,6 +108,36 @@ public class FrontController extends HttpServlet {
 		}
 		case "/customer/delete"->{
 			nextPath = new CustomerService(req, true).customerDelete();
+		}
+		
+		
+		/**
+		 * A0X 顧客担当者関連業務
+		 * 
+		 */
+		case "/contact"->{
+			nextPath = new ContactService(req, true).contactList();
+		}
+		case "/contact/register"->{
+			nextPath = new ContactService(req, false).contactRegister();
+		}
+		case "/contact/register_check"->{
+			nextPath = new ContactService(req, true).contactRegisterCheck();
+		}
+		case "/contact/register_done"->{
+			nextPath = new ContactService(req, true).contactRegisterDone();
+		}
+		case "/contact/edit"->{
+			nextPath = new ContactService(req, true).contactEdit();
+		}
+		case "/contact/edit_check"->{
+			nextPath = new ContactService(req, true).contactEditCheck();
+		}
+		case "/contact/edit_done"->{
+			nextPath = new ContactService(req, true).contactEditDone();
+		}
+		case "/contact/delete"->{
+			nextPath = new ContactService(req, true).contactDelete();
 		}
 		
 		/**

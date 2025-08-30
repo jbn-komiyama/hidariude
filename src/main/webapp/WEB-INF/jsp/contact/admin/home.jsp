@@ -21,7 +21,7 @@
           </c:if>
         </div>
       </div>
-      <form method="post" action="<%= request.getContextPath() %>/admin/customer/contact/register" class="m-0">
+      <form method="post" action="<%= request.getContextPath() %>/admin/contact/register" class="m-0">
         <input type="hidden" name="customerId" value="${customer.id}">
         <button type="submit" class="btn btn-primary">
           新規担当者
@@ -73,12 +73,12 @@
                   </td>
                   <td class="text-center">
                     <div class="d-flex gap-1 justify-content-center">
-                      <form method="post" action="<%= request.getContextPath() %>/admin/customer/contact/edit" class="m-0">
+                      <form method="post" action="<%= request.getContextPath() %>/admin/contact/edit" class="m-0">
                         <input type="hidden" name="customerId" value="${customer.id}">
                         <input type="hidden" name="id" value="${ct.id}">
                         <button type="submit" class="btn btn-sm btn-primary">編集</button>
                       </form>
-                      <form method="post" action="<%= request.getContextPath() %>/admin/customer/contact/delete" class="m-0"
+                      <form method="post" action="<%= request.getContextPath() %>/admin/contact/delete" class="m-0"
                             onsubmit="return confirm('本当に削除しますか？');">
                         <input type="hidden" name="customerId" value="${customer.id}">
                         <input type="hidden" name="id" value="${ct.id}">
