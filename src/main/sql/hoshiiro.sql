@@ -2,15 +2,15 @@
 -- Database Schema for Hidariude
 -- ===============================================
 
--- UUID¶¬—pŠg’£
+-- UUIDç”Ÿæˆç”¨æ‹¡å¼µ
 CREATE EXTENSION IF NOT EXISTS pgcrypto;
 
 -- ===============================================
--- ƒe[ƒuƒ‹’è‹`
+-- ãƒ†ãƒ¼ãƒ–ãƒ«å®šç¾©
 -- ===============================================
 
 
--- ƒVƒXƒeƒ€ŠÇ—Ò
+-- ã‚·ã‚¹ãƒ†ãƒ ç®¡ç†è€…
 CREATE TABLE system_admins (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     mail VARCHAR(255) UNIQUE NOT NULL,
@@ -23,7 +23,7 @@ CREATE TABLE system_admins (
     last_login_at TIMESTAMP
 );
 
--- ”é‘ƒ‰ƒ“ƒNƒ}ƒXƒ^
+-- ç§˜æ›¸ãƒ©ãƒ³ã‚¯ãƒã‚¹ã‚¿
 CREATE TABLE secretary_rank (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     rank_name VARCHAR(255) NOT NULL,
@@ -35,7 +35,7 @@ CREATE TABLE secretary_rank (
     deleted_at TIMESTAMP
 );
 
--- ”é‘
+-- ç§˜æ›¸
 CREATE TABLE secretaries (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     secretary_code VARCHAR(255) UNIQUE NOT NULL,
@@ -56,7 +56,7 @@ CREATE TABLE secretaries (
     last_login_at TIMESTAMP
 );
 
--- 2. ŒÚ‹qƒe[ƒuƒ‹
+-- 2. é¡§å®¢ãƒ†ãƒ¼ãƒ–ãƒ«
 CREATE TABLE customers (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     company_code VARCHAR(255) UNIQUE NOT NULL,
@@ -67,13 +67,13 @@ CREATE TABLE customers (
     address1 VARCHAR(255),
     address2 VARCHAR(255),
     building VARCHAR(255),
-    primary_contact_id UUID, -- å’S“–ÒIDiŒã‚©‚çFK§–ñ‚ğ’£‚éj
+    primary_contact_id UUID, -- ä¸»æ‹…å½“è€…IDï¼ˆå¾Œã‹ã‚‰FKåˆ¶ç´„ã‚’å¼µã‚‹ï¼‰
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     deleted_at TIMESTAMP
 );
 
--- 3. ŒÚ‹q’S“–Òƒe[ƒuƒ‹
+-- 3. é¡§å®¢æ‹…å½“è€…ãƒ†ãƒ¼ãƒ–ãƒ«
 CREATE TABLE customer_contacts (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     mail VARCHAR(255) UNIQUE NOT NULL,
@@ -97,11 +97,11 @@ CREATE TABLE customer_contacts (
         UNIQUE (id, customer_id)
 );
 
--- 4. ƒCƒ“ƒfƒbƒNƒX
+-- 4. ã‚¤ãƒ³ãƒ‡ãƒƒã‚¯ã‚¹
 CREATE INDEX idx_customer_contacts_customer_id
     ON customer_contacts (customer_id);
 
--- 5. ŒÚ‹q ¨ ŒÚ‹q’S“–Ò •¡‡ŠO•”ƒL[
+-- 5. é¡§å®¢ â†’ é¡§å®¢æ‹…å½“è€… è¤‡åˆå¤–éƒ¨ã‚­ãƒ¼
 ALTER TABLE customers
   ADD CONSTRAINT fk_customers_primary_contact
   FOREIGN KEY (primary_contact_id, id)
@@ -109,7 +109,7 @@ ALTER TABLE customers
   ON UPDATE CASCADE
   ON DELETE SET NULL;
 
--- ‹Æ–±ƒ‰ƒ“ƒNƒ}ƒXƒ^
+-- æ¥­å‹™ãƒ©ãƒ³ã‚¯ãƒã‚¹ã‚¿
 CREATE TABLE task_rank (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     rank_name VARCHAR(50) NOT NULL,
@@ -120,7 +120,7 @@ CREATE TABLE task_rank (
     deleted_at TIMESTAMP
 );
 
--- ŒŸƒAƒTƒCƒ“
+-- æœˆæ¬¡ã‚¢ã‚µã‚¤ãƒ³
 CREATE TABLE assignments (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     customer_id UUID REFERENCES customers(id),
@@ -140,7 +140,7 @@ CREATE TABLE assignments (
     deleted_at TIMESTAMP
 );
 
--- ŒÚ‹qŒŸ¿‹‘
+-- é¡§å®¢æœˆæ¬¡è«‹æ±‚æ›¸
 CREATE TABLE customer_monthly_invoices (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     customer_id UUID REFERENCES customers(id),
@@ -154,7 +154,7 @@ CREATE TABLE customer_monthly_invoices (
     deleted_at TIMESTAMP
 );
 
--- ”é‘ŒŸ‹Æ–±ƒTƒ}ƒŠ
+-- ç§˜æ›¸æœˆæ¬¡æ¥­å‹™ã‚µãƒãƒª
 CREATE TABLE secretary_monthly_summaries (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     secretary_id UUID REFERENCES secretaries(id),
@@ -169,7 +169,7 @@ CREATE TABLE secretary_monthly_summaries (
     deleted_at TIMESTAMP
 );
 
--- ‹Æ–±ŠÇ—
+-- æ¥­å‹™ç®¡ç†
 CREATE TABLE tasks (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     assignment_id UUID REFERENCES assignments(id),
@@ -190,30 +190,30 @@ CREATE TABLE tasks (
 
 
 -- =========================
--- ‰Šúƒf[ƒ^“Š“üƒXƒNƒŠƒvƒg
--- iDDL‚ÍŠù‚Éì¬Ï‚İ‘O’ñj
+-- åˆæœŸãƒ‡ãƒ¼ã‚¿æŠ•å…¥ã‚¹ã‚¯ãƒªãƒ—ãƒˆ
+-- ï¼ˆDDLã¯æ—¢ã«ä½œæˆæ¸ˆã¿å‰æï¼‰
 -- =========================
 
--- 1) system_admins (10Œ)
+-- 1) system_admins (10ä»¶)
 INSERT INTO system_admins (mail, password, name, name_ruby) VALUES
-('admin1@example.com', 'password1', 'ŠÇ—Ò1', '‚©‚ñ‚è‚µ‚á‚¢‚¿'),
-('admin2@example.com', 'password2', 'ŠÇ—Ò2', '‚©‚ñ‚è‚µ‚á‚É'),
-('admin3@example.com', 'password3', 'ŠÇ—Ò3', '‚©‚ñ‚è‚µ‚á‚³‚ñ'),
-('admin4@example.com', 'password4', 'ŠÇ—Ò4', '‚©‚ñ‚è‚µ‚á‚æ‚ñ'),
-('admin5@example.com', 'password5', 'ŠÇ—Ò5', '‚©‚ñ‚è‚µ‚á‚²'),
-('admin6@example.com', 'password6', 'ŠÇ—Ò6', '‚©‚ñ‚è‚µ‚á‚ë‚­'),
-('admin7@example.com', 'password7', 'ŠÇ—Ò7', '‚©‚ñ‚è‚µ‚á‚È‚È'),
-('admin8@example.com', 'password8', 'ŠÇ—Ò8', '‚©‚ñ‚è‚µ‚á‚Í‚¿'),
-('admin9@example.com', 'password9', 'ŠÇ—Ò9', '‚©‚ñ‚è‚µ‚á‚«‚ã‚¤'),
-('admin10@example.com', 'password10', 'ŠÇ—Ò10', '‚©‚ñ‚è‚µ‚á‚¶‚ã‚¤');
+('admin1@example.com', 'password1', 'ç®¡ç†è€…1', 'ã‹ã‚“ã‚Šã—ã‚ƒã„ã¡'),
+('admin2@example.com', 'password2', 'ç®¡ç†è€…2', 'ã‹ã‚“ã‚Šã—ã‚ƒã«'),
+('admin3@example.com', 'password3', 'ç®¡ç†è€…3', 'ã‹ã‚“ã‚Šã—ã‚ƒã•ã‚“'),
+('admin4@example.com', 'password4', 'ç®¡ç†è€…4', 'ã‹ã‚“ã‚Šã—ã‚ƒã‚ˆã‚“'),
+('admin5@example.com', 'password5', 'ç®¡ç†è€…5', 'ã‹ã‚“ã‚Šã—ã‚ƒã”'),
+('admin6@example.com', 'password6', 'ç®¡ç†è€…6', 'ã‹ã‚“ã‚Šã—ã‚ƒã‚ã'),
+('admin7@example.com', 'password7', 'ç®¡ç†è€…7', 'ã‹ã‚“ã‚Šã—ã‚ƒãªãª'),
+('admin8@example.com', 'password8', 'ç®¡ç†è€…8', 'ã‹ã‚“ã‚Šã—ã‚ƒã¯ã¡'),
+('admin9@example.com', 'password9', 'ç®¡ç†è€…9', 'ã‹ã‚“ã‚Šã—ã‚ƒãã‚…ã†'),
+('admin10@example.com', 'password10', 'ç®¡ç†è€…10', 'ã‹ã‚“ã‚Šã—ã‚ƒã˜ã‚…ã†');
 
--- 2) ”é‘ƒ‰ƒ“ƒNƒ}ƒXƒ^ (3Œ)
+-- 2) ç§˜æ›¸ãƒ©ãƒ³ã‚¯ãƒã‚¹ã‚¿ (3ä»¶)
 INSERT INTO secretary_rank (rank_name, description, increase_base_pay_customer, increase_base_pay_secretary) VALUES
-('‰‹‰', '‰SÒ', 0, 0),
-('’†‹‰', '’†‹‰Ò', 100, 50),
-('ã‹‰', 'ã‹‰Ò', 200, 100);
+('åˆç´š', 'åˆå¿ƒè€…', 0, 0),
+('ä¸­ç´š', 'ä¸­ç´šè€…', 100, 50),
+('ä¸Šç´š', 'ä¸Šç´šè€…', 200, 100);
 
--- 3) ”é‘ (10ŒAƒ‰ƒ“ƒN‚ÍzŠÂŠ„“–)
+-- 3) ç§˜æ›¸ (10ä»¶ã€ãƒ©ãƒ³ã‚¯ã¯å¾ªç’°å‰²å½“)
 WITH
 ranks AS (
   SELECT id, ROW_NUMBER() OVER (ORDER BY rank_name) AS rn
@@ -234,30 +234,30 @@ SELECT
   'password' || g                                   AS password,
   r.id                                              AS secretary_rank_id,
   CASE WHEN g % 2 = 0 THEN TRUE ELSE FALSE END      AS is_pm_secretary,
-  '”é‘' || g                                        AS name,
-  '‚Ğ‚µ‚å' || g                                      AS name_ruby,
+  'ç§˜æ›¸' || g                                        AS name,
+  'ã²ã—ã‚‡' || g                                      AS name_ruby,
   '03-1234-56' || g                                 AS phone,
   LPAD((1000000 + g)::text, 7, '0')                 AS postal_code,
-  '“Œ‹“s`‹æƒeƒXƒg' || g                            AS address1
+  'æ±äº¬éƒ½æ¸¯åŒºãƒ†ã‚¹ãƒˆ' || g                            AS address1
 FROM nums n
 JOIN cnt  c ON TRUE
 JOIN ranks r
   ON ((n.g - 1) % c.c) + 1 = r.rn;
 
--- 4) ŒÚ‹q (10Œ)
+-- 4) é¡§å®¢ (10ä»¶)
 INSERT INTO customers (company_code, company_name, mail, phone, postal_code, address1, building) VALUES
-('C001', 'Š”®‰ïĞAlpha',  'alpha@example.com',  '03-1111-1111', '1000001', '“Œ‹“sç‘ã“c‹æç‘ã“c1-1', 'Alphaƒrƒ‹'),
-('C002', 'Š”®‰ïĞBeta',   'beta@example.com',   '03-2222-2222', '1000002', '“Œ‹“sç‘ã“c‹æŠÛ‚Ì“à1-2', 'Betaƒ^ƒ['),
-('C003', 'Š”®‰ïĞGamma',  'gamma@example.com',  '03-3333-3333', '1000003', '“Œ‹“s’†‰›‹æ“ú–{‹´1-3', 'Gammaƒrƒ‹'),
-('C004', 'Š”®‰ïĞDelta',  'delta@example.com',  '03-4444-4444', '1000004', '“Œ‹“s’†‰›‹æ‹âÀ1-4', 'Deltaƒ^ƒ['),
-('C005', 'Š”®‰ïĞEpsilon','epsilon@example.com','03-5555-5555','1000005','“Œ‹“s`‹æ˜Z–{–Ø1-5','Epsilonƒrƒ‹'),
-('C006', 'Š”®‰ïĞZeta',   'zeta@example.com',   '03-6666-6666', '1000006', '“Œ‹“s`‹æÔâ1-6', 'Zetaƒ^ƒ['),
-('C007', 'Š”®‰ïĞEta',    'eta@example.com',    '03-7777-7777', '1000007', '“Œ‹“sVh‹æ¼Vh1-7', 'Etaƒrƒ‹'),
-('C008', 'Š”®‰ïĞTheta',  'theta@example.com',  '03-8888-8888', '1000008', '“Œ‹“sa’J‹æa’J1-8', 'Thetaƒ^ƒ['),
-('C009', 'Š”®‰ïĞIota',   'iota@example.com',   '03-9999-9999', '1000009', '“Œ‹“s–L“‡‹æ’r‘Ü1-9', 'Iotaƒrƒ‹'),
-('C010', 'Š”®‰ïĞKappa',  'kappa@example.com',  '03-0000-0000', '1000010', '“Œ‹“s•iì‹æ‘åè1-10', 'Kappaƒrƒ‹');
+('C001', 'æ ªå¼ä¼šç¤¾Alpha',  'alpha@example.com',  '03-1111-1111', '1000001', 'æ±äº¬éƒ½åƒä»£ç”°åŒºåƒä»£ç”°1-1', 'Alphaãƒ“ãƒ«'),
+('C002', 'æ ªå¼ä¼šç¤¾Beta',   'beta@example.com',   '03-2222-2222', '1000002', 'æ±äº¬éƒ½åƒä»£ç”°åŒºä¸¸ã®å†…1-2', 'Betaã‚¿ãƒ¯ãƒ¼'),
+('C003', 'æ ªå¼ä¼šç¤¾Gamma',  'gamma@example.com',  '03-3333-3333', '1000003', 'æ±äº¬éƒ½ä¸­å¤®åŒºæ—¥æœ¬æ©‹1-3', 'Gammaãƒ“ãƒ«'),
+('C004', 'æ ªå¼ä¼šç¤¾Delta',  'delta@example.com',  '03-4444-4444', '1000004', 'æ±äº¬éƒ½ä¸­å¤®åŒºéŠ€åº§1-4', 'Deltaã‚¿ãƒ¯ãƒ¼'),
+('C005', 'æ ªå¼ä¼šç¤¾Epsilon','epsilon@example.com','03-5555-5555','1000005','æ±äº¬éƒ½æ¸¯åŒºå…­æœ¬æœ¨1-5','Epsilonãƒ“ãƒ«'),
+('C006', 'æ ªå¼ä¼šç¤¾Zeta',   'zeta@example.com',   '03-6666-6666', '1000006', 'æ±äº¬éƒ½æ¸¯åŒºèµ¤å‚1-6', 'Zetaã‚¿ãƒ¯ãƒ¼'),
+('C007', 'æ ªå¼ä¼šç¤¾Eta',    'eta@example.com',    '03-7777-7777', '1000007', 'æ±äº¬éƒ½æ–°å®¿åŒºè¥¿æ–°å®¿1-7', 'Etaãƒ“ãƒ«'),
+('C008', 'æ ªå¼ä¼šç¤¾Theta',  'theta@example.com',  '03-8888-8888', '1000008', 'æ±äº¬éƒ½æ¸‹è°·åŒºæ¸‹è°·1-8', 'Thetaã‚¿ãƒ¯ãƒ¼'),
+('C009', 'æ ªå¼ä¼šç¤¾Iota',   'iota@example.com',   '03-9999-9999', '1000009', 'æ±äº¬éƒ½è±Šå³¶åŒºæ± è¢‹1-9', 'Iotaãƒ“ãƒ«'),
+('C010', 'æ ªå¼ä¼šç¤¾Kappa',  'kappa@example.com',  '03-0000-0000', '1000010', 'æ±äº¬éƒ½å“å·åŒºå¤§å´1-10', 'Kappaãƒ“ãƒ«');
 
--- 5) ŒÚ‹q’S“–Ò (10ŒAŠeŒÚ‹q‚É1–¼Eå’S“–‚Éİ’è)
+-- 5) é¡§å®¢æ‹…å½“è€… (10ä»¶ã€å„é¡§å®¢ã«1åãƒ»ä¸»æ‹…å½“ã«è¨­å®š)
 WITH numbered_customers AS (
   SELECT id, ROW_NUMBER() OVER (ORDER BY company_code) AS g
   FROM customers
@@ -268,14 +268,14 @@ SELECT
   'contact' || g || '@example.com',
   'password' || g,
   id,
-  '’S“–Ò' || g,
-  '‚½‚ñ‚Æ‚¤‚µ‚á' || g,
+  'æ‹…å½“è€…' || g,
+  'ãŸã‚“ã¨ã†ã—ã‚ƒ' || g,
   '090-0000-00' || g,
-  '•”' || g,
-  TRUE  -- ŠeŒÚ‹q1–¼‚È‚Ì‚Åå’S“–‚É‚µ‚Ä‚¨‚­
+  'éƒ¨ç½²' || g,
+  TRUE  -- å„é¡§å®¢1åãªã®ã§ä¸»æ‹…å½“ã«ã—ã¦ãŠã
 FROM numbered_customers;
 
--- 6) customers.primary_contact_id ‚ğ’S“–ÒID‚Å–„‚ß‚éiBˆÄ‚ÌŠÌj
+-- 6) customers.primary_contact_id ã‚’æ‹…å½“è€…IDã§åŸ‹ã‚ã‚‹ï¼ˆBæ¡ˆã®è‚ï¼‰
 UPDATE customers c
 SET primary_contact_id = cc.id
 FROM customer_contacts cc
@@ -283,7 +283,7 @@ WHERE cc.customer_id = c.id
   AND c.primary_contact_id IS NULL
   AND cc.is_primary = TRUE;
 
--- 7) ‹Æ–±ƒ‰ƒ“ƒNƒ}ƒXƒ^ (5Œ)
+-- 7) æ¥­å‹™ãƒ©ãƒ³ã‚¯ãƒã‚¹ã‚¿ (5ä»¶)
 INSERT INTO task_rank (rank_name, base_pay_customer, base_pay_secretary) VALUES
 ('P', 2500, 1500),
 ('A', 2500, 1500),
@@ -296,17 +296,25 @@ ALTER TABLE assignments
 ALTER TABLE assignments
     ADD COLUMN created_by_system_admin UUID REFERENCES system_admins(id);
     
-UPDATE secretaries SET name = '²“¡ ‰Ôq', name_ruby = 'ƒTƒgƒE ƒnƒiƒR' WHERE secretary_code = 'S001';
-UPDATE secretaries SET name = '—é–Ø ”üç', name_ruby = 'ƒXƒYƒL ƒ~ƒTƒL' WHERE secretary_code = 'S002';
-UPDATE secretaries SET name = '‚‹´ Œ‹ˆß', name_ruby = 'ƒ^ƒJƒnƒV ƒ†ƒC' WHERE secretary_code = 'S003';
-UPDATE secretaries SET name = '“c’† Ê', name_ruby = 'ƒ^ƒiƒJ ƒAƒ„ƒJ' WHERE secretary_code = 'S004';
-UPDATE secretaries SET name = 'ˆÉ“¡ ”ü•ä', name_ruby = 'ƒCƒgƒE ƒ~ƒz' WHERE secretary_code = 'S005';
-UPDATE secretaries SET name = '“n•Ó ^—R', name_ruby = 'ƒƒ^ƒiƒx ƒ}ƒ†' WHERE secretary_code = 'S006';
-UPDATE secretaries SET name = '’†‘º Œb',   name_ruby = 'ƒiƒJƒ€ƒ‰ ƒƒOƒ~' WHERE secretary_code = 'S007';
-UPDATE secretaries SET name = '¬—Ñ ‰À“Ş', name_ruby = 'ƒRƒoƒ„ƒV ƒJƒi' WHERE secretary_code = 'S008';
-UPDATE secretaries SET name = '‰Á“¡ ”ü˜a', name_ruby = 'ƒJƒgƒE ƒ~ƒ' WHERE secretary_code = 'S009';
-UPDATE secretaries SET name = 'R–{ —¹', name_ruby = 'ƒ„ƒ}ƒ‚ƒg ƒŠƒT' WHERE secretary_code = 'S010';
+UPDATE secretaries SET name = 'ä½è—¤ èŠ±å­', name_ruby = 'ã‚µãƒˆã‚¦ ãƒãƒŠã‚³' WHERE secretary_code = 'S001';
+UPDATE secretaries SET name = 'éˆ´æœ¨ ç¾å’²', name_ruby = 'ã‚¹ã‚ºã‚­ ãƒŸã‚µã‚­' WHERE secretary_code = 'S002';
+UPDATE secretaries SET name = 'é«˜æ©‹ çµè¡£', name_ruby = 'ã‚¿ã‚«ãƒã‚· ãƒ¦ã‚¤' WHERE secretary_code = 'S003';
+UPDATE secretaries SET name = 'ç”°ä¸­ å½©é¦™', name_ruby = 'ã‚¿ãƒŠã‚« ã‚¢ãƒ¤ã‚«' WHERE secretary_code = 'S004';
+UPDATE secretaries SET name = 'ä¼Šè—¤ ç¾ç©‚', name_ruby = 'ã‚¤ãƒˆã‚¦ ãƒŸãƒ›' WHERE secretary_code = 'S005';
+UPDATE secretaries SET name = 'æ¸¡è¾º çœŸç”±', name_ruby = 'ãƒ¯ã‚¿ãƒŠãƒ™ ãƒãƒ¦' WHERE secretary_code = 'S006';
+UPDATE secretaries SET name = 'ä¸­æ‘ æµ',   name_ruby = 'ãƒŠã‚«ãƒ ãƒ© ãƒ¡ã‚°ãƒŸ' WHERE secretary_code = 'S007';
+UPDATE secretaries SET name = 'å°æ— ä½³å¥ˆ', name_ruby = 'ã‚³ãƒãƒ¤ã‚· ã‚«ãƒŠ' WHERE secretary_code = 'S008';
+UPDATE secretaries SET name = 'åŠ è—¤ ç¾å’Œ', name_ruby = 'ã‚«ãƒˆã‚¦ ãƒŸãƒ¯' WHERE secretary_code = 'S009';
+UPDATE secretaries SET name = 'å±±æœ¬ ç†æ²™', name_ruby = 'ãƒ¤ãƒãƒ¢ãƒˆ ãƒªã‚µ' WHERE secretary_code = 'S010';
 
 CREATE UNIQUE INDEX IF NOT EXISTS uq_assignments_ym_cust_sec_rank
 ON assignments (target_year_month, customer_id, secretary_id, task_rank_id)
 WHERE deleted_at IS NULL;
+
+ALTER TABLE task_rank
+ADD COLUMN rank_no INTEGER;
+UPDATE task_rank SET rank_no = 0 WHERE rank_name = 'P';
+UPDATE task_rank SET rank_no = 10 WHERE rank_name = 'A';
+UPDATE task_rank SET rank_no = 20 WHERE rank_name = 'B';
+UPDATE task_rank SET rank_no = 30 WHERE rank_name = 'C';
+UPDATE task_rank SET rank_no = 40 WHERE rank_name = 'D';
