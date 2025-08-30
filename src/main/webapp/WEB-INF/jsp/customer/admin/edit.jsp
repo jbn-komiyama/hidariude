@@ -23,7 +23,7 @@
 
     <div class="card shadow-sm">
       <div class="card-body">
-        <form method="post" action="<%= request.getContextPath() %>/admin/customer/edit_done">
+        <form method="post" action="<%= request.getContextPath() %>/admin/customer/edit_check"> 
           <input type="hidden" name="id" value="${customer.id}"/>
 
           <div class="row g-3">
