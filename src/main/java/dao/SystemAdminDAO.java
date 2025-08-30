@@ -4,6 +4,8 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.UUID;
 
 import dto.SystemAdminDTO;
@@ -44,9 +46,30 @@ public class SystemAdminDAO extends BaseDAO {
 
     private static final String SQL_DELETE_LOGICAL =
         "UPDATE system_admins SET deleted_at = CURRENT_TIMESTAMP WHERE id = ? AND deleted_at IS NULL";
+    
+    private static final String SQL_SELECT_ALL =
+        SQL_SELECT_BASE + " WHERE deleted_at IS NULL ORDER BY created_at";
+
+    private static final String SQL_COUNT_BY_MAIL =
+        "SELECT COUNT(*) FROM system_admins WHERE deleted_at IS NULL AND mail = ?";
+
+    private static final String SQL_COUNT_BY_MAIL_EXCEPT_ID =
+        "SELECT COUNT(*) FROM system_admins WHERE deleted_at IS NULL AND mail = ? AND id <> ?";
 
     public SystemAdminDAO(Connection conn) {
         super(conn);
+    }
+    
+    // 一覧
+    public List<SystemAdminDTO> selectAll() {
+        try (PreparedStatement ps = conn.prepareStatement(SQL_SELECT_ALL);
+             ResultSet rs = ps.executeQuery()) {
+            List<SystemAdminDTO> list = new ArrayList<>();
+            while (rs.next()) list.add(mapRow(rs));
+            return list;
+        } catch (SQLException e) {
+            throw new DAOException("E:A01 system_admins 全件取得に失敗しました。", e);
+        }
     }
 
     /**
@@ -143,6 +166,31 @@ public class SystemAdminDAO extends BaseDAO {
             ps.executeUpdate();
         } catch (SQLException e) {
             throw new DAOException("E:A23 system_admins 論理DELETE に失敗しました。", e);
+        }
+    }
+    
+    // メール重複チェック
+    public boolean mailExists(String mail) {
+        try (PreparedStatement ps = conn.prepareStatement(SQL_COUNT_BY_MAIL)) {
+            ps.setString(1, mail);
+            try (ResultSet rs = ps.executeQuery()) {
+                return rs.next() && rs.getInt(1) >= 1;
+            }
+        } catch (SQLException e) {
+            throw new DAOException("E:A41 system_admins.mail 重複チェックに失敗しました。", e);
+        }
+    }
+
+    // 自ID除外のメール重複チェック
+    public boolean mailExistsExceptId(String mail, UUID excludeId) {
+        try (PreparedStatement ps = conn.prepareStatement(SQL_COUNT_BY_MAIL_EXCEPT_ID)) {
+            ps.setString(1, mail);
+            ps.setObject(2, excludeId);
+            try (ResultSet rs = ps.executeQuery()) {
+                return rs.next() && rs.getInt(1) >= 1;
+            }
+        } catch (SQLException e) {
+            throw new DAOException("E:A42 system_admins.mail(除外) 重複チェックに失敗しました。", e);
         }
     }
 

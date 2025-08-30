@@ -28,6 +28,16 @@ import dto.CustomerDTO;
 import dto.SecretaryDTO;
 import dto.TaskRankDTO;
 
+
+/**
+ * アサイン（assignment）登録/一覧のアプリケーションサービス。
+ * <ul>
+ *   <li>一覧（当月）表示</li>
+ *   <li>通常登録：入力 → 確認 → 完了</li>
+ *   <li>PM登録：入力 → 確認 → 完了</li>
+ * </ul>
+ * 入力値検証は {@code Validation} を利用し、重複チェックは DAO で実施します。
+ */
 public class AssignmentService extends BaseService {
 	
 	// =========================================================
@@ -52,10 +62,14 @@ public class AssignmentService extends BaseService {
     private static final String P_COMPANY_NAME  = "companyName";
     private static final String P_ID            = "id";
 
-    // ★ CHANGED: View パスを定数化（スペルミス予防）
-    private static final String VIEW_HOME          = "assignment/admin/home";
-    private static final String VIEW_REGISTER      = "assignment/admin/register";
-    private static final String VIEW_PM_REGISTER   = "assignment/admin/pm_register";
+    // ビュー名
+    private static final String VIEW_HOME                = "assignment/admin/home";
+    private static final String VIEW_REGISTER            = "assignment/admin/register";
+    private static final String VIEW_REGISTER_CHECK      = "assignment/admin/register_check";
+    private static final String VIEW_REGISTER_DONE       = "assignment/admin/register_done";
+    private static final String VIEW_PM_REGISTER         = "assignment/admin/pm_register";
+    private static final String VIEW_PM_REGISTER_CHECK   = "assignment/admin/pm_register_check";
+    private static final String VIEW_PM_REGISTER_DONE    = "assignment/admin/pm_register_done";
 
     // ★ CHANGED: 変換用インスタンスをフィールド化（new の重複排除）
     private final Converter conv = new Converter();
@@ -120,7 +134,7 @@ public class AssignmentService extends BaseService {
 
 			req.setAttribute("customers", customers);
 			req.setAttribute("targetYm", yearMonth);
-			return "assignment/admin/home";
+			return VIEW_HOME;
 
 		} catch (RuntimeException e) {
 			e.printStackTrace();
@@ -147,278 +161,173 @@ public class AssignmentService extends BaseService {
      * ★ CHANGED: 登録画面表示の共通ハンドラ。
      * @param pmMode true=PM画面／false=通常画面
      */
+    /** 入力画面の共通表示。 */
     private String showRegister(boolean pmMode) {
         String ym = req.getParameter(P_TARGET_YM);
-        if (ym == null || ym.isBlank()) {
-            ym = LocalDate.now().format(YM_FMT);
-        }
+        if (ym == null || ym.isBlank()) ym = LocalDate.now().format(YM_FMT);
         req.setAttribute("targetYm", ym);
 
-        // 画面別に必要な会社IDパラメータ名が違う
         final String idParam = pmMode ? P_COMPANY_ID : P_ID;
         final String companyIdStr = req.getParameter(idParam);
         final String companyName  = req.getParameter(P_COMPANY_NAME);
 
-        // 必須チェック（会社名／会社ID）
         if (validation.isNull("会社名", companyName) || validation.isNull("会社ID", companyIdStr)) {
             return req.getContextPath() + "/admin/assignment";
         }
 
         try (TransactionManager tm = new TransactionManager()) {
-            // ここではID/名称のみで画面表示。必要に応じてDBから精細情報を取得してください。
             Customer customer = new Customer();
             customer.setId(UUID.fromString(companyIdStr));
             customer.setCompanyName(companyName);
             req.setAttribute("customer", customer);
 
-            // プルダウン
             loadSecretariesToRequest(tm, pmMode);
             if (pmMode) {
                 loadPMTaskRankToRequest(tm);
+                return VIEW_PM_REGISTER;
             } else {
                 loadTaskRanksToRequest(tm);
+                return VIEW_REGISTER;
             }
-
-            return pmMode ? VIEW_PM_REGISTER : VIEW_REGISTER;
-
         } catch (RuntimeException e) {
             return req.getContextPath() + req.getServletPath() + "/error";
         }
     }
 
-	public String assignmentRegisterDone() {
-		String customerIdStr = req.getParameter("customerId");
-		String secretaryIdStr = req.getParameter("secretaryId");
-		String taskRankIdStr = req.getParameter("taskRankId");
-		String targetYearMonth = req.getParameter("targetYearMonth");
+    // ========= 確認画面（POST） =========
 
-		String basePayCustomerStr = req.getParameter("basePayCustomer");
-		String basePaySecretaryStr = req.getParameter("basePaySecretary");
-		String increaseBasePayCustomerStr = req.getParameter("increaseBasePayCustomer");
-		String increaseBasePaySecretaryStr = req.getParameter("increaseBasePaySecretary");
-		String incentiveCustomerStr = req.getParameter("customerBasedIncentiveForCustomer");
-		String incentiveSecretaryStr = req.getParameter("customerBasedIncentiveForSecretary");
+    /** 通常登録の確認へ。入力値をそのまま積みます。 */
+    public String assignmentRegisterCheck() {
+        pushFormBackToRequestForCheck(false);
+        return VIEW_REGISTER_CHECK;
+    }
 
-		String status = req.getParameter("status");
+    /** PM登録の確認へ。入力値をそのまま積みます。 */
+    public String assignmentPMRegisterCheck() {
+        pushFormBackToRequestForCheck(true);
+        return VIEW_PM_REGISTER_CHECK;
+    }
 
-		// 必須
-		validation.isNull("顧客", customerIdStr);
-		validation.isNull("秘書", secretaryIdStr);
-		validation.isNull("業務ランク", taskRankIdStr);
-		validation.isNull("対象月", targetYearMonth);
+    // ========= 完了（INSERT） =========
 
-		// UUID 形式
-		if (!validation.isUuid(customerIdStr))
-			validation.addErrorMsg("顧客の指定が不正です");
-		if (!validation.isUuid(secretaryIdStr))
-			validation.addErrorMsg("秘書の指定が不正です");
-		if (!validation.isUuid(taskRankIdStr))
-			validation.addErrorMsg("業務ランクの指定が不正です");
+    /** 通常登録の完了（INSERT）。 */
+    public String assignmentRegisterDone() {
+        return handleInsert(false);
+    }
 
-		// 年月(yyyy-MM)
-		if (!validation.isYearMonth(targetYearMonth))
-			validation.addErrorMsg("対象月は yyyy-MM 形式で入力してください");
+    /** PM登録の完了（INSERT）。 */
+    public String assignmentPMRegisterDone() {
+        return handleInsert(true);
+    }
 
-		// 金額（0以上の整数。小数不要の要件に合わせる）
-		validation.mustBeMoneyOrZero("単価（顧客）", basePayCustomerStr);
-		validation.mustBeMoneyOrZero("単価（秘書）", basePaySecretaryStr);
-		validation.mustBeMoneyOrZero("増額（顧客）", increaseBasePayCustomerStr);
-		validation.mustBeMoneyOrZero("増額（秘書）", increaseBasePaySecretaryStr);
-		// 継続単価（任意だが、入っていたら同じチェック）
-		if (!validation.isBlank(incentiveCustomerStr))
-			validation.mustBeMoneyOrZero("継続単価（顧客）", incentiveCustomerStr);
-		if (!validation.isBlank(incentiveSecretaryStr))
-			validation.mustBeMoneyOrZero("継続単価（秘書）", incentiveSecretaryStr);
+    // ========= 内部処理（INSERT共通） =========
 
-		// エラーがあれば戻す（入力値も返す）
-		if (validation.hasErrorMsg()) {
-			req.setAttribute("errorMsg", validation.getErrorMsg());
+    private String handleInsert(boolean pmMode) {
+        // 取得
+        String customerIdStr = req.getParameter(P_CUSTOMER_ID);
+        String secretaryIdStr = req.getParameter(P_SECRETARY_ID);
+        String taskRankIdStr  = req.getParameter(P_TASK_RANK_ID);
+        String ym             = req.getParameter(P_TARGET_YM);
+        String baseCustStr    = req.getParameter(P_BASE_CUST);
+        String baseSecStr     = req.getParameter(P_BASE_SEC);
+        String incCustStr     = pmMode ? "0" : req.getParameter(P_INC_CUST);
+        String incSecStr      = pmMode ? "0" : req.getParameter(P_INC_SEC);
+        String incentCustStr  = pmMode ? "0" : req.getParameter(P_INCENT_CUST);
+        String incentSecStr   = pmMode ? "0" : req.getParameter(P_INCENT_SEC);
+        String status         = req.getParameter(P_STATUS);
 
-			// 入力値を画面に戻す（name 属性と合わせる）
-			req.setAttribute("form_customerId", customerIdStr);
-			req.setAttribute("form_secretaryId", secretaryIdStr);
-			req.setAttribute("form_taskRankId", taskRankIdStr);
-			req.setAttribute("form_targetYearMonth", targetYearMonth);
-			req.setAttribute("form_basePayCustomer", basePayCustomerStr);
-			req.setAttribute("form_basePaySecretary", basePaySecretaryStr);
-			req.setAttribute("form_increaseBasePayCustomer", increaseBasePayCustomerStr);
-			req.setAttribute("form_increaseBasePaySecretary", increaseBasePaySecretaryStr);
-			req.setAttribute("form_customerBasedIncentiveForCustomer", incentiveCustomerStr);
-			req.setAttribute("form_customerBasedIncentiveForSecretary", incentiveSecretaryStr);
-			req.setAttribute("form_status", status);
+        // 検証
+        validation.isNull("顧客", customerIdStr);
+        validation.isNull("秘書", secretaryIdStr);
+        validation.isNull("業務ランク", taskRankIdStr);
+        validation.isNull("対象月", ym);
+        if (!validation.isUuid(customerIdStr)) validation.addErrorMsg("顧客の指定が不正です");
+        if (!validation.isUuid(secretaryIdStr)) validation.addErrorMsg("秘書の指定が不正です");
+        if (!validation.isUuid(taskRankIdStr))  validation.addErrorMsg("業務ランクの指定が不正です");
+        if (!validation.isYearMonth(ym))        validation.addErrorMsg("対象月は yyyy-MM 形式で入力してください");
 
-			// 画面再表示用のプルダウンデータ（customers/secretaries/taskRanks）が必要ならここで再取得して積む
-			// CustomerDAO/SecretaryDAO/TaskRankDAO を使って再セットしてください。
+        validation.mustBeMoneyOrZero("単価（顧客）", baseCustStr);
+        validation.mustBeMoneyOrZero("単価（秘書）", baseSecStr);
+        if (!pmMode) {
+            validation.mustBeMoneyOrZero("増額（顧客）", incCustStr);
+            validation.mustBeMoneyOrZero("増額（秘書）", incSecStr);
+            if (!validation.isBlank(incentCustStr)) validation.mustBeMoneyOrZero("継続単価（顧客）", incentCustStr);
+            if (!validation.isBlank(incentSecStr))  validation.mustBeMoneyOrZero("継続単価（秘書）", incentSecStr);
+        }
 
-			return "assignment/admin/register";
-		}
+        if (validation.hasErrorMsg()) {
+            populateFormBackForRegister(customerIdStr, secretaryIdStr, taskRankIdStr, ym,
+                    baseCustStr, baseSecStr, incCustStr, incSecStr, incentCustStr, incentSecStr, status);
+            try (TransactionManager tm = new TransactionManager()) {
+                loadSecretariesToRequest(tm, pmMode);
+                if (pmMode) loadPMTaskRankToRequest(tm); else loadTaskRanksToRequest(tm);
+            }
+            return pmMode ? VIEW_PM_REGISTER : VIEW_REGISTER;
+        }
 
-		HttpSession session = ((HttpServletRequest) req).getSession(false);
-		LoginUser loginUser = (session == null) ? null : (LoginUser) session.getAttribute("loginUser");
+        // DTO 組立
+        AssignmentDTO dto = buildAssignmentDto(
+                customerIdStr, secretaryIdStr, taskRankIdStr, ym,
+                baseCustStr, baseSecStr, incCustStr, incSecStr, incentCustStr, incentSecStr, status);
 
-		try (TransactionManager tm = new TransactionManager()) {
-			UUID customerId = UUID.fromString(customerIdStr);
-			UUID secretaryId = UUID.fromString(secretaryIdStr);
-			UUID taskRankId = UUID.fromString(taskRankIdStr);
+        try (TransactionManager tm = new TransactionManager()) {
+            AssignmentDAO dao = new AssignmentDAO(tm.getConnection());
 
-			BigDecimal basePayCustomer = new BigDecimal(basePayCustomerStr);
-			BigDecimal basePaySecretary = new BigDecimal(basePaySecretaryStr);
-			BigDecimal incPayCustomer = new BigDecimal(increaseBasePayCustomerStr);
-			BigDecimal incPaySecretary = new BigDecimal(increaseBasePaySecretaryStr);
-			BigDecimal incentiveCust = (incentiveCustomerStr == null || incentiveCustomerStr.isEmpty())
-					? BigDecimal.ZERO
-					: new BigDecimal(incentiveCustomerStr);
-			BigDecimal incentiveSec = (incentiveSecretaryStr == null || incentiveSecretaryStr.isEmpty())
-					? BigDecimal.ZERO
-					: new BigDecimal(incentiveSecretaryStr);
+            if (dao.existsDuplicate(dto)) {
+                validation.addErrorMsg("同月・同顧客・同秘書・同ランクのアサインは既に登録済みです。");
+                populateFormBackForRegister(customerIdStr, secretaryIdStr, taskRankIdStr, ym,
+                        baseCustStr, baseSecStr, incCustStr, incSecStr, incentCustStr, incentSecStr, status);
+                loadSecretariesToRequest(tm, pmMode);
+                if (pmMode) loadPMTaskRankToRequest(tm); else loadTaskRanksToRequest(tm);
+                return pmMode ? VIEW_PM_REGISTER : VIEW_REGISTER;
+            }
 
-			AssignmentDTO dto = new AssignmentDTO();
-			dto.setAssignmentCustomerId(customerId);
-			dto.setAssignmentSecretaryId(secretaryId);
-			dto.setTaskRankId(taskRankId);
-			dto.setTargetYearMonth(targetYearMonth);
-			dto.setBasePayCustomer(basePayCustomer);
-			dto.setBasePaySecretary(basePaySecretary);
-			dto.setIncreaseBasePayCustomer(incPayCustomer);
-			dto.setIncreaseBasePaySecretary(incPaySecretary);
-			dto.setCustomerBasedIncentiveForCustomer(incentiveCust);
-			dto.setCustomerBasedIncentiveForSecretary(incentiveSec);
-			dto.setAssignmentStatus(status);
-			//	        dto.setAssignmentCreatedBy(loginUser.getSystemAdmin().getId());
+            dao.insert(dto);
+            tm.commit();
+            return pmMode ? VIEW_PM_REGISTER_DONE : VIEW_REGISTER_DONE;
 
-			AssignmentDAO dao = new AssignmentDAO(tm.getConnection());
+        } catch (RuntimeException e) {
+            e.printStackTrace();
+            return req.getContextPath() + req.getServletPath() + "/error";
+        }
+    }
 
-		    // 事前重複チェック
-		    if (dao.existsDuplicate(dto)) {
-		        validation.addErrorMsg("同月・同顧客・同秘書・同ランクのアサインは既に登録済みです。");
-		        req.setAttribute("errorMsg", validation.getErrorMsg());
-		        return req.getContextPath() + "/admin/assignment/register";
-		    }
-			dao.insert(dto);
-			tm.commit();
-			return req.getContextPath() + "/admin/assignment";
+    // ========= Helper =========
 
-		} catch (RuntimeException e) {
-			return req.getContextPath() + req.getServletPath() + "/error";
-		}
-	}
-	
-	
-	public String assignmentPMRegisterDone() {
-		String customerIdStr = req.getParameter("customerId");
-		String secretaryIdStr = req.getParameter("secretaryId");
-		String taskRankIdStr = req.getParameter("taskRankId");
-		String targetYearMonth = req.getParameter("targetYearMonth");
-
-		String basePayCustomerStr = req.getParameter("basePayCustomer");
-		String basePaySecretaryStr = req.getParameter("basePaySecretary");
-		String status = req.getParameter("status");
-
-		// 必須
-		validation.isNull("顧客", customerIdStr);
-		validation.isNull("秘書", secretaryIdStr);
-		validation.isNull("業務ランク", taskRankIdStr);
-		validation.isNull("対象月", targetYearMonth);
-
-		// UUID 形式
-		if (!validation.isUuid(customerIdStr))
-			validation.addErrorMsg("顧客の指定が不正です");
-		if (!validation.isUuid(secretaryIdStr))
-			validation.addErrorMsg("秘書の指定が不正です");
-		if (!validation.isUuid(taskRankIdStr))
-			validation.addErrorMsg("業務ランクの指定が不正です");
-
-		// 年月(yyyy-MM)
-		if (!validation.isYearMonth(targetYearMonth))
-			validation.addErrorMsg("対象月は yyyy-MM 形式で入力してください");
-
-		// 金額（0以上の整数。小数不要の要件に合わせる）
-		validation.mustBeMoneyOrZero("単価（顧客）", basePayCustomerStr);
-		validation.mustBeMoneyOrZero("単価（秘書）", basePaySecretaryStr);
-		// エラーがあれば戻す（入力値も返す）
-		if (validation.hasErrorMsg()) {
-			req.setAttribute("errorMsg", validation.getErrorMsg());
-
-			// 入力値を画面に戻す（name 属性と合わせる）
-			req.setAttribute("form_customerId", customerIdStr);
-			req.setAttribute("form_secretaryId", secretaryIdStr);
-			req.setAttribute("form_taskRankId", taskRankIdStr);
-			req.setAttribute("form_targetYearMonth", targetYearMonth);
-			req.setAttribute("form_basePayCustomer", basePayCustomerStr);
-			req.setAttribute("form_basePaySecretary", basePaySecretaryStr);
-			req.setAttribute("form_status", status);
-			// 画面再表示用のプルダウンデータ（customers/secretaries/taskRanks）が必要ならここで再取得して積む
-			// CustomerDAO/SecretaryDAO/TaskRankDAO を使って再セットしてください。
-
-			return "assignment/admin/pm_register";
-		}
-
-		HttpSession session = ((HttpServletRequest) req).getSession(false);
-		LoginUser loginUser = (session == null) ? null : (LoginUser) session.getAttribute("loginUser");
-
-		try (TransactionManager tm = new TransactionManager()) {
-			UUID customerId = UUID.fromString(customerIdStr);
-			UUID secretaryId = UUID.fromString(secretaryIdStr);
-			UUID taskRankId = UUID.fromString(taskRankIdStr);
-
-			BigDecimal basePayCustomer = new BigDecimal(basePayCustomerStr.replaceAll(",", ""));
-			BigDecimal basePaySecretary = new BigDecimal(basePaySecretaryStr.replaceAll(",", ""));
-			BigDecimal incPayCustomer = new BigDecimal(0);
-			BigDecimal incPaySecretary = new BigDecimal(0);
-			BigDecimal incentiveCust = new BigDecimal(0);
-			BigDecimal incentiveSec =  new BigDecimal(0);
-
-			AssignmentDTO dto = new AssignmentDTO();
-			dto.setAssignmentCustomerId(customerId);
-			dto.setAssignmentSecretaryId(secretaryId);
-			dto.setTaskRankId(taskRankId);
-			dto.setTargetYearMonth(targetYearMonth);
-			dto.setBasePayCustomer(basePayCustomer);
-			dto.setBasePaySecretary(basePaySecretary);
-			dto.setIncreaseBasePayCustomer(incPayCustomer);
-			dto.setIncreaseBasePaySecretary(incPaySecretary);
-			dto.setCustomerBasedIncentiveForCustomer(incentiveCust);
-			dto.setCustomerBasedIncentiveForSecretary(incentiveSec);
-			dto.setAssignmentStatus(status);
-			//	        dto.setAssignmentCreatedBy(loginUser.getSystemAdmin().getId());
-
-			AssignmentDAO dao = new AssignmentDAO(tm.getConnection());
-
-		    // 事前重複チェック
-		    if (dao.existsDuplicate(dto)) {
-		        validation.addErrorMsg("同月・同顧客・同秘書・同ランクのアサインは既に登録済みです。");
-		        req.setAttribute("errorMsg", validation.getErrorMsg());
-		        return req.getContextPath() + "/admin/assignment/pm_register";
-		    }
-			dao.insert(dto);
-			tm.commit();
-			return req.getContextPath() + "/admin/assignment";
-
-		} catch (RuntimeException e) {
-			e.printStackTrace();
-			return req.getContextPath() + req.getServletPath() + "/error";
-		}
-	}
-	
-	// =========================================================
-    // Helper（共通化メソッド）
-    // =========================================================
-
-    /** 金額入力の共通パーサー（カンマ除去・空/blankは0、trimあり）。 */
-    private BigDecimal parseMoneyOrZero(String s) { // ★ CHANGED: 新規追加（カンマ対応）
+    /** 金額文字列を BigDecimal に変換（空/blank→0、カンマ除去）。 */
+    private BigDecimal parseMoneyOrZero(String s) {
         if (s == null) return BigDecimal.ZERO;
         String t = s.trim();
         if (t.isEmpty()) return BigDecimal.ZERO;
-        t = t.replace(",", "");
-        return new BigDecimal(t);
+        return new BigDecimal(t.replace(",", ""));
+        }
+    /** 確認画面用：入力値を form_* 名でリクエストに積む。 */
+    private void pushFormBackToRequestForCheck(boolean pmMode) {
+        req.setAttribute("form_customerId", req.getParameter(P_CUSTOMER_ID));
+        req.setAttribute("form_secretaryId", req.getParameter(P_SECRETARY_ID));
+        req.setAttribute("form_taskRankId",  req.getParameter(P_TASK_RANK_ID));
+        req.setAttribute("form_targetYearMonth", req.getParameter(P_TARGET_YM));
+        req.setAttribute("form_basePayCustomer",  req.getParameter(P_BASE_CUST));
+        req.setAttribute("form_basePaySecretary", req.getParameter(P_BASE_SEC));
+        if (!pmMode) {
+            req.setAttribute("form_increaseBasePayCustomer", req.getParameter(P_INC_CUST));
+            req.setAttribute("form_increaseBasePaySecretary", req.getParameter(P_INC_SEC));
+            req.setAttribute("form_customerBasedIncentiveForCustomer", req.getParameter(P_INCENT_CUST));
+            req.setAttribute("form_customerBasedIncentiveForSecretary", req.getParameter(P_INCENT_SEC));
+        } else {
+            req.setAttribute("form_increaseBasePayCustomer", "0");
+            req.setAttribute("form_increaseBasePaySecretary", "0");
+            req.setAttribute("form_customerBasedIncentiveForCustomer", "0");
+            req.setAttribute("form_customerBasedIncentiveForSecretary", "0");
+        }
+        req.setAttribute("form_status", req.getParameter(P_STATUS));
     }
-	
-	/** 通常登録画面のフォーム値を戻す（エラー時）。 */
+
+    /** エラー時、入力フォームの値を戻す。 */
     private void populateFormBackForRegister(
-        String customerId, String secretaryId, String taskRankId, String ym,
-        String baseCust, String baseSec, String incCust, String incSec,
-        String incentCust, String incentSec, String status
-    ) { // ★ CHANGED: 共通化
+            String customerId, String secretaryId, String taskRankId, String ym,
+            String baseCust, String baseSec, String incCust, String incSec,
+            String incentCust, String incentSec, String status) {
         req.setAttribute("errorMsg", validation.getErrorMsg());
         req.setAttribute("form_customerId", customerId);
         req.setAttribute("form_secretaryId", secretaryId);
@@ -432,52 +341,45 @@ public class AssignmentService extends BaseService {
         req.setAttribute("form_customerBasedIncentiveForSecretary", incentSec);
         req.setAttribute("form_status", status);
     }
-	
-	/** 画面プルダウン：秘書一覧（PMのみ／全件）を request に積む。 */
-    private void loadSecretariesToRequest(TransactionManager tm, boolean pmOnly) { // ★ CHANGED: 共通化
+
+    /** セレクトボックス用：秘書一覧を request へ（pmOnly=true なら PM のみ）。 */
+    private void loadSecretariesToRequest(TransactionManager tm, boolean pmOnly) {
         SecretaryDAO secretaryDAO = new SecretaryDAO(tm.getConnection());
-        List<SecretaryDTO> secretaryDTOs = pmOnly ? secretaryDAO.selectAllPM() : secretaryDAO.selectAll();
-        List<Secretary> secretaries = new ArrayList<>();
-        for (SecretaryDTO dto : secretaryDTOs) {
-            secretaries.add(conv.toDomain(dto));
-        }
-        req.setAttribute("secretaries", secretaries);
+        List<SecretaryDTO> sDTOs = pmOnly ? secretaryDAO.selectAllPM() : secretaryDAO.selectAll();
+        List<Secretary> list = new ArrayList<>();
+        for (SecretaryDTO d : sDTOs) list.add(conv.toDomain(d));
+        req.setAttribute("secretaries", list);
     }
-	
-	/** 画面プルダウン：タスクランク（全件）を request に積む。 */
-    private void loadTaskRanksToRequest(TransactionManager tm) { // ★ CHANGED: 共通化
+
+    /** セレクトボックス用：全タスクランク一覧。 */
+    private void loadTaskRanksToRequest(TransactionManager tm) {
         TaskRankDAO taskRankDAO = new TaskRankDAO(tm.getConnection());
-        List<TaskRankDTO> taskRankDTOs = taskRankDAO.selectAll();
-        List<TaskRank> taskRanks = new ArrayList<>();
-        for (TaskRankDTO dto : taskRankDTOs) {
-            taskRanks.add(conv.toDomain(dto));
-        }
-        req.setAttribute("taskRanks", taskRanks);
+        List<TaskRankDTO> tDTOs = taskRankDAO.selectAll();
+        List<TaskRank> list = new ArrayList<>();
+        for (TaskRankDTO d : tDTOs) list.add(conv.toDomain(d));
+        req.setAttribute("taskRanks", list);
     }
-	
-	/** 画面プルダウン：PM用タスクランク（rank_no = 0 想定）を request に積む。 */
-    private void loadPMTaskRankToRequest(TransactionManager tm) { // ★ CHANGED: 共通化
+
+    /** 単一（PM）タスクランク。 */
+    private void loadPMTaskRankToRequest(TransactionManager tm) {
         TaskRankDAO taskRankDAO = new TaskRankDAO(tm.getConnection());
-        TaskRankDTO taskRankDTO = taskRankDAO.selectPM();
-        TaskRank taskRank = (taskRankDTO != null) ? conv.toDomain(taskRankDTO) : null;
-        req.setAttribute("taskRank", taskRank);
+        TaskRankDTO d = taskRankDAO.selectPM();
+        req.setAttribute("taskRank", d != null ? conv.toDomain(d) : null);
     }
-	
-	
-	/** 文字列群から AssignmentDTO を構築する共通ビルダー。 */
+
+    /** 文字列群から AssignmentDTO を構築。 */
     private AssignmentDTO buildAssignmentDto(
-        String customerIdStr, String secretaryIdStr, String taskRankIdStr, String targetYearMonth,
-        String basePayCustomerStr, String basePaySecretaryStr,
-        String increaseBasePayCustomerStr, String increaseBasePaySecretaryStr,
-        String incentiveCustomerStr, String incentiveSecretaryStr,
-        String status
-    ) { // ★ CHANGED: 新規追加（DTO組み立て共通化）
+            String customerIdStr, String secretaryIdStr, String taskRankIdStr, String targetYearMonth,
+            String basePayCustomerStr, String basePaySecretaryStr,
+            String increaseBasePayCustomerStr, String increaseBasePaySecretaryStr,
+            String incentiveCustomerStr, String incentiveSecretaryStr,
+            String status) {
+
         AssignmentDTO dto = new AssignmentDTO();
         dto.setAssignmentCustomerId(UUID.fromString(customerIdStr));
         dto.setAssignmentSecretaryId(UUID.fromString(secretaryIdStr));
         dto.setTaskRankId(UUID.fromString(taskRankIdStr));
         dto.setTargetYearMonth(targetYearMonth);
-
         dto.setBasePayCustomer(parseMoneyOrZero(basePayCustomerStr));
         dto.setBasePaySecretary(parseMoneyOrZero(basePaySecretaryStr));
         dto.setIncreaseBasePayCustomer(parseMoneyOrZero(increaseBasePayCustomerStr));

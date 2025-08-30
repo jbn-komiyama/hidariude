@@ -21,7 +21,10 @@
         アサイン一覧
       </a>
       <a href="<%=request.getContextPath()%>/admin/customer" class="list-group-item list-group-item-action">
-        顧客管理
+        顧客一覧
+      </a>
+      <a href="<%=request.getContextPath()%>/admin/customer/register" class="list-group-item list-group-item-action">
+        顧客登録
       </a>
       <a href="<%=request.getContextPath()%>/admin/secretary" class="list-group-item list-group-item-action">
         秘書一覧
