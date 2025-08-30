@@ -1,0 +1,126 @@
+package domain;
+
+import java.io.Serializable;
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.List;
+import java.util.UUID;
+
+public class Customer implements Serializable{
+	private static final long serialVersionUID = 1L;
+	
+	private UUID id;
+	private List<Assignment> assignments = new ArrayList<>();
+	private String companyCode;
+	private String companyName;
+	private String mail;
+	private String phone;
+	private String postalCode;
+	private String address1;
+	private String address2;
+	private String building;
+	private UUID primaryContactId;
+	private List<CustomerContact> customerContacts = new ArrayList<>();
+	private Date createdAt;
+	private Date updatedAt;
+	private Date deletedAt;
+	private CustomerContact customerContact;
+	
+	public UUID getId() {
+		return id;
+	}
+	public void setId(UUID id) {
+		this.id = id;
+	}
+	public String getCompanyCode() {
+		return companyCode;
+	}
+	public void setCompanyCode(String companyCode) {
+		this.companyCode = companyCode;
+	}
+	public String getCompanyName() {
+		return companyName;
+	}
+	public void setCompanyName(String companyName) {
+		this.companyName = companyName;
+	}
+	public String getMail() {
+		return mail;
+	}
+	public void setMail(String mail) {
+		this.mail = mail;
+	}
+	public String getPhone() {
+		return phone;
+	}
+	public void setPhone(String phone) {
+		this.phone = phone;
+	}
+	public String getPostalCode() {
+		return postalCode;
+	}
+	public void setPostalCode(String postalCode) {
+		this.postalCode = postalCode;
+	}
+	public String getAddress1() {
+		return address1;
+	}
+	public void setAddress1(String address1) {
+		this.address1 = address1;
+	}
+	public String getAddress2() {
+		return address2;
+	}
+	public void setAddress2(String address2) {
+		this.address2 = address2;
+	}
+	public String getBuilding() {
+		return building;
+	}
+	public void setBuilding(String building) {
+		this.building = building;
+	}
+	public UUID getPrimaryContactId() {
+		return primaryContactId;
+	}
+	public void setPrimaryContactId(UUID primaryContactId) {
+		this.primaryContactId = primaryContactId;
+	}
+	public List<CustomerContact> getCustomerContacts() { 
+		return customerContacts; 
+		}
+    public void setCustomerContacts(List<CustomerContact> list) { 
+    	this.customerContacts = list; 
+    	}
+	public Date getCreatedAt() {
+		return createdAt;
+	}
+	public void setCreatedAt(Date createdAt) {
+		this.createdAt = createdAt;
+	}
+	public Date getUpdatedAt() {
+		return updatedAt;
+	}
+	public void setUpdatedAt(Date updatedAt) {
+		this.updatedAt = updatedAt;
+	}
+	public Date getDeletedAt() {
+		return deletedAt;
+	}
+	public void setDeletedAt(Date deletedAt) {
+		this.deletedAt = deletedAt;
+	}
+	public List<Assignment> getAssignments() { return assignments; }
+    public void setAssignments(List<Assignment> assignments) { this.assignments = assignments; }
+    public void addAssignment(Assignment a) { if (a != null) this.assignments.add(a); }
+    
+    private java.util.List<AssignmentGroup> assignmentGroups = new java.util.ArrayList<>();
+    public java.util.List<AssignmentGroup> getAssignmentGroups() { return assignmentGroups; }
+    public void setAssignmentGroups(java.util.List<AssignmentGroup> gs) { this.assignmentGroups = gs; }
+	public CustomerContact getCustomerContact() {
+		return customerContact;
+	}
+	public void setCustomerContact(CustomerContact customerContact) {
+		this.customerContact = customerContact;
+	}
+}
