@@ -15,6 +15,7 @@ import domain.LoginUser;
 import service.CommonService;
 import service.CustomerService;
 import service.SecretaryService;
+import service.SystemAdminService;
 import service.AssignmentService;
 
 /**
@@ -119,14 +120,49 @@ public class FrontController extends HttpServlet {
 		case "/assignment/register"->{
 			nextPath = new AssignmentService(req, true).assignmentRegister();
 		}
+		case "/assignment/register_check"->{
+			nextPath = new AssignmentService(req, true).assignmentRegisterCheck();
+		}
 		case "/assignment/register_done"->{
 			nextPath = new AssignmentService(req, true).assignmentRegisterDone();
 		}
 		case "/assignment/pm_register"->{
 			nextPath = new AssignmentService(req, true).assignmentPMRegister();
 		}
+		case "/assignment/pm_register_check"->{
+			nextPath = new AssignmentService(req, true).assignmentPMRegisterCheck();
+		}
 		case "/assignment/pm_register_done"->{
-			nextPath = new AssignmentService(req, true).assignmentRegisterDone();
+			nextPath = new AssignmentService(req, true).assignmentPMRegisterDone();
+		}
+		
+		/**
+		 * A05 システム管理者管理業務
+		 * 
+		 */
+		case "/system_admin"->{
+			nextPath = new SystemAdminService(req, true).systemAdminList();
+		}
+		case "/system_admin/register"->{
+			nextPath = new SystemAdminService(req, true).systemAdminRegister();
+		}
+		case "/system_admin/register_check"->{
+			nextPath = new SystemAdminService(req, true).systemAdminRegisterDone();
+		}
+		case "/system_admin/register_done"->{
+			nextPath = new SystemAdminService(req, true).systemAdminRegisterDone();
+		}
+		case "/system_admin/edit"->{
+			nextPath = new SystemAdminService(req, true).systemAdminEdit();
+		}
+		case "/system_admin/edit_check"->{
+			nextPath = new SystemAdminService(req, true).systemAdminEditCheck();
+		}
+		case "/system_admin/edit_done"->{
+			nextPath = new SystemAdminService(req, true).systemAdminEditDone();
+		}
+		case "/system_admin/delete"->{
+			nextPath = new SystemAdminService(req, true).systemAdminDelete();
 		}
 	}
     }

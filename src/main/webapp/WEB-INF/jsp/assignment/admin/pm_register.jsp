@@ -26,19 +26,19 @@
 
   <div class="card shadow-sm">
     <div class="card-body">
-      <form method="post" action="${pageContext.request.contextPath}/admin/assignment/pm_register_check">
+      <fmt:formatNumber value="${taskRank.basePayCustomer}" maxFractionDigits="0" groupingUsed="false" var="basePayCustomerHidden"/>
+      <fmt:formatNumber value="${taskRank.basePaySecretary}" maxFractionDigits="0" groupingUsed="false" var="basePaySecretaryHidden"/>
+      <form method="post" action="<%= request.getContextPath() %>/admin/assignment/pm_register_check">
         <div class="row g-3">
-          <div class="col-md-6">
-            <label class="form-label">対象月</label>
-            <input type="month" class="form-control" name="targetYearMonth" id="targetYearMonth" value="${targetYm}" required>
-          </div>
-
           <div class="col-md-6">
             <label class="form-label">顧客</label>
             <div class="form-control-plaintext fw-semibold"><c:out value="${customer.companyName}"/></div>
             <input type="hidden" name="customerId" value="${customer.id}">
           </div>
-
+          <div class="col-md-6">
+            <label class="form-label">対象月</label>
+            <input type="month" class="form-control" name="targetYearMonth" id="targetYearMonth" value="${targetYm}" required>
+          </div>
           <div class="col-md-6">
             <label class="form-label">PM秘書</label>
             <select class="form-select" name="secretaryId" id="secretaryId" required>
@@ -58,18 +58,18 @@
           </div>
 
           <div class="col-md-3">
-            <label class="form-label">単価（顧客）</label>
+            <label class="form-label">基本単価（顧客）</label>
             <div class="form-control-plaintext">
               <fmt:formatNumber value="${taskRank.basePayCustomer}" pattern="#,##0"/>
             </div>
-            <input type="hidden" name="basePayCustomer" value="${taskRank.basePayCustomer}">
+            <input type="hidden" name="basePayCustomer" value="${basePayCustomerHidden}">
           </div>
           <div class="col-md-3">
-            <label class="form-label">単価（秘書）</label>
+            <label class="form-label">基本単価（秘書）</label>
             <div class="form-control-plaintext">
               <fmt:formatNumber value="${taskRank.basePaySecretary}" pattern="#,##0"/>
             </div>
-            <input type="hidden" name="basePaySecretary" value="${taskRank.basePaySecretary}">
+            <input type="hidden" name="basePaySecretary" value="${basePaySecretaryHidden}">
           </div>
 
           <div class="col-md-6">
@@ -84,7 +84,7 @@
 
           <div class="col-12 text-end">
             <button type="submit" class="btn btn-primary">確認へ</button>
-            <a href="${pageContext.request.contextPath}/admin/assignment" class="btn btn-secondary">戻る</a>
+            <a href="<%= request.getContextPath() %>/admin/assignment" class="btn btn-secondary">戻る</a>
           </div>
         </div>
       </form>
@@ -92,4 +92,4 @@
   </div>
 </div>
 </body>
-</html></html>
+</html>

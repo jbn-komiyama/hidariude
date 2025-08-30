@@ -64,6 +64,7 @@ public class TaskRankDAO extends BaseDAO {
 			PreparedStatement ps = conn.prepareStatement(
 					SQL_SELECT_BASE + SQL_WHERE_PM);
 			ResultSet rs = ps.executeQuery();
+			System.out.println(SQL_SELECT_BASE + SQL_WHERE_PM);
 			if(rs.next()) {
 				int i = 1;
 				dto.setId(rs.getObject(i++, UUID.class)); 

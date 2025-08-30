@@ -45,7 +45,7 @@ public class SystemAdminService extends BaseService {
      * 一覧表示。
      * @return ビュー名
      */
-    public String home() {
+    public String systemAdminList() {
         try (TransactionManager tm = new TransactionManager()) {
             SystemAdminDAO dao = new SystemAdminDAO(tm.getConnection());
             List<SystemAdminDTO> list = dao.selectAll();
@@ -61,14 +61,14 @@ public class SystemAdminService extends BaseService {
     /**
      * 新規登録 画面表示。
      */
-    public String register() {
+    public String systemAdminRegister() {
         return VIEW_REGISTER;
     }
 
     /**
      * 新規登録 確認。
      */
-    public String registerCheck() {
+    public String systemAdminRegisterCheck() {
         final String mail = req.getParameter(P_MAIL);
         final String password = req.getParameter(P_PASSWORD);
         final String name = req.getParameter(P_NAME);
@@ -101,7 +101,7 @@ public class SystemAdminService extends BaseService {
     /**
      * 新規登録 確定。
      */
-    public String registerDone() {
+    public String systemAdminRegisterDone() {
         final String mail = req.getParameter(P_MAIL);
         final String password = req.getParameter(P_PASSWORD);
         final String name = req.getParameter(P_NAME);
@@ -147,7 +147,7 @@ public class SystemAdminService extends BaseService {
     /**
      * 編集 画面表示。
      */
-    public String edit() {
+    public String systemAdminEdit() {
         final String idStr = req.getParameter(P_ID);
         try (TransactionManager tm = new TransactionManager()) {
             UUID id = UUID.fromString(idStr);
@@ -169,7 +169,7 @@ public class SystemAdminService extends BaseService {
     /**
      * 編集 確認。
      */
-    public String editCheck() {
+    public String systemAdminEditCheck() {
         final String idStr = req.getParameter(P_ID);
         final String mail = req.getParameter(P_MAIL);
         final String password = req.getParameter(P_PASSWORD);
@@ -208,7 +208,7 @@ public class SystemAdminService extends BaseService {
     /**
      * 編集 確定。
      */
-    public String editDone() {
+    public String systemAdminEditDone() {
         final String idStr = req.getParameter(P_ID);
         final String mail = req.getParameter(P_MAIL);
         final String password = req.getParameter(P_PASSWORD);
@@ -273,7 +273,7 @@ public class SystemAdminService extends BaseService {
     /**
      * 論理削除。
      */
-    public String delete() {
+    public String systemAdminDelete() {
         final String idStr = req.getParameter(P_ID);
         try (TransactionManager tm = new TransactionManager()) {
             UUID id = UUID.fromString(idStr);

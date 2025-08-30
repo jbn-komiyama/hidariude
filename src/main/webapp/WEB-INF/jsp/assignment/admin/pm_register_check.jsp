@@ -14,44 +14,83 @@
 <div class="container py-4">
   <h1 class="h4 mb-3">PM秘書 アサイン登録（確認）</h1>
 
+  <c:if test="${not empty errorMsg}">
+    <div class="alert alert-danger">
+      <ul class="mb-0">
+        <c:forEach var="m" items="${errorMsg}">
+          <li><c:out value="${m}"/></li>
+        </c:forEach>
+      </ul>
+    </div>
+  </c:if>
+
   <div class="card shadow-sm">
     <div class="card-body">
-      <dl class="row">
-        <dt class="col-sm-3">対象月</dt>
-        <dd class="col-sm-9"><c:out value="${form_targetYearMonth}"/></dd>
+      <div class="row g-3 mb-2">
+        <div class="col-md-6">
+          <label class="form-label">顧客</label>
+          <div class="form-control-plaintext fw-semibold"><c:out value="${customer.companyName}"/></div>
+        </div>
+        <div class="col-md-6">
+          <label class="form-label">対象月</label>
+          <div class="form-control-plaintext"><c:out value="${targetYm}"/></div>
+        </div>
 
-        <dt class="col-sm-3">顧客ID</dt>
-        <dd class="col-sm-9"><c:out value="${form_customerId}"/></dd>
+        <div class="col-md-6">
+          <label class="form-label">PM秘書</label>
+          <div class="form-control-plaintext"><c:out value="${secretary.name}"/></div>
+        </div>
 
-        <dt class="col-sm-3">秘書ID</dt>
-        <dd class="col-sm-9"><c:out value="${form_secretaryId}"/></dd>
+        <div class="col-md-6">
+          <label class="form-label">タスクランク</label>
+          <div class="form-control-plaintext"><c:out value="${taskRank.rankName}"/></div>
+        </div>
 
-        <dt class="col-sm-3">タスクランクID</dt>
-        <dd class="col-sm-9"><c:out value="${form_taskRankId}"/></dd>
+        <div class="col-md-3">
+          <label class="form-label">基本単価（顧客）</label>
+          <div class="form-control-plaintext">
+            <fmt:formatNumber value="${h_basePayCustomer}" pattern="#,##0"/>
+          </div>
+        </div>
+        <div class="col-md-3">
+          <label class="form-label">基本単価（秘書）</label>
+          <div class="form-control-plaintext">
+            <fmt:formatNumber value="${h_basePaySecretary}" pattern="#,##0"/>
+          </div>
+        </div>
 
-        <dt class="col-sm-3">単価（顧客）</dt>
-        <dd class="col-sm-9"><fmt:formatNumber value="${form_basePayCustomer}" pattern="#,##0"/></dd>
+        <div class="col-md-6">
+          <label class="form-label">ステータス</label>
+          <div class="form-control-plaintext">
+            <c:choose>
+              <c:when test="${empty status}">未選択</c:when>
+              <c:when test="${status == 'draft'}">下書き</c:when>
+              <c:when test="${status == 'active'}">有効</c:when>
+              <c:when test="${status == 'paused'}">一時停止</c:when>
+              <c:otherwise><c:out value="${status}"/></c:otherwise>
+            </c:choose>
+          </div>
+        </div>
+      </div>
 
-        <dt class="col-sm-3">単価（秘書）</dt>
-        <dd class="col-sm-9"><fmt:formatNumber value="${form_basePaySecretary}" pattern="#,##0"/></dd>
+      <form method="post" action="<%= request.getContextPath() %>/admin/assignment/pm_register_done">
+        <!-- 送信用 hidden（サービスの受け取り名に合わせる） -->
+        <input type="hidden" name="customerId"       value="${h_customerId}">
+        <input type="hidden" name="secretaryId"      value="${h_secretaryId}">
+        <input type="hidden" name="taskRankId"       value="${h_taskRankId}">
+        <input type="hidden" name="targetYearMonth"  value="${targetYm}">
+        <input type="hidden" name="basePayCustomer"  value="${h_basePayCustomer}">
+        <input type="hidden" name="basePaySecretary" value="${h_basePaySecretary}">
+        <input type="hidden" name="status"           value="${status}">
 
-        <dt class="col-sm-3">ステータス</dt>
-        <dd class="col-sm-9"><c:out value="${form_status}"/></dd>
-      </dl>
-
-      <form method="post" action="${pageContext.request.contextPath}/admin/assignment/pm_register_done" class="text-end">
-        <input type="hidden" name="customerId" value="${form_customerId}">
-        <input type="hidden" name="secretaryId" value="${form_secretaryId}">
-        <input type="hidden" name="taskRankId" value="${form_taskRankId}">
-        <input type="hidden" name="targetYearMonth" value="${form_targetYearMonth}">
-        <input type="hidden" name="basePayCustomer" value="${form_basePayCustomer}">
-        <input type="hidden" name="basePaySecretary" value="${form_basePaySecretary}">
-        <input type="hidden" name="status" value="${form_status}">
-        <button type="submit" class="btn btn-primary">登録する</button>
-        <a href="javascript:history.back()" class="btn btn-secondary">戻る</a>
+        <div class="text-end">
+          <button type="submit" class="btn btn-primary">登録する</button>
+          <button type="button" class="btn btn-secondary" onclick="history.back()">戻る</button>
+        </div>
       </form>
     </div>
   </div>
+
 </div>
 </body>
 </html>
