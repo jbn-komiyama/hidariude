@@ -5,7 +5,7 @@ import java.sql.SQLException;
 
 public class TransactionManager implements AutoCloseable{
 	private static final String DRIVER_NAME = "org.postgresql.Driver";
-	private static final String DB_URL = "jdbc:postgresql://localhost:5433/postgres";
+	private static final String DB_URL = "jdbc:postgresql://localhost:5433/postgres"; //ここ変更する
 	private static final String SCHEMA = "?currentSchema=public";
 	private static final String DB_USER = "postgres";
 	private static final String DB_PASSWORD = "password";
