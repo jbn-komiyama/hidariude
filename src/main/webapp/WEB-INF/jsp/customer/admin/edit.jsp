@@ -24,48 +24,57 @@
     <div class="card shadow-sm">
       <div class="card-body">
         <form method="post" action="<%= request.getContextPath() %>/admin/customer/edit_check"> 
-          <input type="hidden" name="id" value="${customer.id}"/>
+          <!-- 入力値が積まれていればそれを、なければ customer.id を使う -->
+          <input type="hidden" name="id" value="${not empty id ? id : customer.id}"/>
 
           <div class="row g-3">
 
             <div class="col-md-4">
               <label class="form-label">会社コード</label>
-              <input type="text" name="companyCode" class="form-control" value="${customer.companyCode}">
+              <input type="text" name="companyCode" class="form-control"
+                     value="${not empty companyCode ? companyCode : customer.companyCode}">
             </div>
 
             <div class="col-md-8">
               <label class="form-label">会社名 <span class="text-danger">*</span></label>
-              <input type="text" name="companyName" class="form-control" value="${customer.companyName}" required>
+              <input type="text" name="companyName" class="form-control" required
+                     value="${not empty companyName ? companyName : customer.companyName}">
             </div>
 
             <div class="col-md-6">
               <label class="form-label">メール</label>
-              <input type="email" name="mail" class="form-control" value="${customer.mail}">
+              <input type="email" name="mail" class="form-control"
+                     value="${not empty mail ? mail : customer.mail}">
             </div>
 
             <div class="col-md-6">
               <label class="form-label">電話番号</label>
-              <input type="text" name="phone" class="form-control" value="${customer.phone}">
+              <input type="text" name="phone" class="form-control"
+                     value="${not empty phone ? phone : customer.phone}">
             </div>
 
             <div class="col-md-3">
               <label class="form-label">郵便番号</label>
-              <input type="text" name="postalCode" class="form-control" value="${customer.postalCode}">
+              <input type="text" name="postalCode" class="form-control"
+                     value="${not empty postalCode ? postalCode : customer.postalCode}">
             </div>
 
             <div class="col-md-9">
               <label class="form-label">住所1（都道府県・市区町村）</label>
-              <input type="text" name="address1" class="form-control" value="${customer.address1}">
+              <input type="text" name="address1" class="form-control"
+                     value="${not empty address1 ? address1 : customer.address1}">
             </div>
 
             <div class="col-md-6">
               <label class="form-label">住所2（番地・建物名等）</label>
-              <input type="text" name="address2" class="form-control" value="${customer.address2}">
+              <input type="text" name="address2" class="form-control"
+                     value="${not empty address2 ? address2 : customer.address2}">
             </div>
 
             <div class="col-md-6">
               <label class="form-label">ビル名</label>
-              <input type="text" name="building" class="form-control" value="${customer.building}">
+              <input type="text" name="building" class="form-control"
+                     value="${not empty building ? building : customer.building}">
             </div>
 
           </div>
