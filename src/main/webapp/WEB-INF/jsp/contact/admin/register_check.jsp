@@ -18,7 +18,7 @@
           顧客：<span class="fw-semibold"><c:out value="${customer.companyName}"/></span>
         </div>
       </div>
-      <a href="<%= request.getContextPath() %>/admin/customer/contact?customerId=${customer.id}" class="btn btn-outline-secondary btn-sm">一覧へ戻る</a>
+      <a href="<%= request.getContextPath() %>/admin/contact?customerId=${customer.id}" class="btn btn-outline-secondary btn-sm">一覧へ戻る</a>
     </div>
 
     <div class="card shadow-sm">
@@ -53,7 +53,7 @@
 
         <div class="d-flex justify-content-end gap-2 mt-4">
           <!-- 戻る（入力値維持） -->
-          <form method="post" action="<%= request.getContextPath() %>/admin/customer/contact/register" class="m-0">
+          <form method="post" action="<%= request.getContextPath() %>/admin//contact/register" class="m-0">
             <input type="hidden" name="customerId" value="${customer.id}">
             <input type="hidden" name="name" value="${name}">
             <input type="hidden" name="nameRuby" value="${nameRuby}">
@@ -66,7 +66,7 @@
           </form>
 
           <!-- 確定 -->
-          <form method="post" action="<%= request.getContextPath() %>/admin/customer/contact/register_done" class="m-0">
+          <form method="post" action="<%= request.getContextPath() %>/admin/contact/register_done" class="m-0">
             <input type="hidden" name="customerId" value="${customer.id}">
             <input type="hidden" name="name" value="${name}">
             <input type="hidden" name="nameRuby" value="${nameRuby}">

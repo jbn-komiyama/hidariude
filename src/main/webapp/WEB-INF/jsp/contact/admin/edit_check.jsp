@@ -18,7 +18,7 @@
           顧客：<span class="fw-semibold"><c:out value="${customer.companyName}"/></span>
         </div>
       </div>
-      <a href="<%= request.getContextPath() %>/admin/customer/contact?customerId=${customer.id}" class="btn btn-outline-secondary btn-sm">一覧へ戻る</a>
+      <a href="<%= request.getContextPath() %>/admin/contact?customerId=${customer.id}" class="btn btn-outline-secondary btn-sm">一覧へ戻る</a>
     </div>
 
     <div class="card shadow-sm">
@@ -49,7 +49,7 @@
         </dl>
 
         <div class="d-flex justify-content-end gap-2 mt-4">
-          <form method="post" action="<%= request.getContextPath() %>/admin/customer/contact/edit" class="m-0">
+          <form method="post" action="<%= request.getContextPath() %>/admin/contact/edit" class="m-0">
             <input type="hidden" name="customerId" value="${customer.id}">
             <input type="hidden" name="id" value="${id}">
             <input type="hidden" name="name" value="${name}">
@@ -61,7 +61,7 @@
             <button type="submit" class="btn btn-outline-secondary">戻る</button>
           </form>
 
-          <form method="post" action="<%= request.getContextPath() %>/admin/customer/contact/edit_done" class="m-0">
+          <form method="post" action="<%= request.getContextPath() %>/admin/contact/edit_done" class="m-0">
             <input type="hidden" name="customerId" value="${customer.id}">
             <input type="hidden" name="id" value="${id}">
             <input type="hidden" name="name" value="${name}">

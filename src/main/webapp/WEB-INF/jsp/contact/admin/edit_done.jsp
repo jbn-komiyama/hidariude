@@ -15,7 +15,7 @@
       <div class="card-body text-center">
         <h1 class="h4 mb-3">担当者の更新が完了しました。</h1>
         <p class="text-muted mb-4">${message}</p>
-        <a href="<%= request.getContextPath() %>/admin/customer/contact?customerId=${customer.id}" class="btn btn-primary">担当者一覧へ</a>
+        <a href="<%= request.getContextPath() %>/admin/contact?customerId=${customer.id}" class="btn btn-primary">担当者一覧へ</a>
       </div>
     </div>
   </div>
