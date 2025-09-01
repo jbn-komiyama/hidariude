@@ -4,10 +4,11 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
+import jakarta.servlet.http.HttpServletRequest;
+
 import dao.SystemAdminDAO;
 import dao.TransactionManager;
 import dto.SystemAdminDTO;
-import jakarta.servlet.http.HttpServletRequest;
 
 /**
  * システム管理者（system_admins）の画面遷移・ユースケースを担うサービス。
@@ -16,13 +17,13 @@ import jakarta.servlet.http.HttpServletRequest;
 public class SystemAdminService extends BaseService {
 
     // ====== View names ======
-    private static final String VIEW_HOME           = "system_admin/admin/home";
-    private static final String VIEW_REGISTER       = "system_admin/admin/register";
-    private static final String VIEW_REGISTER_CHECK = "system_admin/admin/register_check";
-    private static final String VIEW_REGISTER_DONE  = "system_admin/admin/register_done";
-    private static final String VIEW_EDIT           = "system_admin/admin/edit";
-    private static final String VIEW_EDIT_CHECK     = "system_admin/admin/edit_check";
-    private static final String VIEW_EDIT_DONE      = "system_admin/admin/edit_done";
+    private static final String VIEW_HOME           = "systemadmin/admin/home";
+    private static final String VIEW_REGISTER       = "systemadmin/admin/register";
+    private static final String VIEW_REGISTER_CHECK = "systemadmin/admin/register_check";
+    private static final String VIEW_REGISTER_DONE  = "systemadmin/admin/register_done";
+    private static final String VIEW_EDIT           = "systemadmin/admin/edit";
+    private static final String VIEW_EDIT_CHECK     = "systemadmin/admin/edit_check";
+    private static final String VIEW_EDIT_DONE      = "systemadmin/admin/edit_done";
 
     // ====== Attr keys ======
     private static final String A_ADMINS   = "admins";
@@ -50,6 +51,7 @@ public class SystemAdminService extends BaseService {
             SystemAdminDAO dao = new SystemAdminDAO(tm.getConnection());
             List<SystemAdminDTO> list = dao.selectAll();
             req.setAttribute(A_ADMINS, new ArrayList<>(list));
+            System.out.println("VIEW_HOME");
             return VIEW_HOME;
         } catch (RuntimeException e) {
             validation.addErrorMsg("データベースに不正な操作が行われました");
