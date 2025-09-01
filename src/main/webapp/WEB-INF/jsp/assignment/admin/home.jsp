@@ -74,8 +74,8 @@
 							      <form method="post"
 							            action="<%= request.getContextPath() %>/admin/assignment/register"
 							            class="d-inline ms-2">
-							        <input type="hidden" name="customerId" value="${c.id}">
-							        <input type="hidden" name="customerId" value="${c.companyName}">
+							        <input type="hidden" name="id" value="${c.id}">
+							        <input type="hidden" name="companyName" value="${c.companyName}">
 							        <button type="submit" class="btn btn-sm btn-outline-primary">
 							          秘書登録
 							        </button>
