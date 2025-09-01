@@ -24,7 +24,7 @@
           <input type="text" name="secretaryCode" class="form-control" value="${secretaryCode}">
         </div>
         <div class="col-md-4">
-          <label class="form-label">ランク</label>
+          <label class="form-label">ランク <span class="text-danger">*</span></label>
           <select name="secretaryRankId" class="form-select">
             <option value="">選択してください</option>
             <c:forEach var="r" items="${sessionScope.ranks}">
@@ -38,7 +38,7 @@
         </div>
 
         <div class="col-md-6">
-          <label class="form-label">氏名</label>
+          <label class="form-label">氏名 <span class="text-danger">*</span></label>
           <input type="text" name="name" class="form-control" value="${name}" required>
         </div>
         <div class="col-md-6">
@@ -47,11 +47,11 @@
         </div>
 
         <div class="col-md-6">
-          <label class="form-label">メール</label>
+          <label class="form-label">メール <span class="text-danger">*</span></label>
           <input type="email" name="mail" class="form-control" value="${mail}" required>
         </div>
         <div class="col-md-6">
-          <label class="form-label">パスワード</label>
+          <label class="form-label">パスワード <span class="text-danger">*</span></label>
           <input type="password" name="password" class="form-control" value="${password}" required>
         </div>
 

@@ -112,6 +112,7 @@ public class SecretaryService extends BaseService{
             // 既存テンプレートに合わせてセッションに格納
             HttpSession session = req.getSession(true);
             session.setAttribute(A_RANKS, ranks);
+            pushFormBackToRequest();
             return VIEW_REGISTER;
 
         } catch (RuntimeException e) {
