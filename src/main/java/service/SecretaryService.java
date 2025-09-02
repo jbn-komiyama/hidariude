@@ -9,6 +9,7 @@ import jakarta.servlet.http.HttpSession;
 
 import dao.SecretaryDAO;
 import dao.TransactionManager;
+import domain.LoginUser;
 import domain.Secretary;
 import domain.SecretaryRank;
 import dto.SecretaryDTO;
@@ -31,6 +32,11 @@ public class SecretaryService extends BaseService{
     private static final String VIEW_EDIT            = "secretary/admin/edit";
     private static final String VIEW_EDIT_CHECK      = "secretary/admin/edit_check";
     private static final String VIEW_EDIT_DONE       = "secretary/admin/edit_done";
+    private static final String VIEW_MYPAGE           = "secretary/mypage/home"; 
+    private static final String VIEW_MYPAGE_EDIT      = "secretary/mypage/edit"; 
+    private static final String VIEW_MYPAGE_EDIT_CHECK= "secretary/mypage/edit_check"; 
+    private static final String VIEW_MYPAGE_EDIT_DONE = "secretary/mypage/edit_done"; 
+    
 
     // ==============================
     // リクエスト・パラメータ名
@@ -236,7 +242,6 @@ public class SecretaryService extends BaseService{
             SecretaryDTO dto = dao.selectByUUId(id);
             Secretary secretary = conv.toDomain(dto);
 
-            // ランク一覧
             List<SecretaryRankDTO> rankDtos = dao.selectRankAll();
             List<SecretaryRank> ranks = new ArrayList<>(rankDtos.size());
             for (SecretaryRankDTO r : rankDtos) ranks.add(conv.toDomain(r));
@@ -271,13 +276,11 @@ public class SecretaryService extends BaseService{
         final String secretaryRankId = param(P_SECRETARY_RANK);
 
         // 入力検証
-        validation.isNull("ID", idStr);
         validation.isNull("名前", name);
         validation.isNull("メールアドレス", mail);
         if (notBlank(postalCode)) validation.isPostalCode(postalCode);
         if (notBlank(phone))      validation.isPhoneNumber(phone);
         if (notBlank(mail))       validation.isEmail(mail);
-        if (!notBlank(secretaryRankId)) validation.addErrorMsg("秘書ランクを選択してください。");
 
         // 重複チェック（自ID除外）
         if (!validation.hasErrorMsg() && validation.isUuid(idStr)) {
@@ -410,6 +413,202 @@ public class SecretaryService extends BaseService{
 	
 	
 	// =========================================================
+    // 秘書マイページ（画面）
+    // =========================================================
+
+    /**
+     * 秘書のマイページ情報を取得して表示。
+     */
+    public String myPageList() {
+    	UUID myId = currentSecretaryId(); 
+        if (myId == null) {
+            validation.addErrorMsg("ログイン情報が見つかりません。");
+            req.setAttribute(A_ERROR_MSG, validation.getErrorMsg());
+            return req.getContextPath() + req.getServletPath() + "/error";
+        }
+        try (TransactionManager tm = new TransactionManager()) {
+            SecretaryDAO dao = new SecretaryDAO(tm.getConnection());
+            SecretaryDTO dto = dao.selectByUUId(myId);         
+            if (dto == null) {
+                validation.addErrorMsg("アカウント情報が取得できませんでした。");
+                req.setAttribute(A_ERROR_MSG, validation.getErrorMsg());
+                return req.getContextPath() + req.getServletPath() + "/error";
+            }
+            Secretary secretary = conv.toDomain(dto);
+            req.setAttribute("secretary", secretary);                         
+            return VIEW_MYPAGE;
+        } catch (RuntimeException e) {
+            validation.addErrorMsg("データベースに不正な操作が行われました");
+            req.setAttribute(A_ERROR_MSG, validation.getErrorMsg());
+            return req.getContextPath() + req.getServletPath() + "/error";
+        }
+    }
+    
+    /**
+     * 編集画面を表示。
+     */
+    public String myPageEdit() {
+    	UUID myId = currentSecretaryId();      
+    	    if (myId == null) {
+    	        validation.addErrorMsg("ログイン情報が見つかりません。");
+    	        req.setAttribute(A_ERROR_MSG, validation.getErrorMsg());
+    	        return req.getContextPath() + req.getServletPath() + "/error";
+    	    }
+    	    try (TransactionManager tm = new TransactionManager()) {
+    	        SecretaryDAO dao = new SecretaryDAO(tm.getConnection());
+    	        SecretaryDTO dto = dao.selectByUUId(myId);
+    	        if (dto == null) {
+    	            validation.addErrorMsg("アカウント情報が取得できませんでした。");
+    	            req.setAttribute(A_ERROR_MSG, validation.getErrorMsg());
+    	            return req.getContextPath() + req.getServletPath() + "/error";
+    	        }
+    	        Secretary secretary = conv.toDomain(dto);
+    	        req.setAttribute("secretary", secretary);
+    	        pushMyPageFormBackToRequest(); 
+    	        return VIEW_MYPAGE_EDIT;
+    	    } catch (RuntimeException e) {
+    	        validation.addErrorMsg("データベースに不正な操作が行われました");
+    	        req.setAttribute(A_ERROR_MSG, validation.getErrorMsg());
+    	        return req.getContextPath() + req.getServletPath() + "/error";
+    	    }
+    }
+	
+    
+    /**
+     * 編集の確認画面。
+     * <p>ここで自ID除外の重複チェックも行い、弾ければ編集画面に戻します。</p>
+     */
+    public String myPageEditCheck() {
+    	UUID myId = currentSecretaryId();   
+    	    if (myId == null) {
+    	        validation.addErrorMsg("ログイン情報が見つかりません。");
+    	        req.setAttribute(A_ERROR_MSG, validation.getErrorMsg());
+    	        return req.getContextPath() + req.getServletPath() + "/error";
+    	    }
+
+    	    final String password   = req.getParameter(P_PASSWORD);
+    	    final String name       = req.getParameter(P_NAME);
+    	    final String mail       = req.getParameter(P_MAIL);
+    	    final String phone      = req.getParameter(P_PHONE);
+    	    final String postalCode = req.getParameter(P_POSTAL_CODE);
+    	    final String address1   = req.getParameter(P_ADDRESS1);
+    	    final String address2   = req.getParameter(P_ADDRESS2);
+    	    final String building   = req.getParameter(P_BUILDING);
+
+    	    // 必須＆形式（本人が編集できる範囲のみ）
+    	    validation.isNull("氏名", name);
+    	    validation.isNull("メールアドレス", mail);
+    	    if (notBlank(mail))       validation.isEmail(mail);
+    	    if (notBlank(postalCode)) validation.isPostalCode(postalCode);
+    	    if (notBlank(phone))      validation.isPhoneNumber(phone);
+    	    if (notBlank(password) && password.length() < 8) {
+    	        validation.addErrorMsg("パスワードは8文字以上で入力してください。");
+    	    }
+
+    	    // メール重複（自分以外）
+    	    if (!validation.hasErrorMsg()) {
+    	        try (TransactionManager tm = new TransactionManager()) {
+    	            SecretaryDAO dao = new SecretaryDAO(tm.getConnection());
+    	            SecretaryDTO dto = dao.selectByUUId(myId);  
+    	            if (dto == null) {
+    	                validation.addErrorMsg("アカウント情報が取得できませんでした。");
+    	            } else if (notBlank(mail) && dao.mailCheckExceptId(mail, dto.getId())) { 
+    	                validation.addErrorMsg("登録いただいたメールアドレスはすでに使われています。");
+    	            }
+    	        }
+    	    }
+
+    	    if (validation.hasErrorMsg()) {
+    	        req.setAttribute(A_ERROR_MSG, validation.getErrorMsg());
+    	        pushMyPageFormBackToRequest(); 
+    	        return VIEW_MYPAGE_EDIT;
+    	    }
+
+    	    pushMyPageFormBackToRequest();
+    	    return VIEW_MYPAGE_EDIT_CHECK;
+    }
+
+    
+    /**
+     * 編集確定処理。
+     */
+    public String myPageEditDone() {
+    	UUID myId = currentSecretaryId();      
+    	    if (myId == null) {
+    	        validation.addErrorMsg("ログイン情報が見つかりません。");
+    	        req.setAttribute(A_ERROR_MSG, validation.getErrorMsg());
+    	        return req.getContextPath() + req.getServletPath() + "/error";
+    	    }
+
+    	    final String password   = req.getParameter(P_PASSWORD);
+    	    final String name       = req.getParameter(P_NAME);
+    	    final String nameRuby   = req.getParameter(P_NAME_RUBY);
+    	    final String mail       = req.getParameter(P_MAIL);
+    	    final String phone      = req.getParameter(P_PHONE);
+    	    final String postalCode = req.getParameter(P_POSTAL_CODE);
+    	    final String address1   = req.getParameter(P_ADDRESS1);
+    	    final String address2   = req.getParameter(P_ADDRESS2);
+    	    final String building   = req.getParameter(P_BUILDING);
+
+    	    // 再検証
+    	    validation.isNull("氏名", name);
+    	    validation.isNull("メールアドレス", mail);
+    	    if (notBlank(mail))       validation.isEmail(mail);
+    	    if (notBlank(postalCode)) validation.isPostalCode(postalCode);
+    	    if (notBlank(phone))      validation.isPhoneNumber(phone);
+    	    if (notBlank(password) && password.length() < 8) {
+    	        validation.addErrorMsg("パスワードは8文字以上で入力してください。");
+    	    }
+    	    if (validation.hasErrorMsg()) {
+    	        req.setAttribute(A_ERROR_MSG, validation.getErrorMsg());
+    	        pushMyPageFormBackToRequest();
+    	        return VIEW_MYPAGE_EDIT;
+    	    }
+
+    	    try (TransactionManager tm = new TransactionManager()) {
+    	        SecretaryDAO dao = new SecretaryDAO(tm.getConnection());
+    	        SecretaryDTO id = dao.selectByUUId(myId);        
+    	        if (id == null) {
+    	            validation.addErrorMsg("アカウント情報が取得できませんでした。");
+    	            req.setAttribute(A_ERROR_MSG, validation.getErrorMsg());
+    	            return req.getContextPath() + req.getServletPath() + "/error";
+    	        }
+
+    	        // 非編集項目は維持しつつ、編集許可された項目のみ上書き
+    	        SecretaryDTO dto = new SecretaryDTO();
+    	        dto.setId(dto.getId());
+    	        dto.setSecretaryCode(dto.getSecretaryCode());   
+    	        dto.setPmSecretary(dto.isPmSecretary());        
+    	        dto.setSecretaryRankId(dto.getSecretaryRankId());  
+
+    	        // 編集可フィールド
+    	        dto.setName(name);
+    	        dto.setNameRuby(nameRuby);
+    	        dto.setMail(mail);
+    	        dto.setPhone(phone);
+    	        dto.setPostalCode(postalCode);
+    	        dto.setAddress1(address1);
+    	        dto.setAddress2(address2);
+    	        dto.setBuilding(building);
+    	        if (notBlank(password)) {
+    	            dto.setPassword(password);                        
+    	        } else {
+    	            dto.setPassword(dto.getPassword());              // 未入力は現行維持
+    	        }
+
+    	        int num = dao.update(dto);                          
+    	        tm.commit();
+
+    	        req.setAttribute(A_MESSAGE, "マイページを更新しました（件数:" + num + "）");
+    	        return VIEW_MYPAGE_EDIT_DONE;
+    	    } catch (RuntimeException e) {
+    	        validation.addErrorMsg("データベースに不正な操作が行われました");
+    	        req.setAttribute(A_ERROR_MSG, validation.getErrorMsg());
+    	        return req.getContextPath() + req.getServletPath() + "/error";
+    	    }
+    }
+	
+	// =========================================================
     // Private helpers
     // =========================================================
 	
@@ -418,9 +617,9 @@ public class SecretaryService extends BaseService{
 	private boolean notBlank(String s) { return s != null && !s.isBlank(); }
 	
     /**
-     * 入力値を request に戻す（エラー時の再描画用）。
+     * 入力値を request に戻す（エラー時の再描画用）
      */
-    private void pushFormBackToRequest() { // ★ CHANGED: 共通化
+    private void pushFormBackToRequest() { 
         req.setAttribute(P_SECRETARY_CODE,  req.getParameter(P_SECRETARY_CODE));
         req.setAttribute(P_NAME,            req.getParameter(P_NAME));
         req.setAttribute(P_NAME_RUBY,       req.getParameter(P_NAME_RUBY));
@@ -434,5 +633,33 @@ public class SecretaryService extends BaseService{
         req.setAttribute(P_PM_SECRETARY,    req.getParameter(P_PM_SECRETARY));
         req.setAttribute(P_SECRETARY_RANK,  req.getParameter(P_SECRETARY_RANK));
     }
-	
+
+    /**
+     * 入力値を request に戻す（マイページ編集用）
+     */
+    private void pushMyPageFormBackToRequest() {
+        req.setAttribute(P_PASSWORD,    req.getParameter(P_PASSWORD)); // 任意（空は未変更扱い）
+        req.setAttribute(P_NAME,        req.getParameter(P_NAME));
+        req.setAttribute(P_NAME_RUBY,   req.getParameter(P_NAME_RUBY));
+        req.setAttribute(P_MAIL,        req.getParameter(P_MAIL));
+        req.setAttribute(P_PHONE,       req.getParameter(P_PHONE));
+        req.setAttribute(P_POSTAL_CODE, req.getParameter(P_POSTAL_CODE));
+        req.setAttribute(P_ADDRESS1,    req.getParameter(P_ADDRESS1));
+        req.setAttribute(P_ADDRESS2,    req.getParameter(P_ADDRESS2));
+        req.setAttribute(P_BUILDING,    req.getParameter(P_BUILDING));
+    }
+    
+    /**
+     * マイページ関連業務の際、セッションから ログインID を取得
+     */
+    private UUID currentSecretaryId() { 
+        HttpSession session = req.getSession(false);
+        if (session == null) return null;
+        Object user = session.getAttribute("loginUser");
+        if (user instanceof LoginUser loginUser && loginUser.getSecretary() != null) {
+            return loginUser.getSecretary().getId();
+        }
+        return null;
+    }
+
 }

@@ -227,6 +227,29 @@ public class FrontController extends HttpServlet {
 			 * 
 			 */
 			
+			/**
+			 * A03 労働実績記録業務
+			 * 
+			 */
+			
+			/**
+			 * A04 マイページ編集業務
+			 * 
+			 */
+			case "/mypage"->{
+				nextPath = new SecretaryService(req, true).myPageList();
+			}
+			
+			case "/mypage/edit"->{
+				nextPath = new SecretaryService(req, true).myPageEdit();
+			}
+			case "/mypage/edit_check"->{
+				nextPath = new SecretaryService(req, true).myPageEditCheck();
+			}
+			case "/mypage/edit_done"->{
+				nextPath = new SecretaryService(req, true).myPageEditDone();
+			}
+			
     	}
 	}
     
@@ -246,18 +269,34 @@ public class FrontController extends HttpServlet {
 			 * A01 共通
 			 */
 			case "/login"->{
-				nextPath = new CommonService(req, true).secretaryLogin();
+				nextPath = new CommonService(req, true).customerLogin();
 			}
 			
 			case "/home"->{
-				nextPath = "common/secretary/home";
+				nextPath = new CommonService(req, true).customerHome();
 			}
 			
 			/**
 			 * A02 秘書管理業務
 			 * 
 			 */
+			/**
+			 * A04 顧客ページ編集業務
+			 * 
+			 */
+			case "/customerpage"->{
+				nextPath = new CustomerService(req, true).customerPageList();
+			}
 			
+			case "/customerpage/edit"->{
+				nextPath = new CustomerService(req, true).customerPageEdit();
+			}
+			case "/customerpage/edit_check"->{
+				nextPath = new CustomerService(req, true).customerPageEditCheck();
+			}
+			case "/customerpage/edit_done"->{
+				nextPath = new CustomerService(req, true).customerPageEditDone();
+			}
     	}
 	}
     

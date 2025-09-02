@@ -47,6 +47,24 @@ public class AssignmentDAO extends BaseDAO {
       + " WHERE c.deleted_at IS NULL"
       + " ORDER BY c.company_name, tr.rank_name, a.created_at NULLS LAST";
 
+    /** 指定顧客の既存 assignments を取得 */
+    private static final String SQL_SELECT_BY_CUSTOMER_FROM_YM =
+        "SELECT "
+      + " a.id, a.customer_id, a.secretary_id, a.task_rank_id, a.target_year_month, "
+      + " a.base_pay_customer, a.base_pay_secretary, "
+      + " a.increase_base_pay_customer, a.increase_base_pay_secretary, "
+      + " a.customer_based_incentive_for_customer, a.customer_based_incentive_for_secretary, "
+      + " a.status, a.created_at, a.updated_at, a.deleted_at, "
+      + " tr.rank_name, "
+      + " s.id, s.secretary_rank_id, s.name "
+      + " FROM assignments a "
+      + " LEFT JOIN task_rank tr ON tr.id = a.task_rank_id "
+      + " LEFT JOIN secretaries s ON s.id = a.secretary_id AND s.deleted_at IS NULL "
+      + " WHERE a.deleted_at IS NULL "
+      + "   AND a.customer_id = ? "
+      + "   AND a.target_year_month >= ? "
+      + " ORDER BY a.target_year_month ASC, tr.rank_name ASC, s.name ASC"; 
+    
     /** assignments の INSERT（id を RETURNING） */
     private static final String SQL_INSERT =
         "INSERT INTO assignments ("
@@ -141,7 +159,6 @@ public class AssignmentDAO extends BaseDAO {
                         i += 12;
                     }
 
-                    // ---- assignments (15)
                     UUID aId = rs.getObject(i++, UUID.class);
                     if (aId != null) {
                         AssignmentDTO ad = new AssignmentDTO();
@@ -160,18 +177,11 @@ public class AssignmentDAO extends BaseDAO {
                         ad.setAssignmentCreatedAt(rs.getTimestamp(i++));
                         ad.setAssignmentUpdatedAt(rs.getTimestamp(i++));
                         ad.setAssignmentDeletedAt(rs.getTimestamp(i++));
-
-                        // ---- task_rank (1)
                         ad.setTaskRankName(rs.getString(i++));
-
-                        // ---- secretaries (3)
                         ad.setSecretaryId(rs.getObject(i++, UUID.class));
                         ad.setSecretaryRankId(rs.getObject(i++, UUID.class));
                         ad.setSecretaryName(rs.getString(i++));
-
-                        // ---- secretary_rank (1)
                         ad.setSecretaryRankName(rs.getString(i++));
-
                         c.getAssignmentDTOs().add(ad);
                     } else {
                         // a.id が NULL（当該月にアサインなし）の場合は読み飛ばしでOK
@@ -185,6 +195,53 @@ public class AssignmentDAO extends BaseDAO {
             throw new DAOException("E:AS11 指定月の assignments 取得に失敗しました。", e);
         }
     }
+    
+    /**
+     * 指定顧客の今月以降のアサイン一覧を取得します。
+     * @param customerId 顧客ID
+     * @param fromYm     "yyyy-MM"（例: 2025-09）
+     */
+    public List<AssignmentDTO> selectByCustomerFromYearMonth(java.util.UUID customerId, String fromYm) {
+        try (PreparedStatement ps = conn.prepareStatement(SQL_SELECT_BY_CUSTOMER_FROM_YM)) {
+            int p = 1;
+            ps.setObject(p++, customerId);
+            ps.setString(p++, fromYm);
+            try (ResultSet rs = ps.executeQuery()) {
+                List<AssignmentDTO> list = new ArrayList<>();
+                while (rs.next()) {
+                    int i = 1;
+                    AssignmentDTO ad = new AssignmentDTO();
+                    // assignments (15)
+                    ad.setAssignmentId(rs.getObject(i++, java.util.UUID.class));
+                    ad.setAssignmentCustomerId(rs.getObject(i++, java.util.UUID.class));
+                    ad.setAssignmentSecretaryId(rs.getObject(i++, java.util.UUID.class));
+                    ad.setTaskRankId(rs.getObject(i++, java.util.UUID.class));
+                    ad.setTargetYearMonth(rs.getString(i++));
+                    ad.setBasePayCustomer(rs.getBigDecimal(i++));
+                    ad.setBasePaySecretary(rs.getBigDecimal(i++));
+                    ad.setIncreaseBasePayCustomer(rs.getBigDecimal(i++));
+                    ad.setIncreaseBasePaySecretary(rs.getBigDecimal(i++));
+                    ad.setCustomerBasedIncentiveForCustomer(rs.getBigDecimal(i++));
+                    ad.setCustomerBasedIncentiveForSecretary(rs.getBigDecimal(i++));
+                    ad.setAssignmentStatus(rs.getString(i++));
+                    ad.setAssignmentCreatedAt(rs.getTimestamp(i++));
+                    ad.setAssignmentUpdatedAt(rs.getTimestamp(i++));
+                    ad.setAssignmentDeletedAt(rs.getTimestamp(i++));
+                    ad.setTaskRankName(rs.getString(i++));
+
+                    // secretaries (3)
+                    ad.setSecretaryId(rs.getObject(i++, java.util.UUID.class));
+                    ad.setSecretaryRankId(rs.getObject(i++, java.util.UUID.class));
+                    ad.setSecretaryName(rs.getString(i++));
+
+                    list.add(ad);
+                }
+                return list;
+            }
+        } catch (SQLException e) {
+            throw new DAOException("E:AS90 顧客の今月以降アサイン取得に失敗しました。", e);
+        }
+    }//ここまで
 
     // ========================
     // INSERT

@@ -23,6 +23,9 @@
       <a href="<%=request.getContextPath()%>/secretary/profile" class="list-group-item list-group-item-action">
         プロフィール編集
       </a>
+      <a href="<%=request.getContextPath()%>/secretary/mypage" class="list-group-item list-group-item-action">
+        マイページ編集
+      </a>
     </div>
   </div>
 </body>

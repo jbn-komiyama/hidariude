@@ -4,29 +4,30 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
 import jakarta.servlet.http.HttpServletRequest;
-import jakarta.servlet.http.HttpSession;
 
 import dao.AssignmentDAO;
 import dao.CustomerDAO;
+import dao.DAOException;
 import dao.SecretaryDAO;
 import dao.TaskRankDAO;
 import dao.TransactionManager;
 import domain.Assignment;
 import domain.AssignmentGroup;
 import domain.Customer;
-import domain.LoginUser;
 import domain.Secretary;
 import domain.TaskRank;
 import dto.AssignmentDTO;
 import dto.CustomerDTO;
 import dto.SecretaryDTO;
 import dto.TaskRankDTO;
+
 
 
 /**
@@ -81,6 +82,7 @@ public class AssignmentService extends BaseService {
     private static final String A_ERROR        = "errorMsg";
     private static final String A_MESSAGE      = "message";
     private static final String A_STATUS       = "status";
+    private static final String A_FUTURE_ASSIGNMENTS = "futureAssignments";
 
     // 確認画面・エラー戻し用（form_*）
     private static final String A_FORM_CUSTOMER_ID  = "form_customerId";
@@ -178,41 +180,54 @@ public class AssignmentService extends BaseService {
     // 登録画面表示（通常／PM）— 内部共通化
     // =========================================================
 
-	/** 通常のアサイン登録画面表示（従来どおり） */
-	public String assignmentRegister() {
-		String ym = req.getParameter(P_TARGET_YM);
-        if (ym == null || ym.isBlank()) {
-            ym = LocalDate.now().format(YM_FMT);
-        }
-        req.setAttribute(A_TARGET_YM, ym);
+	/**
+	 * アサイン登録 画面表示
+	 * - 顧客情報をリクエストへ
+	 * - 「今月(yyyy-MM)以降」のアサイン一覧を取得してリクエストへ
+	 * - 秘書/タスクランクの候補も投入
+	 */
+	public String assignmentRegister() throws DAOException {
 
-        final String idStr       = req.getParameter(P_ID);
-        final String companyName = req.getParameter(P_COMPANY_NAME);
+	    final String idStr       = req.getParameter(P_ID);
+	    final String companyName = req.getParameter(P_COMPANY_NAME);
+	    try {
+	        Customer customer = new Customer();
+	        if (idStr != null && !idStr.isBlank()) {
+	            try {
+	                customer.setId(java.util.UUID.fromString(idStr));
+	            } catch (IllegalArgumentException ex) {
+	                throw new DAOException("不正な顧客ID形式です: " + idStr, ex);
+	            }
+	        }
+	        customer.setCompanyName(companyName);
+	        req.setAttribute(A_CUSTOMER, customer);
 
+	        // --- 今月(yyyy-MM)以降のアサイン一覧を取得 ---
+	        String fromYm = LocalDate.now()
+	                .format(DateTimeFormatter.ofPattern("yyyy-MM"));
 
-        if (validation.isNull("会社名", companyName) | validation.isNull("会社ID", idStr)) {
-            req.setAttribute(A_ERROR, validation.getErrorMsg());
-            System.out.println("test");
-            return req.getContextPath() + "/admin/assignment";
-        }
+	        AssignmentDAO assignDao = new AssignmentDAO(conn);
+	        List<AssignmentDTO> futureList =
+	                (customer.getId() == null)
+	                        ? Collections.emptyList()
+	                        : assignDao.selectByCustomerFromYearMonth(customer.getId(), fromYm);
+	        req.setAttribute(A_FUTURE_ASSIGNMENTS, futureList);
 
-        try (TransactionManager tm = new TransactionManager()) {
-            // 顧客（固定表示）
-            Customer customer = new Customer();
-            customer.setId(UUID.fromString(idStr));
-            customer.setCompanyName(companyName);
-            req.setAttribute(A_CUSTOMER, customer);
+	        loadSecretariesToRequest(tm, false);
+	        loadTaskRanksToRequest(tm);
 
-            // ★ ヘルパー使用：秘書（全件）とタスクランク（全件）
-            loadSecretariesToRequest(tm, false);
-            loadTaskRanksToRequest(tm);
+	        tm.commit();
+	        return VIEW_REGISTER;
 
-            return VIEW_REGISTER;
-        } catch (RuntimeException e) {
-        	e.printStackTrace();
-        	return req.getContextPath() + req.getServletPath() + "/error";
-        }
+	    } catch (Exception e) {
+	        try { tm.rollback(); } catch (Exception ignore) {}
+	        throw new DAOException("E:SRV-ASSIGN-REGISTER 画面表示に失敗しました。", e);
+	    } finally {
+	        try { tm.close(); } catch (Exception ignore) {}
+	    }
 	}
+
+
 	
 	/** PM（is_pm_secretary = TRUE）向けのアサイン登録画面表示 */
 	public String assignmentPMRegister() {
@@ -401,6 +416,7 @@ public class AssignmentService extends BaseService {
     /** 通常登録の完了（INSERT）。 */
     public String assignmentRegisterDone() {
     	 // 値取得
+    	String customerNameStr = req.getParameter(P_COMPANY_NAME);
         String customerIdStr = req.getParameter(P_CUSTOMER_ID);
         String secretaryIdStr = req.getParameter(P_SECRETARY_ID);
         String taskRankIdStr  = req.getParameter(P_TASK_RANK_ID);
@@ -433,7 +449,7 @@ public class AssignmentService extends BaseService {
 
         if (validation.hasErrorMsg()) {
             // ★ ヘルパーでフォーム値戻し
-            populateFormBackForRegister(customerIdStr, secretaryIdStr, taskRankIdStr, ym,
+            populateFormBackForRegister(customerNameStr,customerIdStr, secretaryIdStr, taskRankIdStr, ym,
                     baseCustStr, baseSecStr, incCustStr, incSecStr, incentCustStr, incentSecStr, status);
             try (TransactionManager tm = new TransactionManager()) {
                 // ★ ヘルパーでリスト再設定
@@ -445,7 +461,7 @@ public class AssignmentService extends BaseService {
 
         // ★ ヘルパーで DTO 構築
         AssignmentDTO dto = buildAssignmentDto(
-                customerIdStr, secretaryIdStr, taskRankIdStr, ym,
+        		customerNameStr,customerIdStr, secretaryIdStr, taskRankIdStr, ym,
                 baseCustStr, baseSecStr, incCustStr, incSecStr, incentCustStr, incentSecStr, status);
 
         try (TransactionManager tm = new TransactionManager()) {
@@ -454,7 +470,7 @@ public class AssignmentService extends BaseService {
             if (dao.existsDuplicate(dto)) {
                 validation.addErrorMsg("同月・同顧客・同秘書・同ランクのアサインは既に登録済みです。");
                 // ★ フォーム戻し＋一覧再設定
-                populateFormBackForRegister(customerIdStr, secretaryIdStr, taskRankIdStr, ym,
+                populateFormBackForRegister(customerNameStr,customerIdStr, secretaryIdStr, taskRankIdStr, ym,
                         baseCustStr, baseSecStr, incCustStr, incSecStr, incentCustStr, incentSecStr, status);
                 loadSecretariesToRequest(tm, false);
                 loadTaskRanksToRequest(tm);
@@ -482,6 +498,7 @@ public class AssignmentService extends BaseService {
      * </ul>
      */
     public String assignmentPMRegisterDone() {
+    	final String customerNameStr = req.getParameter(P_COMPANY_NAME);
         final String customerIdStr       = req.getParameter(P_CUSTOMER_ID);
         final String secretaryIdStr      = req.getParameter(P_SECRETARY_ID);
         final String taskRankIdStr       = req.getParameter(P_TASK_RANK_ID);
@@ -512,7 +529,8 @@ public class AssignmentService extends BaseService {
         try (TransactionManager tm = new TransactionManager()) {
             // ★ CHANGED: ヘルパーでDTOを構築（PM仕様：増額/継続は "0" 固定）
             AssignmentDTO dto = buildAssignmentDto(
-                    customerIdStr,
+            		customerNameStr,
+            		customerIdStr,
                     secretaryIdStr,
                     taskRankIdStr,
                     targetYearMonth,
@@ -587,10 +605,11 @@ public class AssignmentService extends BaseService {
 
     /** エラー時、入力フォームの値を戻す。 */
     private void populateFormBackForRegister(
-            String customerId, String secretaryId, String taskRankId, String ym,
+    		String customerName, String customerId, String secretaryId, String taskRankId, String ym,
             String baseCust, String baseSec, String incCust, String incSec,
             String incentCust, String incentSec, String status) {
         req.setAttribute("errorMsg", validation.getErrorMsg());
+        req.setAttribute("form_customerName", customerName);
         req.setAttribute("form_customerId", customerId);
         req.setAttribute("form_secretaryId", secretaryId);
         req.setAttribute("form_taskRankId", taskRankId);
@@ -637,13 +656,14 @@ public class AssignmentService extends BaseService {
 
     /** 文字列群から AssignmentDTO を構築。 */
     private AssignmentDTO buildAssignmentDto(
-            String customerIdStr, String secretaryIdStr, String taskRankIdStr, String targetYearMonth,
+    		String customerName,String customerIdStr, String secretaryIdStr, String taskRankIdStr, String targetYearMonth,
             String basePayCustomerStr, String basePaySecretaryStr,
             String increaseBasePayCustomerStr, String increaseBasePaySecretaryStr,
             String incentiveCustomerStr, String incentiveSecretaryStr,
             String status) {
 
         AssignmentDTO dto = new AssignmentDTO();
+        dto.setCustomerCompanyName(customerName);
         dto.setAssignmentCustomerId(UUID.fromString(customerIdStr));
         dto.setAssignmentSecretaryId(UUID.fromString(secretaryIdStr));
         dto.setTaskRankId(UUID.fromString(taskRankIdStr));

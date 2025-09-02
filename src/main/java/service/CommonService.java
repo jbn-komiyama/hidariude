@@ -52,44 +52,45 @@ public class CommonService extends BaseService{
      * 秘書ログイン。
      * @return 遷移先
      */
-    public String secretaryLogin() { // ★ REVERT: Role/共通ハンドラを廃止し、個別実装に戻す
-        final String loginId = req.getParameter(P_LOGIN_ID);
-        final String password = req.getParameter(P_PASSWORD);
+	  public String secretaryLogin() { // ★ REVERT: Role/共通ハンドラを廃止し、個別実装に戻す
+	        final String loginId = req.getParameter(P_LOGIN_ID);
+	        final String password = req.getParameter(P_PASSWORD);
 
-        // 必須チェック（元実装どおり）
-        validation.isNull("ログインID", loginId);
-        validation.isNull("パスワード", password);
+	        // 必須チェック（元実装どおり）
+	        validation.isNull("ログインID", loginId);
+	        validation.isNull("パスワード", password);
 
-        if (validation.hasErrorMsg()) {
-            req.setAttribute("errorMsg", validation.getErrorMsg());
-            return req.getContextPath() + PATH_SECRETARY_LOGIN;
-        }
+	        if (validation.hasErrorMsg()) {
+	            req.setAttribute("errorMsg", validation.getErrorMsg());
+	            return req.getContextPath() + PATH_SECRETARY_LOGIN;
+	        }
 
-        try (TransactionManager tm = new TransactionManager()) {
-            SecretaryDAO dao = new SecretaryDAO(tm.getConnection());
-            SecretaryDTO dto = dao.selectByMail(loginId);
+	        try (TransactionManager tm = new TransactionManager()) {
+	            SecretaryDAO dao = new SecretaryDAO(tm.getConnection());
+	            SecretaryDTO dto = dao.selectByMail(loginId);
 
-            if (dto != null && safeEquals(dto.getPassword(), password)) {
-                LoginUser loginUser = new LoginUser();
+	            if (dto != null && safeEquals(dto.getPassword(), password)) {
+	                LoginUser loginUser = new LoginUser();
 
-                // 元実装どおり：Secretary ドメインは mail のみ保持
-                Secretary sec = new Secretary();
-                sec.setMail(dto.getMail());
+	                Secretary sec = new Secretary();
+	                sec.setId(dto.getId());
+	                sec.setMail(dto.getMail());
+	                
 
-                loginUser.setSecretary(sec);
-                loginUser.setAuthority(AUTH_SECRETARY);
+	                loginUser.setSecretary(sec);
+	                loginUser.setAuthority(AUTH_SECRETARY);
 
-                putLoginUserToSession(loginUser);
-                return req.getContextPath() + PATH_SECRETARY_HOME;
-            } else {
-                validation.addErrorMsg("正しいログインIDとパスワードを入力してください。");
-                req.setAttribute("errorMsg", validation.getErrorMsg());
-                return req.getContextPath() + PATH_SECRETARY_LOGIN;
-            }
-        } catch (RuntimeException e) {
-            return req.getContextPath() + req.getServletPath() + "/error";
-        }
-    }
+	                putLoginUserToSession(loginUser);
+	                return req.getContextPath() + PATH_SECRETARY_HOME;
+	            } else {
+	                validation.addErrorMsg("正しいログインIDとパスワードを入力してください。");
+	                req.setAttribute("errorMsg", validation.getErrorMsg());
+	                return req.getContextPath() + PATH_SECRETARY_LOGIN;
+	            }
+	        } catch (RuntimeException e) {
+	            return req.getContextPath() + req.getServletPath() + "/error";
+	        }
+	    }
 
     /**
      * 管理者ログイン。
