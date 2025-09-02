@@ -268,13 +268,13 @@ public class FrontController extends HttpServlet {
 			/**
 			 * A01 共通
 			 */
-			case "/login"->{
-				nextPath = new CommonService(req, true).customerLogin();
-			}
-			
-			case "/home"->{
-				nextPath = new CommonService(req, true).customerHome();
-			}
+//			case "/login"->{
+//				nextPath = new CommonService(req, true).customerLogin();
+//			}
+//			
+//			case "/home"->{
+//				nextPath = new CommonService(req, true).customerHome();
+//			}
 			
 			/**
 			 * A02 秘書管理業務
@@ -284,19 +284,8 @@ public class FrontController extends HttpServlet {
 			 * A04 顧客ページ編集業務
 			 * 
 			 */
-			case "/customerpage"->{
-				nextPath = new CustomerService(req, true).customerPageList();
-			}
 			
-			case "/customerpage/edit"->{
-				nextPath = new CustomerService(req, true).customerPageEdit();
-			}
-			case "/customerpage/edit_check"->{
-				nextPath = new CustomerService(req, true).customerPageEditCheck();
-			}
-			case "/customerpage/edit_done"->{
-				nextPath = new CustomerService(req, true).customerPageEditDone();
-			}
+			
     	}
 	}
     
