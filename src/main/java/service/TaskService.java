@@ -25,7 +25,7 @@ import dto.SecretaryDTO;
 import dto.SystemAdminDTO;
 
 
-public class CommonService extends BaseService{
+public class TaskService extends BaseService{
 	
 	// =========================================================
     // 定数／内部型
@@ -59,7 +59,7 @@ public class CommonService extends BaseService{
     private final Converter conv = new Converter();
 
 	
-	public CommonService(HttpServletRequest req, boolean useDB) {
+	public TaskService(HttpServletRequest req, boolean useDB) {
 		super(req, useDB);
 	}
 	
@@ -171,10 +171,13 @@ public class CommonService extends BaseService{
         // 1) セッションから secretaryId を取得
         HttpSession session = req.getSession(false);
         if (session == null) {
+        	System.out.println("1");
             return req.getContextPath() + PATH_SECRETARY_LOGIN;
         }
         LoginUser lu = (LoginUser) session.getAttribute(ATTR_LOGIN_USER);
+        System.out.println(lu);
         if (lu == null || lu.getSecretary() == null || lu.getSecretary().getId() == null) {
+        	System.out.println("2");
         	return req.getContextPath() + PATH_SECRETARY_LOGIN;
         }
         UUID secretaryId = lu.getSecretary().getId();
@@ -208,6 +211,7 @@ public class CommonService extends BaseService{
             // 4) JSP へ渡す
             req.setAttribute(ATTR_CUSTOMERS, customers);
             req.setAttribute(ATTR_YEAR_MONTH, yearMonth);
+            System.out.println("3");
             return "common/secretary/home";
         } catch (RuntimeException e) {
             return req.getContextPath() + req.getServletPath() + "/error";
