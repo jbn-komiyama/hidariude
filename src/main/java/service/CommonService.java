@@ -94,19 +94,11 @@ public class CommonService extends BaseService{
 	            if (dto != null && safeEquals(dto.getPassword(), password)) {
 	                LoginUser loginUser = new LoginUser();
 
-<<<<<<< HEAD
-                // 元実装どおり：Secretary ドメインは mail のみ保持
-                Secretary sec = new Secretary();
-                sec.setId(dto.getId());
-                sec.setMail(dto.getMail());
-                
-=======
+
 	                Secretary sec = new Secretary();
 	                sec.setId(dto.getId());
 	                sec.setMail(dto.getMail());
 	                
->>>>>>> b04af90d599e933785e01dbfd295aff301bd7474
-
 	                loginUser.setSecretary(sec);
 	                loginUser.setAuthority(AUTH_SECRETARY);
 
@@ -120,11 +112,6 @@ public class CommonService extends BaseService{
 	        } catch (RuntimeException e) {
 	            return req.getContextPath() + req.getServletPath() + "/error";
 	        }
-	    }
-	  
-	  /** 秘書ホーム */
-	    public String secretaryHome() {
-	        return "common/secretary/home";
 	    }
 
     /**
@@ -182,7 +169,7 @@ public class CommonService extends BaseService{
         return "common/admin/home";
     }
 
-<<<<<<< HEAD
+
     public String secretaryHome() {
         // 1) セッションから secretaryId を取得
         HttpSession session = req.getSession(false);
@@ -228,7 +215,8 @@ public class CommonService extends BaseService{
         } catch (RuntimeException e) {
             return req.getContextPath() + req.getServletPath() + "/error";
         }
-=======
+    }
+
     /**
      * 顧客（会社/担当者）ログイン。
      * A社の山田さん/田中さん、どちらでログインしても同じ「A社のホーム」へ。
@@ -302,7 +290,6 @@ public class CommonService extends BaseService{
     public String customerHome() {
         // ここではビューだけ返す。会社IDはセッションの LoginUser から取り、JSP/別サービスで会社単位のデータ読み込みに利用
         return "common/customer/home";
->>>>>>> b04af90d599e933785e01dbfd295aff301bd7474
     }
 
 
