@@ -228,7 +228,7 @@ public class FrontController extends HttpServlet {
 			 * A02 業務管理業務
 			 * 
 			 */
-			
+
 			case "/task/list"->{
 				nextPath = new TaskService(req, true).taskList();
 			}
@@ -243,6 +243,29 @@ public class FrontController extends HttpServlet {
 			}
 			case "/task/delete_done"->{
 				nextPath = new TaskService(req, true).taskDeleteDone();
+			}
+
+			/**
+			 * A03 労働実績記録業務
+			 * 
+			 */
+			
+			/**
+			 * A04 マイページ編集業務
+			 * 
+			 */
+			case "/mypage"->{
+				nextPath = new SecretaryService(req, true).myPageList();
+			}
+			
+			case "/mypage/edit"->{
+				nextPath = new SecretaryService(req, true).myPageEdit();
+			}
+			case "/mypage/edit_check"->{
+				nextPath = new SecretaryService(req, true).myPageEditCheck();
+			}
+			case "/mypage/edit_done"->{
+				nextPath = new SecretaryService(req, true).myPageEditDone();
 			}
 			
     	}
@@ -263,18 +286,23 @@ public class FrontController extends HttpServlet {
 			/**
 			 * A01 共通
 			 */
-			case "/login"->{
-				nextPath = new CommonService(req, true).secretaryLogin();
-			}
-			
-			case "/home"->{
-				nextPath = "common/secretary/home";
-			}
+//			case "/login"->{
+//				nextPath = new CommonService(req, true).customerLogin();
+//			}
+//			
+//			case "/home"->{
+//				nextPath = new CommonService(req, true).customerHome();
+//			}
 			
 			/**
 			 * A02 秘書管理業務
 			 * 
 			 */
+			/**
+			 * A04 顧客ページ編集業務
+			 * 
+			 */
+			
 			
     	}
 	}

@@ -32,9 +32,10 @@ public class CommonService extends BaseService{
     // =========================================================
 
     /** 権限（従来の数値を定数化） */
-    private static final int AUTH_ADMIN = 1;     // 保持していた数値と同じ
-    private static final int AUTH_SECRETARY = 2; // 保持していた数値と同じ
-
+    private static final int AUTH_ADMIN = 1;
+    private static final int AUTH_SECRETARY = 2; 
+    private static final int AUTH_CUSTOMER = 3;
+    
     // リクエストパラメータ名
     private static final String P_LOGIN_ID = "loginId";
     private static final String P_PASSWORD = "password";
@@ -44,6 +45,8 @@ public class CommonService extends BaseService{
     private static final String PATH_SECRETARY_HOME  = "/secretary/home";
     private static final String PATH_ADMIN_LOGIN     = "/admin";
     private static final String PATH_ADMIN_HOME      = "/admin/home";
+    private static final String PATH_CUSTOMER_LOGIN = "/customer";
+    private static final String PATH_CUSTOMER_HOME  = "/customer/home";
 
     // アトリビュート
     private static final String ATTR_LOGIN_USER = "loginUser";
@@ -71,46 +74,58 @@ public class CommonService extends BaseService{
      * 秘書ログイン。
      * @return 遷移先
      */
-    public String secretaryLogin() { // ★ REVERT: Role/共通ハンドラを廃止し、個別実装に戻す
-        final String loginId = req.getParameter(P_LOGIN_ID);
-        final String password = req.getParameter(P_PASSWORD);
+	  public String secretaryLogin() { // ★ REVERT: Role/共通ハンドラを廃止し、個別実装に戻す
+	        final String loginId = req.getParameter(P_LOGIN_ID);
+	        final String password = req.getParameter(P_PASSWORD);
 
-        // 必須チェック（元実装どおり）
-        validation.isNull("ログインID", loginId);
-        validation.isNull("パスワード", password);
+	        // 必須チェック（元実装どおり）
+	        validation.isNull("ログインID", loginId);
+	        validation.isNull("パスワード", password);
 
-        if (validation.hasErrorMsg()) {
-            req.setAttribute("errorMsg", validation.getErrorMsg());
-            return req.getContextPath() + PATH_SECRETARY_LOGIN;
-        }
+	        if (validation.hasErrorMsg()) {
+	            req.setAttribute("errorMsg", validation.getErrorMsg());
+	            return req.getContextPath() + PATH_SECRETARY_LOGIN;
+	        }
 
-        try (TransactionManager tm = new TransactionManager()) {
-            SecretaryDAO dao = new SecretaryDAO(tm.getConnection());
-            SecretaryDTO dto = dao.selectByMail(loginId);
+	        try (TransactionManager tm = new TransactionManager()) {
+	            SecretaryDAO dao = new SecretaryDAO(tm.getConnection());
+	            SecretaryDTO dto = dao.selectByMail(loginId);
 
-            if (dto != null && safeEquals(dto.getPassword(), password)) {
-                LoginUser loginUser = new LoginUser();
+	            if (dto != null && safeEquals(dto.getPassword(), password)) {
+	                LoginUser loginUser = new LoginUser();
 
+<<<<<<< HEAD
                 // 元実装どおり：Secretary ドメインは mail のみ保持
                 Secretary sec = new Secretary();
                 sec.setId(dto.getId());
                 sec.setMail(dto.getMail());
                 
+=======
+	                Secretary sec = new Secretary();
+	                sec.setId(dto.getId());
+	                sec.setMail(dto.getMail());
+	                
+>>>>>>> b04af90d599e933785e01dbfd295aff301bd7474
 
-                loginUser.setSecretary(sec);
-                loginUser.setAuthority(AUTH_SECRETARY);
+	                loginUser.setSecretary(sec);
+	                loginUser.setAuthority(AUTH_SECRETARY);
 
-                putLoginUserToSession(loginUser);
-                return req.getContextPath() + PATH_SECRETARY_HOME;
-            } else {
-                validation.addErrorMsg("正しいログインIDとパスワードを入力してください。");
-                req.setAttribute("errorMsg", validation.getErrorMsg());
-                return req.getContextPath() + PATH_SECRETARY_LOGIN;
-            }
-        } catch (RuntimeException e) {
-            return req.getContextPath() + req.getServletPath() + "/error";
-        }
-    }
+	                putLoginUserToSession(loginUser);
+	                return req.getContextPath() + PATH_SECRETARY_HOME;
+	            } else {
+	                validation.addErrorMsg("正しいログインIDとパスワードを入力してください。");
+	                req.setAttribute("errorMsg", validation.getErrorMsg());
+	                return req.getContextPath() + PATH_SECRETARY_LOGIN;
+	            }
+	        } catch (RuntimeException e) {
+	            return req.getContextPath() + req.getServletPath() + "/error";
+	        }
+	    }
+	  
+	  /** 秘書ホーム */
+	    public String secretaryHome() {
+	        return "common/secretary/home";
+	    }
 
     /**
      * 管理者ログイン。
@@ -167,6 +182,7 @@ public class CommonService extends BaseService{
         return "common/admin/home";
     }
 
+<<<<<<< HEAD
     public String secretaryHome() {
         // 1) セッションから secretaryId を取得
         HttpSession session = req.getSession(false);
@@ -212,7 +228,83 @@ public class CommonService extends BaseService{
         } catch (RuntimeException e) {
             return req.getContextPath() + req.getServletPath() + "/error";
         }
+=======
+    /**
+     * 顧客（会社/担当者）ログイン。
+     * A社の山田さん/田中さん、どちらでログインしても同じ「A社のホーム」へ。
+     */
+//    public String customerLogin() {
+//        final String loginId  = req.getParameter(P_LOGIN_ID);
+//        final String password = req.getParameter(P_PASSWORD);
+//
+//        // 必須チェック
+//        validation.isNull("ログインID", loginId);
+//        validation.isNull("パスワード", password);
+//        if (validation.hasErrorMsg()) {
+//            req.setAttribute("errorMsg", validation.getErrorMsg());
+//            return req.getContextPath() + PATH_CUSTOMER_LOGIN;
+//        }
+//
+//        try (TransactionManager tm = new TransactionManager()) {
+//
+//            // ★ 担当者（社員）をメールで検索
+//            //    ※ あなたの実装に合わせて DAO/メソッド名を置き換えてください
+//        	CustomerContactDAO userDao = new CustomerContactDAO(tm.getConnection());
+//        	CustomerContactDTO userDto = userDao.selectById(loginId);
+//
+//            if (userDto != null && safeEquals(userDto.getPassword(), password)) {
+//
+//                // ★ 会社情報を取得
+//                CustomerDAO  cdao  = new CustomerDAO(tm.getConnection());
+//                CustomerDTO  cdto  = cdao.selectByUUId(userDto.getCustomerId());
+//                if (cdto == null) {
+//                    validation.addErrorMsg("会社アカウントが見つかりません。");
+//                    req.setAttribute("errorMsg", validation.getErrorMsg());
+//                    return req.getContextPath() + PATH_CUSTOMER_LOGIN;
+//                }
+//
+//                // --- セッションへ格納（誰がログインしても同じ会社を見るため、company を主として持つ）
+//                LoginUser loginUser = new LoginUser();
+//
+//                // 最低限の会社情報（必要に応じて拡張）
+//                Customer company = new Customer();
+//                company.setId(cdto.getId());
+//                company.setCompanyName(cdto.getCompanyName());
+//                // company.set...（必要なら他項目）
+//
+//                // 担当者（表示用に必要なら）
+//                CustomerUser person = new CustomerUser();
+//                person.setId(userDto.getId());
+//                person.setMail(userDto.getMail());
+//                person.setName(userDto.getName());
+//                // person.set...（必要なら他項目）
+//
+//                // ★ LoginUser へ設定（無ければ setter を追加してください）
+//                loginUser.setCustomer(company);
+//                loginUser.setCustomerUser(person);
+//                loginUser.setAuthority(AUTH_CUSTOMER);
+//
+//                putLoginUserToSession(loginUser);
+//                return req.getContextPath() + PATH_CUSTOMER_HOME;
+//
+//            } else {
+//                validation.addErrorMsg("正しいログインIDとパスワードを入力してください。");
+//                req.setAttribute("errorMsg", validation.getErrorMsg());
+//                return req.getContextPath() + PATH_CUSTOMER_LOGIN;
+//            }
+//
+//        } catch (RuntimeException e) {
+//            return req.getContextPath() + req.getServletPath() + "/error";
+//        }
+//    }
+
+    /** 顧客ホーム（会社単位で同一の画面を表示） */
+    public String customerHome() {
+        // ここではビューだけ返す。会社IDはセッションの LoginUser から取り、JSP/別サービスで会社単位のデータ読み込みに利用
+        return "common/customer/home";
+>>>>>>> b04af90d599e933785e01dbfd295aff301bd7474
     }
+
 
     // =========================================================
     // Small helpers

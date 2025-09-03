@@ -15,7 +15,12 @@
     <div class="d-flex align-items-center justify-content-between mb-3">
       <h1 class="h3 mb-0">${empty targetYm ? '2025-08' : targetYm} のアサイン</h1>
     </div>
-
+　　<!--    ページネーション-->
+	<div class="ym-nav d-flex align-items-center">
+    <a class="btn btn-link p-0 px-2 text-muted fs-4 js-prev"  href="#" aria-label="前月">‹</a>
+    <a class="btn btn-link px-3 js-today" href="#" style="text-decoration:none;">今月</a>
+    <a class="btn btn-link p-0 px-2 text-muted fs-4 js-next"  href="#" aria-label="次月">›</a>
+  </div>
     <div class="card shadow-sm">
       <div class="card-body p-0">
         <c:if test="${not empty errorMsg}">
@@ -150,5 +155,22 @@
       </div>
     </div>
   </div>
+<!--  ページネーション-->
+  <script>
+(function(){
+  var serverYm = '${empty targetYm ? "2025-08" : targetYm}';
+  var urlYm = new URLSearchParams(location.search).get('ym');
+  var ym = urlYm || serverYm;
+
+  function ymToDate(ym){ var p = (ym||'').split('-'); return new Date(parseInt(p[0],10), (parseInt(p[1],10)||1)-1, 1); }
+  function dateToYm(d){ var y=d.getFullYear(); var m=('0'+(d.getMonth()+1)).slice(-2); return y+'-'+m; }
+  function addMonths(ym, delta){ var d=ymToDate(ym); d.setMonth(d.getMonth()+delta); return dateToYm(d); }
+
+  document.querySelectorAll('.js-prev').forEach(function(a){ a.href='?ym='+addMonths(ym,-1); });
+  document.querySelectorAll('.js-next').forEach(function(a){ a.href='?ym='+addMonths(ym,+1); });
+  document.querySelectorAll('.js-today').forEach(function(a){ a.href='?ym='+dateToYm(new Date()); });
+})();
+</script>
+  
 </body>
 </html>
