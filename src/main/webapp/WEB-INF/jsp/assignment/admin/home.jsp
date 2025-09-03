@@ -94,7 +94,7 @@
 			              </c:if>
 			
 			              <td class="text-nowrap">
-			                <c:out value="${a.taskRank != null ? a.taskRank : '—'}"/>
+			                <c:out value="${a.taskRankName != null ? a.taskRankName : '—'}"/>
 			              </td>
 			
 			              <td class="text-nowrap text-end">

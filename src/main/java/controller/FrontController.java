@@ -18,6 +18,7 @@ import service.ContactService;
 import service.CustomerService;
 import service.SecretaryService;
 import service.SystemAdminService;
+import service.TaskService;
 
 /**
  * Servlet implementation class FrontController
@@ -219,13 +220,30 @@ public class FrontController extends HttpServlet {
 			}
 			
 			case "/home"->{
-				nextPath = new CommonService(req, false).secretaryHome();
+				nextPath = new CommonService(req, true).secretaryHome();
 			}
 			
+
 			/**
-			 * A02 秘書管理業務
+			 * A02 業務管理業務
 			 * 
 			 */
+			
+			case "/task/list"->{
+				nextPath = new TaskService(req, true).taskList();
+			}
+			case "/task/register_done"->{
+				nextPath = new TaskService(req, true).taskRegisterDone();
+			}
+			case "/task/edit"->{
+				nextPath = new TaskService(req, true).taskEdit();
+			}
+			case "/task/edit_done"->{
+				nextPath = new TaskService(req, true).taskEditDone();
+			}
+			case "/task/delete_done"->{
+				nextPath = new TaskService(req, true).taskDeleteDone();
+			}
 			
     	}
 	}
@@ -320,11 +338,12 @@ public class FrontController extends HttpServlet {
 		char firstPath = nextPath.charAt(0);
 		if(firstPath == '/') {
 			// 先頭がスラッシュだとリダイレクト
-			res.sendRedirect(nextPath);
+			res.sendRedirect(res.encodeRedirectURL(nextPath));
 		} else {
-			// 先頭がスラッシュなしだとフォワード
+			
 			RequestDispatcher rd = req.getRequestDispatcher("/WEB-INF/jsp/" + nextPath + ".jsp");
 			rd.forward(req, res);
+			
 		}
 	}
 

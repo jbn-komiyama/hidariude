@@ -26,7 +26,7 @@ public class Assignment implements Serializable{
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
     private LocalDateTime deletedAt;
-    private String taskRank;
+    private String taskRankName;
 
     // --- relations (domain objects) ---
     private Customer customer;
@@ -129,11 +129,11 @@ public class Assignment implements Serializable{
 	public void setDeletedAt(LocalDateTime deletedAt) {
 		this.deletedAt = deletedAt;
 	}
-	public String getTaskRank() {
-		return taskRank;
+	public String getTaskRankName() {
+		return taskRankName;
 	}
-	public void setTaskRank(String taskRank) {
-		this.taskRank = taskRank;
+	public void setTaskRankName(String taskRankName) {
+		this.taskRankName = taskRankName;
 	}
 	public Customer getCustomer() {
 		return customer;

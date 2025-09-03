@@ -66,6 +66,28 @@ public class AssignmentDAO extends BaseDAO {
         "  AND a.target_year_month = ? " +
         "  AND a.deleted_at IS NULL " +
         "ORDER BY c.company_name, tr.rank_name NULLS LAST, a.created_at";
+    
+    /** 指定秘書・指定顧客・指定月の assignments を取得（顧客名・タスクランク名付き） */
+    private static final String SQL_SELECT_BY_SECRETARY_CUSTOMER_AND_MONTH =
+        "SELECT " +
+        // assignments (15)
+        " a.id, a.customer_id, a.secretary_id, a.task_rank_id, a.target_year_month, " +
+        " a.base_pay_customer, a.base_pay_secretary, a.increase_base_pay_customer, a.increase_base_pay_secretary, " +
+        " a.customer_based_incentive_for_customer, a.customer_based_incentive_for_secretary, a.status, " +
+        " a.created_at, a.updated_at, a.deleted_at, " +
+        // customers (2)
+        " c.id AS c_id, c.company_name, " +
+        // task_rank (1)
+        " tr.rank_name " +
+        "FROM assignments a " +
+        "JOIN customers c ON c.id = a.customer_id AND c.deleted_at IS NULL " +
+        "LEFT JOIN task_rank tr ON tr.id = a.task_rank_id " +
+        "WHERE a.secretary_id = ? " +
+        "  AND a.customer_id  = ? " +
+        "  AND a.target_year_month = ? " +
+        "  AND a.deleted_at IS NULL " +
+        "ORDER BY tr.rank_name NULLS LAST, a.created_at";
+
 
     /** assignments の INSERT（id を RETURNING） */
     private static final String SQL_INSERT =
@@ -270,6 +292,64 @@ public class AssignmentDAO extends BaseDAO {
             }
         } catch (SQLException e) {
             throw new DAOException("E:AS12 指定秘書・指定月の assignments 取得に失敗しました。", e);
+        }
+    }
+    
+    /**
+     * 指定した秘書ID・顧客ID・年月（yyyy-MM）のアサイン情報を取得します。
+     * <p>AssignmentDTO に顧客名・タスクランク名を含めて返します。</p>
+     *
+     * @param secretaryId 秘書ID（UUID）
+     * @param customerId  顧客ID（UUID）
+     * @param yearMonth   年月（例: "2025-09"）
+     * @return 該当 assignments のリスト（空リストあり）
+     * @throws DAOException 取得時にエラーが発生した場合
+     */
+    public List<AssignmentDTO> selectBySecretaryAndCustomerAndMonth(UUID secretaryId, UUID customerId, String yearMonth) {
+        try (PreparedStatement ps = conn.prepareStatement(SQL_SELECT_BY_SECRETARY_CUSTOMER_AND_MONTH)) {
+            int p = 1;
+            ps.setObject(p++, secretaryId);
+            ps.setObject(p++, customerId);
+            ps.setString(p++, yearMonth);
+
+            try (ResultSet rs = ps.executeQuery()) {
+                List<AssignmentDTO> result = new ArrayList<>();
+
+                while (rs.next()) {
+                    int i = 1;
+                    AssignmentDTO ad = new AssignmentDTO();
+
+                    // ---- assignments (15)
+                    ad.setAssignmentId(rs.getObject(i++, UUID.class));
+                    ad.setAssignmentCustomerId(rs.getObject(i++, UUID.class));
+                    ad.setAssignmentSecretaryId(rs.getObject(i++, UUID.class));
+                    ad.setTaskRankId(rs.getObject(i++, UUID.class));
+                    ad.setTargetYearMonth(rs.getString(i++));
+                    ad.setBasePayCustomer(rs.getBigDecimal(i++));
+                    ad.setBasePaySecretary(rs.getBigDecimal(i++));
+                    ad.setIncreaseBasePayCustomer(rs.getBigDecimal(i++));
+                    ad.setIncreaseBasePaySecretary(rs.getBigDecimal(i++));
+                    ad.setCustomerBasedIncentiveForCustomer(rs.getBigDecimal(i++));
+                    ad.setCustomerBasedIncentiveForSecretary(rs.getBigDecimal(i++));
+                    ad.setAssignmentStatus(rs.getString(i++));
+                    ad.setAssignmentCreatedAt(rs.getTimestamp(i++));
+                    ad.setAssignmentUpdatedAt(rs.getTimestamp(i++));
+                    ad.setAssignmentDeletedAt(rs.getTimestamp(i++));
+
+                    // ---- customers (2)
+                    ad.setAssignmentCustomerId(rs.getObject(i++, UUID.class)); // c.id
+                    ad.setCustomerCompanyName(rs.getString(i++));                     // c.company_name
+
+                    // ---- task_rank (1)
+                    ad.setTaskRankName(rs.getString(i++));
+
+                    result.add(ad);
+                }
+
+                return result;
+            }
+        } catch (SQLException e) {
+            throw new DAOException("E:AS14 指定秘書・顧客・月の assignments 取得に失敗しました。", e);
         }
     }
 

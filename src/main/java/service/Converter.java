@@ -1,3 +1,4 @@
+// Converter.java
 package service;
 
 import java.util.ArrayList;
@@ -9,28 +10,30 @@ import domain.Customer;
 import domain.CustomerContact;
 import domain.Secretary;
 import domain.SecretaryRank;
+import domain.Task;
 import domain.TaskRank;
 import dto.AssignmentDTO;
 import dto.CustomerContactDTO;
 import dto.CustomerDTO;
 import dto.SecretaryDTO;
 import dto.SecretaryRankDTO;
+import dto.TaskDTO;
 import dto.TaskRankDTO;
 
 /**
  * DTO -> Domain 変換クラス。
- * <p>
- * 基本方針：
- * <ul>
- *   <li>引数が null の場合は null を返す（安全側）</li> <!-- ★ CHANGED: null セーフ -->
- *   <li>日付系はユーティリティ（{@link #ts2date(Timestamp)} / {@link #ts2ldt(Timestamp)}）に集約</li> <!-- ★ ADD -->
- *   <li>リスト変換のユーティリティを用意（toDomainList*）</li> <!-- ★ ADD -->
- * </ul>
- * </p>
+ * 基本方針:
+ *  - 引数が null の場合は null を返す
+ *  - 日付系はユーティリティ（ts2date / sql2date）に集約
  */
-
 public class Converter {
+
+    // -------------------------
+    // Customer
+    // -------------------------
 	public Customer toDomain(CustomerDTO dto) {
+        if (dto == null) return null;
+
 		Customer s = new Customer();
         s.setId(dto.getId());
         s.setCompanyCode(dto.getCompanyCode());
@@ -45,7 +48,7 @@ public class Converter {
         s.setCreatedAt(ts2date(dto.getCreatedAt()));
         s.setUpdatedAt(ts2date(dto.getUpdatedAt()));
         s.setDeletedAt(ts2date(dto.getDeletedAt()));
-        
+
         List<CustomerContact> list = new ArrayList<>();
         if (dto.getCustomerContacts() != null) {
             for (CustomerContactDTO c : dto.getCustomerContacts()) {
@@ -56,14 +59,13 @@ public class Converter {
 
         return s;
 	}
-	
+
 	public CustomerContact toDomain(CustomerContactDTO c) {
 	    if (c == null) return null;
 	    CustomerContact customerContact = new CustomerContact();
 	    customerContact.setId(c.getId());
 	    customerContact.setMail(c.getMail());
 	    customerContact.setPassword(c.getPassword());
-	    // customer_id は必要なら c.getCustomerDTO().getId() を使ってセット
 	    if (c.getCustomerDTO() != null) {
 	        customerContact.setCustomerId(c.getCustomerDTO().getId());
 	    }
@@ -71,23 +73,26 @@ public class Converter {
 	    customerContact.setNameRuby(c.getNameRuby());
 	    customerContact.setPhone(c.getPhone());
 	    customerContact.setDepartment(c.getDepartment());
-	    customerContact.setPrimary(c.isPrimary()); // ★ ADDED
+	    customerContact.setPrimary(c.isPrimary());
 	    customerContact.setCreatedAt(ts2date(c.getCreatedAt()));
 	    customerContact.setUpdatedAt(ts2date(c.getUpdatedAt()));
 	    customerContact.setDeletedAt(ts2date(c.getDeletedAt()));
-	    customerContact.setLastLoginAt(ts2date(c.getLastLoginAt())); // ★ FIX: lastLoginAt を正しく詰める
+	    customerContact.setLastLoginAt(ts2date(c.getLastLoginAt()));
 	    return customerContact;
 	}
-	
+
+    // -------------------------
+    // Secretary / Rank
+    // -------------------------
 	public Secretary toDomain(SecretaryDTO dto) {
+        if (dto == null) return null;
+
 		Secretary s = new Secretary();
         s.setId(dto.getId());
         s.setSecretaryCode(dto.getSecretaryCode());
         s.setMail(dto.getMail());
         s.setPassword(dto.getPassword());
-
         s.setPmSecretary(dto.isPmSecretary());
-
         s.setName(dto.getName());
         s.setNameRuby(dto.getNameRuby());
         s.setPhone(dto.getPhone());
@@ -95,18 +100,15 @@ public class Converter {
         s.setAddress1(dto.getAddress1());
         s.setAddress2(dto.getAddress2());
         s.setBuilding(dto.getBuilding());
-
         s.setCreatedAt(ts2date(dto.getCreatedAt()));
         s.setUpdatedAt(ts2date(dto.getUpdatedAt()));
         s.setDeletedAt(ts2date(dto.getDeletedAt()));
         s.setLastLoginAt(ts2date(dto.getLastLoginAt()));
 
-        // nested rank
         s.setSecretaryRank(toDomain(dto.getSecretaryRankDTO()));
-
         return s;
 	}
-	
+
 	public SecretaryRank toDomain(SecretaryRankDTO r) {
         if (r == null) return null;
         SecretaryRank rank = new SecretaryRank();
@@ -120,7 +122,10 @@ public class Converter {
         rank.setDeletedAt(ts2date(r.getDeletedAt()));
         return rank;
     }
-	
+
+    // -------------------------
+    // Assignment / TaskRank
+    // -------------------------
 	public Assignment toDomain(AssignmentDTO dto) {
 		if (dto == null) return null;
 
@@ -141,20 +146,19 @@ public class Converter {
         assignment.setCreatedAt(dto.getAssignmentCreatedAt() == null ? null : dto.getAssignmentCreatedAt().toLocalDateTime());
         assignment.setUpdatedAt(dto.getAssignmentUpdatedAt() == null ? null : dto.getAssignmentUpdatedAt().toLocalDateTime());
         assignment.setDeletedAt(dto.getAssignmentDeletedAt() == null ? null : dto.getAssignmentDeletedAt().toLocalDateTime());
-        assignment.setTaskRank(dto.getTaskRankName());
+        assignment.setTaskRankName(dto.getTaskRankName());
 
-        // Customerを組み立て
+        // Customer (summary)
         Customer customer = new Customer();
         customer.setId(dto.getCustomerId());
         customer.setCompanyCode(dto.getCustomerCompanyCode());
         customer.setCompanyName(dto.getCustomerCompanyName());
         assignment.setCustomer(customer);
 
-        // Secretaryを組み立て
+        // Secretary (summary)
         Secretary secretary = new Secretary();
         secretary.setId(dto.getSecretaryId());
         secretary.setName(dto.getSecretaryName());
-        // SecretaryRankを組み立て
         SecretaryRank sr = new SecretaryRank();
         sr.setId(dto.getSecretaryRankId());
         sr.setRankName(dto.getSecretaryRankName());
@@ -163,10 +167,10 @@ public class Converter {
 
         return assignment;
 	}
-	
+
 	public TaskRank toDomain(TaskRankDTO dto) {
 		if (dto == null) return null;
-		
+
 	    TaskRank taskRank = new TaskRank();
 	    taskRank.setId(dto.getId());
 	    taskRank.setRankName(dto.getRankName());
@@ -175,11 +179,49 @@ public class Converter {
 	    taskRank.setCreatedAt(dto.getCreatedAt() == null ? null : new java.util.Date(dto.getCreatedAt().getTime()));
 	    taskRank.setUpdatedAt(dto.getUpdatedAt() == null ? null : new java.util.Date(dto.getUpdatedAt().getTime()));
 	    taskRank.setDeletedAt(dto.getDeletedAt() == null ? null : new java.util.Date(dto.getDeletedAt().getTime()));
-	    
 	    return taskRank;
 	}
-	
+
+    // -------------------------
+    // ★ Task (NEW)
+    // -------------------------
+    public Task toDomain(TaskDTO dto) {
+        if (dto == null) return null;
+
+        Task t = new Task();
+        t.setId(dto.getId());
+
+        // assignments.* を含んだ AssignmentDTO を詰め替え
+        if (dto.getAssignment() != null) {
+            t.setAssignment(toDomain(dto.getAssignment()));
+        }
+
+        t.setWorkDate(sql2date(dto.getWorkDate()));
+        t.setStartTime(ts2date(dto.getStartTime()));
+        t.setEndTime(ts2date(dto.getEndTime()));
+        t.setWorkMinute(dto.getWorkMinute());
+        t.setWorkContent(dto.getWorkContent());
+        t.setApprovedAt(ts2date(dto.getApprovedAt()));
+
+        if (dto.getApprovedBy() != null) {
+            t.setApprovedBy(toDomain(dto.getApprovedBy())); // idのみでもOK
+        }
+
+        // ※ 月次請求/サマリは Domain クラス定義に合わせて必要なら後で拡張
+        t.setCreatedAt(ts2date(dto.getCreatedAt()));
+        t.setUpdatedAt(ts2date(dto.getUpdatedAt()));
+        t.setDeletedAt(ts2date(dto.getDeletedAt()));
+        return t;
+    }
+
+    // -------------------------
+    // Utilities
+    // -------------------------
 	private Date ts2date(java.sql.Timestamp ts) {
         return ts == null ? null : new Date(ts.getTime());
+    }
+
+    private Date sql2date(java.sql.Date d) {
+        return d == null ? null : new Date(d.getTime());
     }
 }

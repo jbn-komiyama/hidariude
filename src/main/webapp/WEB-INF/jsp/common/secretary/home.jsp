@@ -28,8 +28,9 @@
         <div class="card-header bg-light">
           <div class="d-flex justify-content-between align-items-center">
             <h5 class="mb-0">${fn:escapeXml(c.companyName)}</h5>
-            <form method="get" action="<%=request.getContextPath()%>/secretary/task/register" class="m-0">
+            <form method="get" action="<%=request.getContextPath()%>/secretary/task/list" class="m-0">
               <input type="hidden" name="companyId" value="${c.id}" />
+              <input type="hidden" name="companyName" value="${c.companyName}" />
               <input type="hidden" name="yearMonth" value="${yearMonth}" />
               <button type="submit" class="btn btn-sm btn-primary">業務登録</button>
             </form>
@@ -55,7 +56,7 @@
                   <tbody>
                     <c:forEach var="a" items="${c.assignments}">
                       <tr>
-                        <td>${fn:escapeXml(a.taskRank)}</td>
+                        <td>${fn:escapeXml(a.taskRankName)}</td>
                         <td>
                           <c:choose>
                             <c:when test="${a.basePaySecretary ne null}">
