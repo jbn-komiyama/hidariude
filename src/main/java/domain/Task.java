@@ -1,6 +1,7 @@
 package domain;
 
 import java.io.Serializable;
+import java.math.BigDecimal;
 import java.util.Date;
 import java.util.UUID;
 
@@ -21,6 +22,8 @@ public class Task implements Serializable{
     private Date createdAt;
     private Date updatedAt;
     private Date deletedAt;
+    private BigDecimal hourFee;
+    private BigDecimal fee;
     
 	public UUID getId() {
 		return id;
@@ -105,6 +108,20 @@ public class Task implements Serializable{
 	}
 	public void setDeletedAt(Date deletedAt) {
 		this.deletedAt = deletedAt;
+	}
+	public BigDecimal getFee() {
+		return fee;
+	}
+	public void setFee(BigDecimal fee) {
+		this.fee = fee;
+	}
+	public BigDecimal getHourFee() {
+		return hourFee;
+	}
+	public void setHourFee(BigDecimal hourFee) {
+		this.hourFee = hourFee;
+		BigDecimal fee = hourFee.multiply(BigDecimal.valueOf((double)workMinute/ 60));
+		this.fee = fee;
 	}
     
     

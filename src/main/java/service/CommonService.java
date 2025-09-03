@@ -1,14 +1,26 @@
 package service;
 
+import java.time.LocalDate;
+import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.UUID;
+
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpSession;
 
+import dao.AssignmentDAO;
 import dao.SecretaryDAO;
 import dao.SystemAdminDAO;
 import dao.TransactionManager;
+import domain.Assignment;
+import domain.Customer;
 import domain.LoginUser;
 import domain.Secretary;
 import domain.SystemAdmin;
+import dto.AssignmentDTO;
+import dto.CustomerDTO;
 import dto.SecretaryDTO;
 import dto.SystemAdminDTO;
 
@@ -36,11 +48,18 @@ public class CommonService extends BaseService{
     private static final String PATH_CUSTOMER_LOGIN = "/customer";
     private static final String PATH_CUSTOMER_HOME  = "/customer/home";
 
-    // セッションキー
+    // アトリビュート
     private static final String ATTR_LOGIN_USER = "loginUser";
+    private static final String ATTR_CUSTOMERS = "customers";
+    private static final String ATTR_YEAR_MONTH = "yearMonth";
+    
+    private static final ZoneId Z_TOKYO = ZoneId.of("Asia/Tokyo");
+    private static final DateTimeFormatter YM_FMT = DateTimeFormatter.ofPattern("yyyy-MM");
 
     /** ロール（どの DAO/遷移系を使うかの分岐に利用） */
     private enum Role { ADMIN, SECRETARY } 
+    
+    private final Converter conv = new Converter();
 
 	
 	public CommonService(HttpServletRequest req, boolean useDB) {
@@ -75,10 +94,18 @@ public class CommonService extends BaseService{
 	            if (dto != null && safeEquals(dto.getPassword(), password)) {
 	                LoginUser loginUser = new LoginUser();
 
+<<<<<<< HEAD
+                // 元実装どおり：Secretary ドメインは mail のみ保持
+                Secretary sec = new Secretary();
+                sec.setId(dto.getId());
+                sec.setMail(dto.getMail());
+                
+=======
 	                Secretary sec = new Secretary();
 	                sec.setId(dto.getId());
 	                sec.setMail(dto.getMail());
 	                
+>>>>>>> b04af90d599e933785e01dbfd295aff301bd7474
 
 	                loginUser.setSecretary(sec);
 	                loginUser.setAuthority(AUTH_SECRETARY);
@@ -155,6 +182,53 @@ public class CommonService extends BaseService{
         return "common/admin/home";
     }
 
+<<<<<<< HEAD
+    public String secretaryHome() {
+        // 1) セッションから secretaryId を取得
+        HttpSession session = req.getSession(false);
+        if (session == null) {
+            return req.getContextPath() + PATH_SECRETARY_LOGIN;
+        }
+        LoginUser lu = (LoginUser) session.getAttribute(ATTR_LOGIN_USER);
+        if (lu == null || lu.getSecretary() == null || lu.getSecretary().getId() == null) {
+        	return req.getContextPath() + PATH_SECRETARY_LOGIN;
+        }
+        UUID secretaryId = lu.getSecretary().getId();
+
+        // 2) 今月の "YYYY-MM"
+        String yearMonth = LocalDate.now(Z_TOKYO).format(YM_FMT);
+
+        // 3) DAO 呼び出し → DTO を Converter で Domain に詰め替え
+        try (TransactionManager tm = new TransactionManager()) {
+            AssignmentDAO dao = new AssignmentDAO(tm.getConnection());
+            List<CustomerDTO> list = dao.selectBySecretaryAndMonth(secretaryId, yearMonth);
+
+            List<Customer> customers = new ArrayList<>();
+            if (list != null) {
+                for (CustomerDTO cdto : list) {
+                    // Customer 基本情報
+                    Customer c = conv.toDomain(cdto);
+
+                    // assignments を個別に詰め替え
+                    List<Assignment> as = new ArrayList<>();
+                    if (cdto.getAssignmentDTOs() != null) {
+                        for (AssignmentDTO adto : cdto.getAssignmentDTOs()) {
+                            as.add(conv.toDomain(adto));
+                        }
+                    }
+                    c.setAssignments(as);
+                    customers.add(c);
+                }
+            }
+
+            // 4) JSP へ渡す
+            req.setAttribute(ATTR_CUSTOMERS, customers);
+            req.setAttribute(ATTR_YEAR_MONTH, yearMonth);
+            return "common/secretary/home";
+        } catch (RuntimeException e) {
+            return req.getContextPath() + req.getServletPath() + "/error";
+        }
+=======
     /**
      * 顧客（会社/担当者）ログイン。
      * A社の山田さん/田中さん、どちらでログインしても同じ「A社のホーム」へ。
@@ -228,6 +302,7 @@ public class CommonService extends BaseService{
     public String customerHome() {
         // ここではビューだけ返す。会社IDはセッションの LoginUser から取り、JSP/別サービスで会社単位のデータ読み込みに利用
         return "common/customer/home";
+>>>>>>> b04af90d599e933785e01dbfd295aff301bd7474
     }
 
 

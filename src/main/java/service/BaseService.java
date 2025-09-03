@@ -10,6 +10,8 @@ public class BaseService {
 	protected TransactionManager tm;
 	protected Connection conn;
 	protected Validation validation = new Validation();
+    // ===== Error
+    public static String REDIRECT_ERROR;
 	
 	public BaseService(HttpServletRequest req, boolean useDB) {
 		this.req = req;
@@ -17,5 +19,6 @@ public class BaseService {
 			this.tm = new TransactionManager();
 			this.conn = tm.getConnection();
 		}
+		REDIRECT_ERROR = req.getContextPath() + req.getServletPath() + "/common/error";
 	}
 }
