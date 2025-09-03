@@ -37,7 +37,7 @@
           </div>
           <div class="col-md-6">
             <label class="form-label">対象月</label>
-            <input type="month" class="form-control" name="targetYearMonth" id="targetYearMonth" value="${targetYm}" required>
+            <input type="month" class="form-control" name="targetYM" id="targetYM" value="${targetYm}" required>
           </div>
           <div class="col-md-6">
             <label class="form-label">PM秘書</label>

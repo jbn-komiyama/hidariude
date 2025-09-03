@@ -33,12 +33,14 @@
             <label class="form-label">顧客</label>
             <div class="form-control-plaintext fw-semibold">
             <c:out value="${not empty param.companyName ? param.companyName : customer.companyName}"/>
+            <input type="hidden" name="id"  id="id" value="${customer.id}">
+            <input type="hidden" name="companyName"  id="companyName" value="${customer.companyName}">
             </div>
           </div>
 
           <div class="col-md-6">
             <label class="form-label">対象月 <span class="text-danger">*</span></label>
-            <input type="month" class="form-control" name="targetYearMonth"
+            <input type="month" class="form-control" name="targetYM"
                    value="${not empty param.targetYearMonth ? param.targetYearMonth : (not empty targetYm ? targetYm : '')}"
                    required> <!-- //★ -->
           </div>

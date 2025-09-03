@@ -2,6 +2,7 @@ package service;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -51,7 +52,7 @@ public class AssignmentService extends BaseService {
     private static final String P_CUSTOMER_ID   = "customerId";
     private static final String P_SECRETARY_ID  = "secretaryId";
     private static final String P_TASK_RANK_ID  = "taskRankId";
-    private static final String P_TARGET_YM     = "targetYearMonth";
+    private static final String P_TARGET_YM     = "targetYM";
     private static final String P_BASE_CUST     = "basePayCustomer";
     private static final String P_BASE_SEC      = "basePaySecretary";
     private static final String P_INC_CUST      = "increaseBasePayCustomer";
@@ -74,7 +75,7 @@ public class AssignmentService extends BaseService {
 
     // ----- Attribute keys -----
     private static final String A_CUSTOMERS    = "customers";
-    private static final String A_TARGET_YM    = "targetYm";
+    private static final String A_TARGET_YM    = "targetYM";
     private static final String A_CUSTOMER     = "customer";
     private static final String A_SECRETARIES  = "secretaries";
     private static final String A_TASK_RANKS   = "taskRanks";
@@ -88,7 +89,7 @@ public class AssignmentService extends BaseService {
     private static final String A_FORM_CUSTOMER_ID  = "form_customerId";
     private static final String A_FORM_SECRETARY_ID = "form_secretaryId";
     private static final String A_FORM_TASK_RANK_ID = "form_taskRankId";
-    private static final String A_FORM_YM           = "form_targetYearMonth";
+    private static final String A_FORM_YM           = "form_targetYM";
     private static final String A_FORM_BASE_CUST    = "form_basePayCustomer";
     private static final String A_FORM_BASE_SEC     = "form_basePaySecretary";
     private static final String A_FORM_INC_CUST     = "form_increaseBasePayCustomer";
@@ -116,12 +117,16 @@ public class AssignmentService extends BaseService {
      * @return ビュー名またはリダイレクト先
      */
 	public String assignmentList() {
+		String targetYM = req.getParameter(A_TARGET_YM);
+		if(targetYM == null) {
+			ZoneId zone = ZoneId.of("Asia/Tokyo"); // 任意のタイムゾーン
+			targetYM = LocalDate.now(zone).format(DateTimeFormatter.ofPattern("yyyy-MM"));
+		}
 		try (TransactionManager tm = new TransactionManager()) {
-			LocalDate today = LocalDate.now();
-			String yearMonth = today.format(YM_FMT);
+
 
 			CustomerDAO customerDAO = new CustomerDAO(tm.getConnection());
-			List<CustomerDTO> customerDtos = customerDAO.selectAllWithAssignmentsByMonth(yearMonth);
+			List<CustomerDTO> customerDtos = customerDAO.selectAllWithAssignmentsByMonth(targetYM);
 
 			List<Customer> customers = new ArrayList<>();
 			Converter conv = new Converter();
@@ -165,8 +170,9 @@ public class AssignmentService extends BaseService {
 				customers.add(c);
 			}
 
+			req.setAttribute(A_CUSTOMERS, targetYM);
 			req.setAttribute(A_CUSTOMERS, customers);
-            req.setAttribute(A_TARGET_YM, yearMonth);
+            req.setAttribute(A_TARGET_YM, targetYM);
             return VIEW_HOME;
 
 		} catch (RuntimeException e) {
@@ -212,6 +218,7 @@ public class AssignmentService extends BaseService {
 	                        ? Collections.emptyList()
 	                        : assignDao.selectByCustomerFromYearMonth(customer.getId(), fromYm);
 	        req.setAttribute(A_FUTURE_ASSIGNMENTS, futureList);
+	        req.setAttribute(A_TARGET_YM, fromYm);
 
 	        loadSecretariesToRequest(tm, false);
 	        loadTaskRanksToRequest(tm);
@@ -237,12 +244,12 @@ public class AssignmentService extends BaseService {
         }
         req.setAttribute(A_TARGET_YM, ym);
 
-        final String companyIdStr = req.getParameter(P_COMPANY_ID);
+        final String companyIdStr = req.getParameter(P_ID);
         final String companyName  = req.getParameter(P_COMPANY_NAME);
 
         if (validation.isNull("会社名", companyName) | validation.isNull("会社ID", companyIdStr)) {
             req.setAttribute(A_ERROR, validation.getErrorMsg());
-            return req.getContextPath() + "/admin/assignment";
+            return REDIRECT_ERROR;
         }
 
         try (TransactionManager tm = new TransactionManager()) {
@@ -260,7 +267,7 @@ public class AssignmentService extends BaseService {
 
             return VIEW_PM_REGISTER;
         } catch (RuntimeException e) {
-            return req.getContextPath() + req.getServletPath() + "/error";
+            return REDIRECT_ERROR;
         }
     }
 
@@ -272,10 +279,11 @@ public class AssignmentService extends BaseService {
 	    pushFormBackToRequestForCheck(false);
 
 	    // ★ 2) POSTされたIDを取り出し
-	    final String customerIdStr  = req.getParameter(P_CUSTOMER_ID);
+	    final String customerIdStr  = req.getParameter(P_ID);
 	    final String secretaryIdStr = req.getParameter(P_SECRETARY_ID);
 	    final String taskRankIdStr  = req.getParameter(P_TASK_RANK_ID);
-
+	    final String targetYM  = req.getParameter(P_TARGET_YM);
+	    
 	    // ★ 3) 軽い検証（IDはUUID想定）
 	    if (!validation.isUuid(customerIdStr)) validation.addErrorMsg("顧客の指定が不正です");
 	    if (!validation.isUuid(secretaryIdStr)) validation.addErrorMsg("秘書の指定が不正です");
@@ -337,7 +345,7 @@ public class AssignmentService extends BaseService {
         final String customerIdStr       = req.getParameter(P_CUSTOMER_ID);
         final String secretaryIdStr      = req.getParameter(P_SECRETARY_ID);
         final String taskRankIdStr       = req.getParameter(P_TASK_RANK_ID);
-        final String targetYearMonth     = req.getParameter(P_TARGET_YM);
+        final String targetYM     = req.getParameter(P_TARGET_YM);
         final String basePayCustomerStr  = req.getParameter(P_BASE_CUST);
         final String basePaySecretaryStr = req.getParameter(P_BASE_SEC);
         final String status              = req.getParameter(P_STATUS);
@@ -346,13 +354,13 @@ public class AssignmentService extends BaseService {
         validation.isNull("顧客", customerIdStr);
         validation.isNull("PM秘書", secretaryIdStr);
         validation.isNull("タスクランク", taskRankIdStr);
-        validation.isNull("対象月", targetYearMonth);
+        validation.isNull("対象月", targetYM);
 
         // 形式
         if (!validation.isUuid(customerIdStr))  validation.addErrorMsg("顧客の指定が不正です");
         if (!validation.isUuid(secretaryIdStr)) validation.addErrorMsg("秘書の指定が不正です");
         if (!validation.isUuid(taskRankIdStr))  validation.addErrorMsg("業務ランクの指定が不正です");
-        if (!validation.isYearMonth(targetYearMonth)) {
+        if (!validation.isYearMonth(targetYM)) {
             validation.addErrorMsg("対象月は yyyy-MM 形式で入力してください");
         }
         validation.mustBeMoneyOrZero("単価（顧客）", basePayCustomerStr);
@@ -375,7 +383,7 @@ public class AssignmentService extends BaseService {
             } catch (RuntimeException ignore) { }
 
             // フォーム値復元
-            req.setAttribute(A_TARGET_YM, targetYearMonth);
+            req.setAttribute(A_TARGET_YM, targetYM);
             req.setAttribute(A_STATUS, status);
             req.setAttribute(A_FORM_SECRETARY_ID, secretaryIdStr);
             return VIEW_PM_REGISTER;
@@ -396,7 +404,7 @@ public class AssignmentService extends BaseService {
             req.setAttribute("secretary", conv.toDomain(sdto)); // ここは画面で secretary を参照している想定
 
             // 表示 & hidden 引き継ぎ
-            req.setAttribute(A_TARGET_YM, targetYearMonth);
+            req.setAttribute(A_TARGET_YM, targetYM);
             req.setAttribute(A_STATUS,    status);
             req.setAttribute(A_H_CUSTOMER_ID, customerIdStr);
             req.setAttribute(A_H_SECRETARY_ID, secretaryIdStr);
@@ -502,7 +510,7 @@ public class AssignmentService extends BaseService {
         final String customerIdStr       = req.getParameter(P_CUSTOMER_ID);
         final String secretaryIdStr      = req.getParameter(P_SECRETARY_ID);
         final String taskRankIdStr       = req.getParameter(P_TASK_RANK_ID);
-        final String targetYearMonth     = req.getParameter(P_TARGET_YM);
+        final String targetYM     = req.getParameter(P_TARGET_YM);
         final String basePayCustomerStr  = req.getParameter(P_BASE_CUST);
         final String basePaySecretaryStr = req.getParameter(P_BASE_SEC);
         final String status              = req.getParameter(P_STATUS);
@@ -511,11 +519,11 @@ public class AssignmentService extends BaseService {
         validation.isNull("顧客", customerIdStr);
         validation.isNull("PM秘書", secretaryIdStr);
         validation.isNull("タスクランク", taskRankIdStr);
-        validation.isNull("対象月", targetYearMonth);
+        validation.isNull("対象月", targetYM);
         if (!validation.isUuid(customerIdStr))  validation.addErrorMsg("顧客の指定が不正です");
         if (!validation.isUuid(secretaryIdStr)) validation.addErrorMsg("秘書の指定が不正です");
         if (!validation.isUuid(taskRankIdStr))  validation.addErrorMsg("業務ランクの指定が不正です");
-        if (!validation.isYearMonth(targetYearMonth)) {
+        if (!validation.isYearMonth(targetYM)) {
             validation.addErrorMsg("対象月は yyyy-MM 形式で入力してください");
         }
         validation.mustBeMoneyOrZero("単価（顧客）", basePayCustomerStr);
@@ -533,7 +541,7 @@ public class AssignmentService extends BaseService {
             		customerIdStr,
                     secretaryIdStr,
                     taskRankIdStr,
-                    targetYearMonth,
+                    targetYM,
                     basePayCustomerStr,
                     basePaySecretaryStr,
                     "0", "0", "0", "0",   // ← PMは0固定
@@ -555,7 +563,7 @@ public class AssignmentService extends BaseService {
 
                     loadSecretariesToRequest(tm, true);
                     loadPMTaskRankToRequest(tm);
-                    req.setAttribute(A_TARGET_YM, targetYearMonth);
+                    req.setAttribute(A_TARGET_YM, targetYM);
                     req.setAttribute(A_STATUS,    status); // 任意：ステータスも戻す
                 } catch (RuntimeException ignore) { }
                 return VIEW_PM_REGISTER;
@@ -583,10 +591,10 @@ public class AssignmentService extends BaseService {
         }
     /** 確認画面用：入力値を form_* 名でリクエストに積む。 */
     private void pushFormBackToRequestForCheck(boolean pmMode) {
-        req.setAttribute("form_customerId", req.getParameter(P_CUSTOMER_ID));
+        req.setAttribute("form_customerId", req.getParameter(P_ID));
         req.setAttribute("form_secretaryId", req.getParameter(P_SECRETARY_ID));
         req.setAttribute("form_taskRankId",  req.getParameter(P_TASK_RANK_ID));
-        req.setAttribute("form_targetYearMonth", req.getParameter(P_TARGET_YM));
+        req.setAttribute("form_targetYM", req.getParameter(P_TARGET_YM));
         req.setAttribute("form_basePayCustomer",  req.getParameter(P_BASE_CUST));
         req.setAttribute("form_basePaySecretary", req.getParameter(P_BASE_SEC));
         if (!pmMode) {
@@ -613,7 +621,7 @@ public class AssignmentService extends BaseService {
         req.setAttribute("form_customerId", customerId);
         req.setAttribute("form_secretaryId", secretaryId);
         req.setAttribute("form_taskRankId", taskRankId);
-        req.setAttribute("form_targetYearMonth", ym);
+        req.setAttribute("form_targetYM", ym);
         req.setAttribute("form_basePayCustomer", baseCust);
         req.setAttribute("form_basePaySecretary", baseSec);
         req.setAttribute("form_increaseBasePayCustomer", incCust);
@@ -656,7 +664,7 @@ public class AssignmentService extends BaseService {
 
     /** 文字列群から AssignmentDTO を構築。 */
     private AssignmentDTO buildAssignmentDto(
-    		String customerName,String customerIdStr, String secretaryIdStr, String taskRankIdStr, String targetYearMonth,
+    		String customerName,String customerIdStr, String secretaryIdStr, String taskRankIdStr, String targetYM,
             String basePayCustomerStr, String basePaySecretaryStr,
             String increaseBasePayCustomerStr, String increaseBasePaySecretaryStr,
             String incentiveCustomerStr, String incentiveSecretaryStr,
@@ -667,7 +675,7 @@ public class AssignmentService extends BaseService {
         dto.setAssignmentCustomerId(UUID.fromString(customerIdStr));
         dto.setAssignmentSecretaryId(UUID.fromString(secretaryIdStr));
         dto.setTaskRankId(UUID.fromString(taskRankIdStr));
-        dto.setTargetYearMonth(targetYearMonth);
+        dto.setTargetYearMonth(targetYM);
         dto.setBasePayCustomer(parseMoneyOrZero(basePayCustomerStr));
         dto.setBasePaySecretary(parseMoneyOrZero(basePaySecretaryStr));
         dto.setIncreaseBasePayCustomer(parseMoneyOrZero(increaseBasePayCustomerStr));

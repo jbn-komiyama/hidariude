@@ -20,7 +20,7 @@
         <dd class="col-sm-9"><c:out value="${customer.companyName}"/></dd>
 
         <dt class="col-sm-3">対象月</dt>
-        <dd class="col-sm-9"><c:out value="${form_targetYearMonth}"/></dd>
+        <dd class="col-sm-9"><c:out value="${form_targetYM}"/></dd>
 
         <dt class="col-sm-3">秘書</dt>
         <dd class="col-sm-9"><c:out value="${secretary.name}"/></dd>
@@ -54,7 +54,7 @@
         <input type="hidden" name="customerId"  value="${form_customerId}">
         <input type="hidden" name="secretaryId" value="${form_secretaryId}">
         <input type="hidden" name="taskRankId"  value="${form_taskRankId}">
-        <input type="hidden" name="targetYearMonth" value="${form_targetYearMonth}">
+        <input type="hidden" name="targetYM" value="${form_targetYM}">
         <input type="hidden" name="basePayCustomer"  value="${form_basePayCustomer}">
         <input type="hidden" name="basePaySecretary" value="${form_basePaySecretary}">
         <input type="hidden" name="increaseBasePayCustomer"  value="${form_increaseBasePayCustomer}">

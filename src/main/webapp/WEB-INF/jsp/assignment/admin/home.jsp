@@ -7,13 +7,13 @@
 <html>
 <head>
 <meta charset="UTF-8">
-<title>${empty targetYm ? '2025-08' : targetYm} アサイン一覧</title>
+<title>${targetYm} アサイン一覧</title>
 <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
 </head>
 <body class="bg-primary bg-opacity-10">
   <div class="container py-4">
     <div class="d-flex align-items-center justify-content-between mb-3">
-      <h1 class="h3 mb-0">${empty targetYm ? '2025-08' : targetYm} のアサイン</h1>
+      <h1 class="h3 mb-0">${targetYm} のアサイン</h1>
     </div>
 　　<!--    ページネーション-->
 	<div class="ym-nav d-flex align-items-center">
@@ -138,6 +138,7 @@
 			            <form method="post" action="<%= request.getContextPath() %>/admin/assignment/pm_register">
 				          <input type="hidden" name="companyId" value="${c.id}">
 				          <input type="hidden" name="companyName" value="${c.companyName}">
+				          <input type="hidden" name="targetYm" value="${targetYm}">
 				          <button type="submit" class="btn btn-sm btn-primary">PM秘書登録</button>
 				        </form>
 			          </td>
@@ -158,7 +159,7 @@
 <!--  ページネーション-->
   <script>
 (function(){
-  var serverYm = '${empty targetYm ? "2025-08" : targetYm}';
+  var serverYm = '${targetYm}';
   var urlYm = new URLSearchParams(location.search).get('ym');
   var ym = urlYm || serverYm;
 
