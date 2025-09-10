@@ -149,6 +149,32 @@ public class AssignmentDAO extends BaseDAO {
       + " WHERE id = ? "
       + "   AND deleted_at IS NULL";
     
+    private static final String SQL_SELECT_BY_SEC_AND_MONTH =
+            "SELECT " +
+            "  a.id                              AS a_id, " +
+            "  a.customer_id                     AS a_customer_id, " +
+            "  a.secretary_id                    AS a_secretary_id, " +
+            "  a.task_rank_id                    AS a_task_rank_id, " +
+            "  a.target_year_month               AS a_target_year_month, " +
+            "  a.base_pay_customer               AS a_base_pay_customer, " +
+            "  a.base_pay_secretary              AS a_base_pay_secretary, " +
+            "  a.increase_base_pay_customer      AS a_increase_base_pay_customer, " +
+            "  a.increase_base_pay_secretary     AS a_increase_base_pay_secretary, " +
+            "  a.customer_based_incentive_for_customer  AS a_cust_incentive_for_customer, " +
+            "  a.customer_based_incentive_for_secretary AS a_cust_incentive_for_secretary, " +
+            "  a.status                          AS a_status, " +
+            "  a.created_at                      AS a_created_at, " +
+            "  a.updated_at                      AS a_updated_at, " +
+            "  a.deleted_at                      AS a_deleted_at, " +
+            "  tr.rank_name                      AS tr_rank_name, " +
+            "  c.company_name                    AS c_company_name " +
+            "FROM assignments a " +
+            "LEFT JOIN task_rank tr ON tr.id = a.task_rank_id AND tr.deleted_at IS NULL " +
+            "INNER JOIN customers c ON c.id = a.customer_id AND c.deleted_at IS NULL " +
+            "WHERE a.deleted_at IS NULL " +
+            "  AND a.secretary_id = ? " +
+            "  AND a.target_year_month = ? " +
+            "ORDER BY c.company_name, tr.rank_name NULLS LAST, a.created_at";
 	
 	public AssignmentDAO(Connection conn) {
 		super(conn);
@@ -247,7 +273,7 @@ public class AssignmentDAO extends BaseDAO {
      * @return 顧客ごとに assignments を束ねた {@link CustomerDTO} のリスト（会社名昇順）
      * @throws DAOException 取得時にエラーが発生した場合
      */
-    public List<CustomerDTO> selectBySecretaryAndMonth(UUID secretaryId, String yearMonth) {
+    public List<CustomerDTO> selectBySecretaryAndMonthToCustomer(UUID secretaryId, String yearMonth) {
         try (PreparedStatement ps = conn.prepareStatement(SQL_SELECT_BY_SECRETARY_AND_MONTH)) {
             int p = 1;
             ps.setObject(p++, secretaryId);
@@ -303,6 +329,46 @@ public class AssignmentDAO extends BaseDAO {
         } catch (SQLException e) {
             throw new DAOException("E:AS12 指定秘書・指定月の assignments 取得に失敗しました。", e);
         }
+    }
+    
+    /** 秘書×年月のアサイン一覧（register.jsp のプルダウン用） */
+    public List<AssignmentDTO> selectBySecretaryAndMonthToAssignment(UUID secretaryId, String yearMonth) {
+        List<AssignmentDTO> list = new ArrayList<>();
+        try (PreparedStatement ps = conn.prepareStatement(SQL_SELECT_BY_SEC_AND_MONTH)) {
+            int p = 1;
+            ps.setObject(p++, secretaryId);
+            ps.setString(p++, yearMonth);
+
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    AssignmentDTO ad = new AssignmentDTO();
+                    ad.setAssignmentId(rs.getObject("a_id", UUID.class));
+                    ad.setAssignmentCustomerId(rs.getObject("a_customer_id", UUID.class));
+                    ad.setAssignmentSecretaryId(rs.getObject("a_secretary_id", UUID.class));
+                    ad.setTaskRankId(rs.getObject("a_task_rank_id", UUID.class));
+                    ad.setTargetYearMonth(rs.getString("a_target_year_month"));
+                    ad.setBasePayCustomer(rs.getBigDecimal("a_base_pay_customer"));
+                    ad.setBasePaySecretary(rs.getBigDecimal("a_base_pay_secretary"));
+                    ad.setIncreaseBasePayCustomer(rs.getBigDecimal("a_increase_base_pay_customer"));
+                    ad.setIncreaseBasePaySecretary(rs.getBigDecimal("a_increase_base_pay_secretary"));
+                    ad.setCustomerBasedIncentiveForCustomer(rs.getBigDecimal("a_cust_incentive_for_customer"));
+                    ad.setCustomerBasedIncentiveForSecretary(rs.getBigDecimal("a_cust_incentive_for_secretary"));
+                    ad.setAssignmentStatus(rs.getString("a_status"));
+                    ad.setAssignmentCreatedAt(rs.getTimestamp("a_created_at"));
+                    ad.setAssignmentUpdatedAt(rs.getTimestamp("a_updated_at"));
+                    ad.setAssignmentDeletedAt(rs.getTimestamp("a_deleted_at"));
+
+                    // 画面表示用
+                    ad.setTaskRankName(rs.getString("tr_rank_name"));
+                    ad.setCustomerCompanyName(rs.getString("c_company_name"));
+
+                    list.add(ad);
+                }
+            }
+        } catch (SQLException e) {
+            throw new DAOException("E:ASG11 assignments(秘書×年月) 取得に失敗しました。", e);
+        }
+        return list;
     }
     
     

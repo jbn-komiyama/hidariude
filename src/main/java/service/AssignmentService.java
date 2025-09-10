@@ -169,8 +169,6 @@ public class AssignmentService extends BaseService {
 
 				customers.add(c);
 			}
-
-			req.setAttribute(A_CUSTOMERS, targetYM);
 			req.setAttribute(A_CUSTOMERS, customers);
             req.setAttribute(A_TARGET_YM, targetYM);
             return VIEW_HOME;
@@ -244,7 +242,7 @@ public class AssignmentService extends BaseService {
         }
         req.setAttribute(A_TARGET_YM, ym);
 
-        final String companyIdStr = req.getParameter(P_ID);
+        final String companyIdStr = req.getParameter(P_COMPANY_ID);
         final String companyName  = req.getParameter(P_COMPANY_NAME);
 
         if (validation.isNull("会社名", companyName) | validation.isNull("会社ID", companyIdStr)) {

@@ -16,6 +16,7 @@ import service.AssignmentService;
 import service.CommonService;
 import service.ContactService;
 import service.CustomerService;
+import service.InvoiceService;
 import service.SecretaryService;
 import service.SystemAdminService;
 import service.TaskService;
@@ -196,6 +197,32 @@ public class FrontController extends HttpServlet {
 		case "/system_admin/delete"->{
 			nextPath = new SystemAdminService(req, true).systemAdminDelete();
 		}
+		
+		/**
+		 * A05 タスク管理業務
+		 * 
+		 */
+		case "/task/list_all"->{
+			nextPath = new TaskService(req, true).adminTaskListAll();
+		}
+		case "/task/list_unapproved"->{
+			nextPath = new TaskService(req, true).adminTaskListUnapproved();
+		}
+		case "/task/list_approved"->{
+			nextPath = new TaskService(req, true).adminTaskListApproved();
+		}
+		case "/task/list_remanded"->{
+			nextPath = new TaskService(req, true).adminTaskListRemanded();
+		}
+		case "/task/approve_bulk"->{
+			nextPath = new TaskService(req, true).adminTaskApproveBulk();
+		}
+		case "/task/unapprove_bulk"->{
+			nextPath = new TaskService(req, true).adminTaskUnapproveBulk();
+		}
+		case "/task/remand_done"->{
+			nextPath = new TaskService(req, true).adminTaskRemandDone();
+		}
 	}
     }
     
@@ -229,8 +256,8 @@ public class FrontController extends HttpServlet {
 			 * 
 			 */
 
-			case "/task/list"->{
-				nextPath = new TaskService(req, true).taskList();
+			case "/task/register"->{
+				nextPath = new TaskService(req, true).taskRegister();
 			}
 			case "/task/register_done"->{
 				nextPath = new TaskService(req, true).taskRegisterDone();
@@ -243,6 +270,18 @@ public class FrontController extends HttpServlet {
 			}
 			case "/task/delete_done"->{
 				nextPath = new TaskService(req, true).taskDeleteDone();
+			}
+			case "/task/list_all"->{
+				nextPath = new TaskService(req, true).secretaryTaskListAll();
+			}
+			case "/task/list_approved"->{
+				nextPath = new TaskService(req, true).secretaryTaskListApproved();
+			}
+			case "/task/list_unapproved"->{
+				nextPath = new TaskService(req, true).secretaryTaskListUnapproved();
+			}
+			case "/task/list_remanded"->{
+				nextPath = new TaskService(req, true).secretaryTaskListRemanded();
 			}
 
 			/**
@@ -266,6 +305,14 @@ public class FrontController extends HttpServlet {
 			}
 			case "/mypage/edit_done"->{
 				nextPath = new SecretaryService(req, true).myPageEditDone();
+			}
+			
+			/**
+			 * A05 請求業務
+			 * 
+			 */
+			case "/invoice"->{
+				nextPath = new InvoiceService(req, true).invoiceSummery();
 			}
 			
     	}

@@ -107,6 +107,15 @@
         <input type="hidden" name="companyId" value="${companyId}">
         <input type="hidden" name="companyName" value="${fn:escapeXml(companyName)}">
         <input type="hidden" name="yearMonth" value="${yearMonth}">
+        <input type="hidden" name="clearRemand" value="${clearRemand ? '1' : '0'}">
+        <c:if test="${clearRemand}">
+				  <div class="alert alert-warning py-2">
+				    このタスクは <strong>差戻解除</strong> として保存されます
+				  </div>
+				  <div class="alert alert-warning py-2">
+				    差戻コメント：${remandComment}
+				  </div>
+				</c:if>
 
         <div class="row g-3">
           <div class="col-md-3">
@@ -155,15 +164,13 @@
         </div>
 
         <div class="mt-4 d-flex gap-2">
-          <button type="submit" id="submitBtn" class="btn btn-primary btn-sm">更新する</button>
-          <!-- 戻る -->
-          <form method="get" action="<%=request.getContextPath()%>/secretary/task/list" class="m-0">
-            <input type="hidden" name="companyId" value="${companyId}">
-            <input type="hidden" name="companyName" value="${fn:escapeXml(companyName)}">
-            <input type="hidden" name="yearMonth" value="${yearMonth}">
-            <button type="submit" class="btn btn-outline-secondary btn-sm">キャンセル</button>
-          </form>
-        </div>
+				  <button type="submit" id="submitBtn" class="btn btn-primary btn-sm">更新する</button>
+				  <!-- ここは a に変更（フォームの入れ子をやめる） -->
+				  <a class="btn btn-outline-secondary btn-sm"
+				     href="<%=request.getContextPath()%>/secretary/task/list?companyId=${companyId}&companyName=${fn:escapeXml(companyName)}&yearMonth=${yearMonth}">
+				     キャンセル
+				  </a>
+				</div>
       </form>
     </div>
   </div>

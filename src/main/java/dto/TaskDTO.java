@@ -1,5 +1,6 @@
 package dto;
 import java.io.Serializable;
+import java.math.BigDecimal;
 import java.sql.Date;
 import java.sql.Timestamp;
 import java.util.UUID;
@@ -21,7 +22,14 @@ public class TaskDTO implements Serializable {
     private Timestamp createdAt;
     private Timestamp updatedAt;
     private Timestamp deletedAt;
+   
+    private int unapproved;
+    private int approved;
+    private int remanded;
+    private int total;
     
+    
+	
 	public UUID getId() {
 		return id;
 	}
@@ -107,6 +115,49 @@ public class TaskDTO implements Serializable {
 		this.deletedAt = deletedAt;
 	}
     
-    
+	private Timestamp remandedAt;
+	private UUID remandedBy;
+	private String remandComment;
+
+	public Timestamp getRemandedAt() { return remandedAt; }
+	public void setRemandedAt(Timestamp remandedAt) { this.remandedAt = remandedAt; }
+	public UUID getRemandedBy() { return remandedBy; }
+	public void setRemandedBy(java.util.UUID remandedBy) { this.remandedBy = remandedBy; }
+	public String getRemandComment() { return remandComment; }
+	public void setRemandComment(String remandComment) { this.remandComment = remandComment; }
+	
+	public int getUnapproved() {
+		return unapproved;
+	}
+	public void setUnapproved(int unapproved) {
+		this.unapproved = unapproved;
+	}
+	public int getApproved() {
+		return approved;
+	}
+	public void setApproved(int approved) {
+		this.approved = approved;
+	}
+	public int getRemanded() {
+		return remanded;
+	}
+	public void setRemanded(int remanded) {
+		this.remanded = remanded;
+	}
+	public int getTotal() {
+		return total;
+	}
+	public void setTotal(int total) {
+		this.total = total;
+	}
+	// TaskDTO.java
+	private BigDecimal totalAmountAll;
+	private BigDecimal totalAmountApproved;
+
+	public BigDecimal getTotalAmountAll() { return totalAmountAll; }
+	public void setTotalAmountAll(BigDecimal v) { this.totalAmountAll = v; }
+
+	public BigDecimal getTotalAmountApproved() { return totalAmountApproved; }
+	public void setTotalAmountApproved(BigDecimal v) { this.totalAmountApproved = v; }
 }
 

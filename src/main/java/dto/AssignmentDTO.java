@@ -24,6 +24,8 @@ public class AssignmentDTO implements Serializable {
     private BigDecimal increaseBasePaySecretary;                 // a.increase_base_pay_secretary
     private BigDecimal customerBasedIncentiveForCustomer;        // a.customer_based_incentive_for_customer
     private BigDecimal customerBasedIncentiveForSecretary;       // a.customer_based_incentive_for_secretary
+    private BigDecimal hourlyPaySecretary; 
+    private BigDecimal hourlyPayCustomer; 
     private String assignmentStatus;                             // a.status
     private UUID assignmentCreatedBy;                            // a.created_by
     private Timestamp assignmentCreatedAt;                   // a.created_at
@@ -241,6 +243,22 @@ public class AssignmentDTO implements Serializable {
 
 		public void setIsPmSecretary(Boolean isPmSecretary) {
 			this.isPmSecretary = isPmSecretary;
+		}
+
+		public BigDecimal getHourlyPayCustomer() {
+			return hourlyPayCustomer;
+		}
+
+		public void setHourlyPayCustomer(BigDecimal hourlyPayCustomer) {
+			this.hourlyPayCustomer = hourlyPayCustomer;
+		}
+
+		public BigDecimal getHourlyPaySecretary() {
+			return hourlyPaySecretary;
+		}
+
+		public void setHourlyPaySecretary(BigDecimal hourlyPaySecretary) {
+			this.hourlyPaySecretary = hourlyPaySecretary;
 		}
 
 	

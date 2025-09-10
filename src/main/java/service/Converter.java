@@ -8,6 +8,7 @@ import java.util.List;
 import domain.Assignment;
 import domain.Customer;
 import domain.CustomerContact;
+import domain.Invoice;
 import domain.Secretary;
 import domain.SecretaryRank;
 import domain.Task;
@@ -15,6 +16,7 @@ import domain.TaskRank;
 import dto.AssignmentDTO;
 import dto.CustomerContactDTO;
 import dto.CustomerDTO;
+import dto.InvoiceDTO;
 import dto.SecretaryDTO;
 import dto.SecretaryRankDTO;
 import dto.TaskDTO;
@@ -141,12 +143,16 @@ public class Converter {
         assignment.setIncreaseBasePaySecretary(dto.getIncreaseBasePaySecretary());
         assignment.setCustomerBasedIncentiveForCustomer(dto.getCustomerBasedIncentiveForCustomer());
         assignment.setCustomerBasedIncentiveForSecretary(dto.getCustomerBasedIncentiveForSecretary());
+        assignment.setHourlyPayCustomer(dto.getHourlyPayCustomer());
+        assignment.setHourlyPaySecretary(dto.getHourlyPaySecretary());
         assignment.setStatus(dto.getAssignmentStatus());
         assignment.setCreatedBy(dto.getAssignmentCreatedBy());
         assignment.setCreatedAt(dto.getAssignmentCreatedAt() == null ? null : dto.getAssignmentCreatedAt().toLocalDateTime());
         assignment.setUpdatedAt(dto.getAssignmentUpdatedAt() == null ? null : dto.getAssignmentUpdatedAt().toLocalDateTime());
         assignment.setDeletedAt(dto.getAssignmentDeletedAt() == null ? null : dto.getAssignmentDeletedAt().toLocalDateTime());
         assignment.setTaskRankName(dto.getTaskRankName());
+        assignment.setCompanyName(dto.getCustomerCompanyName());
+        assignment.setSecretaryName(dto.getSecretaryName());
 
         // Customer (summary)
         Customer customer = new Customer();
@@ -202,6 +208,8 @@ public class Converter {
         t.setWorkMinute(dto.getWorkMinute());
         t.setWorkContent(dto.getWorkContent());
         t.setApprovedAt(ts2date(dto.getApprovedAt()));
+        t.setHourFee(t.getAssignment().getHourlyPaySecretary());
+        t.setHourFeeCustomer(t.getAssignment().getHourlyPayCustomer());
 
         if (dto.getApprovedBy() != null) {
             t.setApprovedBy(toDomain(dto.getApprovedBy())); // idのみでもOK
@@ -211,7 +219,75 @@ public class Converter {
         t.setCreatedAt(ts2date(dto.getCreatedAt()));
         t.setUpdatedAt(ts2date(dto.getUpdatedAt()));
         t.setDeletedAt(ts2date(dto.getDeletedAt()));
+        t.setRemandedAt(ts2date(dto.getRemandedAt()));
+        t.setRemandedById(dto.getRemandedBy());
+        t.setRemandComment(dto.getRemandComment());
+        t.setUnapproved(dto.getUnapproved());
+        t.setApproved(dto.getApproved());
+        t.setRemanded(dto.getRemanded());
+        t.setTotal(dto.getTotal());
+        t.setHasRemander(dto.getRemandedBy() != null);
         return t;
+    }
+    
+    public List<Task> toTaskDomainList(List<TaskDTO> dtos) {
+        
+        List<Task> tasks = new ArrayList<>();
+        if (dtos == null) return tasks;
+        
+        for(TaskDTO dto : dtos) {
+	        Task t = new Task();
+	        t.setId(dto.getId());
+	
+	        // assignments.* を含んだ AssignmentDTO を詰め替え
+	        if (dto.getAssignment() != null) {
+	            t.setAssignment(toDomain(dto.getAssignment()));
+	        }
+	
+	        t.setWorkDate(sql2date(dto.getWorkDate()));
+	        t.setStartTime(ts2date(dto.getStartTime()));
+	        t.setEndTime(ts2date(dto.getEndTime()));
+	        t.setWorkMinute(dto.getWorkMinute());
+	        t.setWorkContent(dto.getWorkContent());
+	        t.setApprovedAt(ts2date(dto.getApprovedAt()));
+	        t.setHourFee(t.getAssignment().getHourlyPaySecretary());
+	        t.setHourFeeCustomer(t.getAssignment().getHourlyPayCustomer());
+	        
+	        if (dto.getApprovedBy() != null) {
+	            t.setApprovedBy(toDomain(dto.getApprovedBy())); // idのみでもOK
+	        }
+	
+	        // ※ 月次請求/サマリは Domain クラス定義に合わせて必要なら後で拡張
+	        t.setCreatedAt(ts2date(dto.getCreatedAt()));
+	        t.setUpdatedAt(ts2date(dto.getUpdatedAt()));
+	        t.setDeletedAt(ts2date(dto.getDeletedAt()));
+	        t.setRemandedAt(ts2date(dto.getRemandedAt()));
+	        t.setRemandedById(dto.getRemandedBy());
+	        t.setRemandComment(dto.getRemandComment());
+	        tasks.add(t);
+        }
+        return tasks;
+    }
+    
+    public List<Invoice> toInvoiceDomainList(List<InvoiceDTO> dtos) {
+    	List<Invoice> list = new ArrayList<>();
+        if (dtos == null) return list;
+
+        for (InvoiceDTO d : dtos) {
+            Invoice inv = new Invoice();
+            inv.setCustomerId(d.getCustomerId());
+            inv.setCustomerCompanyName(d.getCustomerCompanyName());
+            inv.setTotalMinute(d.getTotalMinute());
+            inv.setHourlyPay(d.getHourlyPay());
+            inv.setTargetYM(d.getTargetYM());
+            inv.setTaskRankName(d.getTaskRankName());
+            if (d.getFee() != null) {
+                // Domain Invoice#setFee() 内で totalFee に加算される設計
+                inv.setFee(d.getFee());
+            }
+            list.add(inv);
+        }
+        return list;
     }
 
     // -------------------------

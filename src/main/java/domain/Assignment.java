@@ -21,12 +21,16 @@ public class Assignment implements Serializable{
     private BigDecimal increaseBasePaySecretary;
     private BigDecimal customerBasedIncentiveForCustomer;
     private BigDecimal customerBasedIncentiveForSecretary;
+    private BigDecimal hourlyPaySecretary; 
+    private BigDecimal hourlyPayCustomer; 
     private String status;
     private UUID createdBy;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
     private LocalDateTime deletedAt;
     private String taskRankName;
+    private String companyName;
+    private String secretaryName;  
 
     // --- relations (domain objects) ---
     private Customer customer;
@@ -146,6 +150,30 @@ public class Assignment implements Serializable{
 	}
 	public void setSecretary(Secretary secretary) {
 		this.secretary = secretary;
+	}
+	public BigDecimal getHourlyPaySecretary() {
+		return hourlyPaySecretary;
+	}
+	public void setHourlyPaySecretary(BigDecimal hourlyPaySecretary) {
+		this.hourlyPaySecretary = hourlyPaySecretary;
+	}
+	public BigDecimal getHourlyPayCustomer() {
+		return hourlyPayCustomer;
+	}
+	public void setHourlyPayCustomer(BigDecimal hourlyPayCustomer) {
+		this.hourlyPayCustomer = hourlyPayCustomer;
+	}
+	public String getCompanyName() {
+		return companyName;
+	}
+	public void setCompanyName(String companyName) {
+		this.companyName = companyName;
+	}
+	public String getSecretaryName() {
+		return secretaryName;
+	}
+	public void setSecretaryName(String secretaryName) {
+		this.secretaryName = secretaryName;
 	}
     
 }

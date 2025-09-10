@@ -33,7 +33,7 @@
         </div>
         <div class="col-md-6">
           <label class="form-label">対象月</label>
-          <div class="form-control-plaintext"><c:out value="${targetYm}"/></div>
+          <div class="form-control-plaintext"><c:out value="${targetYM}"/></div>
         </div>
 
         <div class="col-md-6">
@@ -78,7 +78,7 @@
         <input type="hidden" name="customerId"       value="${h_customerId}">
         <input type="hidden" name="secretaryId"      value="${h_secretaryId}">
         <input type="hidden" name="taskRankId"       value="${h_taskRankId}">
-        <input type="hidden" name="targetYm"  value="${targetYm}">
+        <input type="hidden" name="targetYM"  value="${targetYM}">
         <input type="hidden" name="basePayCustomer"  value="${h_basePayCustomer}">
         <input type="hidden" name="basePaySecretary" value="${h_basePaySecretary}">
         <input type="hidden" name="status"           value="${status}">

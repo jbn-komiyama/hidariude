@@ -319,6 +319,45 @@ UPDATE task_rank SET rank_no = 20 WHERE rank_name = 'B';
 UPDATE task_rank SET rank_no = 30 WHERE rank_name = 'C';
 UPDATE task_rank SET rank_no = 40 WHERE rank_name = 'D';
 
+-- 既存のFK名は通常 tasks_approved_by_fkey
+ALTER TABLE tasks
+  DROP CONSTRAINT IF EXISTS tasks_approved_by_fkey;
+
+ALTER TABLE tasks
+  ADD CONSTRAINT tasks_approved_by_system_admin_fkey
+  FOREIGN KEY (approved_by)
+  REFERENCES system_admins(id)
+  ON UPDATE CASCADE
+  ON DELETE SET NULL;
+  
+-- 1. 追加カラム
+ALTER TABLE tasks
+  ADD COLUMN remanded_at   TIMESTAMP,
+  ADD COLUMN remanded_by   UUID REFERENCES system_admins(id),
+  ADD COLUMN remand_comment TEXT;
+
+-- 2. よく使う検索向けのindex（任意）
+-- CREATE INDEX idx_tasks_remanded_at ON tasks(remanded_at) WHERE deleted_at IS NULL;
+-- CREATE INDEX idx_tasks_approved_at ON tasks(approved_at) WHERE deleted_at IS NULL;
+
+ALTER TABLE customers DROP CONSTRAINT IF EXISTS fk_customers_primary_contact;
+
+ALTER TABLE customers
+  ADD CONSTRAINT fk_customers_primary_contact
+  FOREIGN KEY (primary_contact_id)
+  REFERENCES customer_contacts(id)
+  ON UPDATE CASCADE
+  ON DELETE SET NULL;
+  
+ALTER TABLE tasks DROP CONSTRAINT IF EXISTS tasks_approved_by_system_admin_fkey;
+
+ALTER TABLE tasks
+  ADD CONSTRAINT tasks_approved_by_secretary_fkey
+  FOREIGN KEY (approved_by)
+  REFERENCES secretaries(id)
+  ON UPDATE CASCADE
+  ON DELETE SET NULL;
+
 
 -- 下記は、assignment_idを修正する必要あり
 -- 2025-09-01（10件）

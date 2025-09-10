@@ -35,6 +35,9 @@
       <a href="<%=request.getContextPath()%>/admin/taskrank" class="list-group-item list-group-item-action">
         タスクランク管理
       </a>
+      <a href="<%=request.getContextPath()%>/admin/task/list_all" class="list-group-item list-group-item-action">
+        タスク管理
+      </a>
     </div>
   </div>
 </body>

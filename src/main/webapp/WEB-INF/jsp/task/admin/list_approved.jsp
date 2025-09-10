@@ -1,0 +1,176 @@
+<%@ page language="java" contentType="text/html; charset=UTF-8" pageEncoding="UTF-8"%>
+<%@ page isELIgnored="false"%>
+<%@ taglib prefix="c" uri="jakarta.tags.core"%>
+<%@ taglib prefix="fn" uri="jakarta.tags.functions"%>
+<%@ taglib prefix="fmt" uri="jakarta.tags.fmt"%>
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>業務一覧（承認済）</title>
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body class="bg-primary bg-opacity-10">
+<div class="container py-4">
+
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <div>
+      <h1 class="h4 mb-1">業務一覧（承認済）</h1>
+      <div class="text-muted small">年月：<strong>${yearMonth}</strong></div>
+    </div>
+    <a href="<%=request.getContextPath()%>/admin/home" class="btn btn-sm btn-outline-secondary">戻る</a>
+  </div>
+
+  <!-- タブ -->
+  <c:url var="urlAll" value="/admin/task/list_all"><c:param name="yearMonth" value="${yearMonth}"/><c:param name="sec" value="${sec}"/><c:param name="cust" value="${cust}"/></c:url>
+  <c:url var="urlUnapp" value="/admin/task/list_unapproved"><c:param name="yearMonth" value="${yearMonth}"/><c:param name="sec" value="${sec}"/><c:param name="cust" value="${cust}"/></c:url>
+  <c:url var="urlApp" value="/admin/task/list_approved"><c:param name="yearMonth" value="${yearMonth}"/><c:param name="sec" value="${sec}"/><c:param name="cust" value="${cust}"/></c:url>
+  <c:url var="urlRemand" value="/admin/task/list_remanded"><c:param name="yearMonth" value="${yearMonth}"/><c:param name="sec" value="${sec}"/><c:param name="cust" value="${cust}"/></c:url>
+  <ul class="nav nav-tabs mb-3">
+    <li class="nav-item"><a class="nav-link" href="${urlAll}">全件</a></li>
+    <li class="nav-item"><a class="nav-link" href="${urlUnapp}">未承認</a></li>
+    <li class="nav-item"><a class="nav-link active" href="${urlApp}">承認済</a></li>
+    <li class="nav-item"><a class="nav-link" href="${urlRemand}">差戻</a></li>
+  </ul>
+
+  <!-- フィルタ -->
+  <form method="get" action="<%=request.getContextPath()%>/admin/task/list_approved" class="card card-body shadow-sm mb-3">
+    <div class="row g-2 align-items-center">
+      <div class="col-auto"><input type="month" name="yearMonth" class="form-control form-control-sm" value="${yearMonth}"></div>
+      <div class="col-auto"><input type="text" name="sec" class="form-control form-control-sm" placeholder="秘書名を含む" value="${sec}"></div>
+      <div class="col-auto"><input type="text" name="cust" class="form-control form-control-sm" placeholder="顧客名を含む" value="${cust}"></div>
+      <div class="col-auto"><button type="submit" class="btn btn-sm btn-outline-primary">表示</button></div>
+    </div>
+  </form>
+
+  <div class="alert alert-info">
+    <span class="me-3">件数：<strong>${fn:length(tasks)}</strong></span>
+    <span class="me-3">合計稼働：<strong><fmt:formatNumber value="${totalMinute/60}" type="number" maxFractionDigits="0"/></strong> 時間 <strong>${totalMinute%60}</strong> 分</span>
+    <span>合計金額：<strong>
+      <fmt:formatNumber value="${sumCustomer}" type="number" maxFractionDigits="0" groupingUsed="true"/> /
+      <fmt:formatNumber value="${sumSecretary}" type="number" maxFractionDigits="0" groupingUsed="true"/> 円
+    </strong></span>
+  </div>
+
+  <div class="card shadow-sm">
+    <div class="card-header bg-light d-flex justify-content-between align-items-center">
+      <span class="fw-semibold">承認済（${yearMonth}）</span>
+      <form id="unapproveFormTop" class="m-0" onsubmit="document.getElementById('unapproveForm').requestSubmit(); return false;">
+        <button type="submit" class="btn btn-sm btn-outline-danger">選択を承認前に戻す</button>
+      </form>
+    </div>
+
+    <div class="card-body p-0">
+      <c:choose>
+        <c:when test="${empty tasks}">
+          <div class="p-4 text-center text-muted">該当データはありません。</div>
+        </c:when>
+        <c:otherwise>
+
+          <form id="unapproveForm" method="post" action="<%=request.getContextPath()%>/admin/task/unapprove_bulk" class="m-0">
+            <input type="hidden" name="yearMonth" value="${yearMonth}">
+            <input type="hidden" name="sec" value="${sec}">
+            <input type="hidden" name="cust" value="${cust}">
+
+            <div class="table-responsive">
+              <table class="table table-sm table-hover align-middle mb-0">
+                <thead class="table-secondary">
+                  <tr>
+                    <th style="width:32px;">
+                      <div class="form-check m-0">
+                        <input class="form-check-input" type="checkbox" id="checkAll">
+                      </div>
+                    </th>
+                    <th style="width: 32px;">#</th>
+                    <th>秘書</th>
+                    <th>顧客</th>
+                    <th style="width:140px;">日付</th>
+                    <th style="width:130px;">時間</th>
+                    <th style="width:70px;">稼働</th>
+                    <th style="width:70px;">ランク</th>
+                    <th>内容</th>
+                    <th style="width:100px;">単価</th>
+                    <th style="width:100px;">報酬</th>
+                    <th style="width:90px;">状態</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <c:forEach var="t" items="${tasks}" varStatus="st">
+                    <tr>
+                      <td>
+                        <div class="form-check m-0">
+                          <input class="form-check-input row-check" type="checkbox" name="taskIds" value="${t.id}">
+                        </div>
+                      </td>
+                      <td>${st.count}</td>
+                      <td>${t.assignment.secretaryName}</td>
+                      <td>${t.assignment.companyName}</td>
+                      <td><fmt:formatDate value="${t.workDate}" pattern="yyyy-MM-dd (E)" timeZone="Asia/Tokyo"/></td>
+                      <td>
+                        <fmt:formatDate value="${t.startTime}" pattern="HH:mm" timeZone="Asia/Tokyo"/> ～
+                        <fmt:formatDate value="${t.endTime}" pattern="HH:mm" timeZone="Asia/Tokyo"/>
+                      </td>
+                      <td><fmt:formatNumber value="${t.workMinute}" type="number" maxFractionDigits="0"/>分</td>
+                      <td><c:out value="${t.assignment.taskRankName != null ? t.assignment.taskRankName : '—'}"/></td>
+                      <td>${fn:escapeXml(t.workContent)}</td>
+                      <td>
+                        <c:choose>
+                          <c:when test="${t.hourFeeCustomer ne null}">
+                            <fmt:formatNumber value="${t.hourFeeCustomer}" type="number" maxFractionDigits="0" groupingUsed="true"/> 円
+                          </c:when><c:otherwise>—</c:otherwise>
+                        </c:choose>
+                      </td>
+                      <td>
+                        <c:choose>
+                          <c:when test="${t.feeCustomer ne null}">
+                            <fmt:formatNumber value="${t.feeCustomer}" type="number" maxFractionDigits="0" groupingUsed="true"/> 円
+                          </c:when><c:otherwise>—</c:otherwise>
+                        </c:choose>
+                      </td>
+                      <td><span class="badge text-bg-success">承認済</span></td>
+                    </tr>
+                  </c:forEach>
+                </tbody>
+              </table>
+            </div>
+
+            <div class="d-flex justify-content-between align-items-center p-2 border-top bg-light">
+              <div class="small text-muted">選択：<span id="selCount">0</span> 件</div>
+            </div>
+          </form>
+
+        </c:otherwise>
+      </c:choose>
+    </div>
+  </div>
+</div>
+
+<script>
+(() => {
+  const form = document.getElementById('unapproveForm');
+  if (!form) return;
+  const checkAll = document.getElementById('checkAll');
+  const selCount = document.getElementById('selCount');
+  const checks = () => Array.from(form.querySelectorAll('.row-check'));
+  function update() {
+    const cs = checks();
+    const enabled = cs.filter(c => !c.disabled);
+    const checked = enabled.filter(c => c.checked);
+    selCount.textContent = checked.length;
+    if (enabled.length === 0) { checkAll.disabled = true; checkAll.checked = false; checkAll.indeterminate = false; return; }
+    checkAll.disabled = false;
+    checkAll.checked = checked.length === enabled.length;
+    checkAll.indeterminate = checked.length > 0 && checked.length < enabled.length;
+  }
+  checkAll?.addEventListener('change', () => { checks().forEach(c => { if (!c.disabled) c.checked = checkAll.checked; }); update(); });
+  form.addEventListener('change', e => { if (e.target.classList.contains('row-check')) update(); });
+  update();
+  form.addEventListener('submit', (e) => {
+    const n = checks().filter(c => c.checked && !c.disabled).length;
+    if (n === 0) { e.preventDefault(); alert('対象が選択されていません。'); return; }
+    if (!confirm(n + '件を承認前に戻します。よろしいですか？')) e.preventDefault();
+  });
+})();
+</script>
+</body>
+</html>
