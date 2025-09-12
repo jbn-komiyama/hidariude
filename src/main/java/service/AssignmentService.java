@@ -191,22 +191,11 @@ public class AssignmentService extends BaseService {
         final String idStr       = req.getParameter(P_ID);
         final String companyName = req.getParameter(P_COMPANY_NAME);
 
-
-<<<<<<< HEAD
-	        AssignmentDAO assignDao = new AssignmentDAO(conn);
-	        List<AssignmentDTO> futureList =
-	                (customer.getId() == null)
-	                        ? Collections.emptyList()
-	                        : assignDao.selectByCustomerFromYearMonth(customer.getId(), fromYm);
-	        req.setAttribute(A_FUTURE_ASSIGNMENTS, futureList);
-	        req.setAttribute(A_TARGET_YM, fromYm);
-=======
         if (validation.isNull("会社名", companyName) | validation.isNull("会社ID", idStr)) {
             req.setAttribute(A_ERROR, validation.getErrorMsg());
             System.out.println("test");
             return req.getContextPath() + "/admin/assignment";
         }
->>>>>>> bfa70c6 (秘書マイページ作成完了、顧客ログイン作成途中)
 
         try (TransactionManager tm = new TransactionManager()) {
             // 顧客（固定表示）
@@ -650,11 +639,9 @@ public class AssignmentService extends BaseService {
 
     /** 文字列群から AssignmentDTO を構築。 */
     private AssignmentDTO buildAssignmentDto(
-<<<<<<< HEAD
-    		String customerName,String customerIdStr, String secretaryIdStr, String taskRankIdStr, String targetYM,
-=======
+
             String customerIdStr, String secretaryIdStr, String taskRankIdStr, String targetYearMonth,
->>>>>>> bfa70c6 (秘書マイページ作成完了、顧客ログイン作成途中)
+
             String basePayCustomerStr, String basePaySecretaryStr,
             String increaseBasePayCustomerStr, String increaseBasePaySecretaryStr,
             String incentiveCustomerStr, String incentiveSecretaryStr,
@@ -664,7 +651,7 @@ public class AssignmentService extends BaseService {
         dto.setAssignmentCustomerId(UUID.fromString(customerIdStr));
         dto.setAssignmentSecretaryId(UUID.fromString(secretaryIdStr));
         dto.setTaskRankId(UUID.fromString(taskRankIdStr));
-        dto.setTargetYearMonth(targetYM);
+        dto.setTargetYearMonth(targetYearMonth);
         dto.setBasePayCustomer(parseMoneyOrZero(basePayCustomerStr));
         dto.setBasePaySecretary(parseMoneyOrZero(basePaySecretaryStr));
         dto.setIncreaseBasePayCustomer(parseMoneyOrZero(increaseBasePayCustomerStr));
