@@ -1,7 +1,13 @@
 package dao;
 
-import java.sql.*;
-import java.util.*;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.UUID;
+
 import dto.CustomerContactDTO;
 import dto.CustomerDTO;
 
@@ -98,6 +104,19 @@ public class CustomerContactDAO extends BaseDAO {
         }
     }
 
+ // ★ ADDED: メールアドレスで 1件取得（なければ空DTOを返す）
+    public CustomerContactDTO selectByMail(String mail) {
+        try (PreparedStatement ps = conn.prepareStatement(BASE_SELECT + " WHERE cc.deleted_at IS NULL AND cc.mail = ?")) {
+            ps.setString(1, mail);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) return resultSetToCustomerContactDTO(rs);
+                return new CustomerContactDTO();
+            }
+        } catch (SQLException e) {
+            throw new DAOException("E:CC14 customer_contacts メールによる単一取得に失敗しました。", e);
+        }
+    }
+    
     // ========================
     // INSERT / UPDATE / DELETE
     // ========================
@@ -226,4 +245,28 @@ public class CustomerContactDAO extends BaseDAO {
         dto.setLastLoginAt(rs.getTimestamp(i++));
         return dto;
     }
+    
+ // ★ ADDED: ResultSet -> DTO 変換（BASE_SELECTの並びに準拠）
+    private CustomerContactDTO resultSetToCustomerContactDTO(ResultSet rs) {
+        try {
+            CustomerContactDTO dto = new CustomerContactDTO();
+            dto.setId(rs.getObject(1, UUID.class));
+            dto.setCustomerId(rs.getObject(2, UUID.class));
+            dto.setMail(rs.getString(3));
+            dto.setPassword(rs.getString(4));
+            dto.setName(rs.getString(5));
+            dto.setNameRuby(rs.getString(6));
+            dto.setPhone(rs.getString(7));
+            dto.setDepartment(rs.getString(8));
+            dto.setPrimary(rs.getBoolean(9));           // is_primary
+            dto.setCreatedAt(rs.getTimestamp(10));
+            dto.setUpdatedAt(rs.getTimestamp(11));
+            dto.setDeletedAt(rs.getTimestamp(12));
+            dto.setLastLoginAt(rs.getTimestamp(13));
+            return dto;
+        } catch (SQLException e) {
+            throw new DAOException("E:CC51 ResultSet→CustomerContactDTO 変換に失敗しました。", e);
+        }
+    }
+
 }

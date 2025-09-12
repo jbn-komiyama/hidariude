@@ -6,34 +6,40 @@
 <html>
 <head>
   <meta charset="UTF-8">
-  <title>管理者ホーム</title>
+  <title>顧客ホーム</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
 </head>
 <body class="bg-primary bg-opacity-10">
   <div class="container py-4">
+
+    <!-- セッションから取得 -->
+    <c:set var="cc" value="${sessionScope.loginUser.customerContact}" />
+    <c:set var="customer" value="${sessionScope.loginUser.customer}" />
+
     <div class="d-flex justify-content-between align-items-center mb-3">
-      <h1 class="h3 mb-0">管理者ホーム</h1>
-      <a href="<%=request.getContextPath()%>/admin/logout" class="btn btn-outline-danger btn-sm">ログアウト</a>
+      <div>
+        <h1 class="h3 mb-1">顧客ホーム</h1>
+        <!-- 表示: 会社名（会社名） 担当者名（担当者）様 -->
+        <div class="text-muted">
+          <strong>
+            <c:out value="${empty customer.companyName ? '—' : customer.companyName}"/>
+          </strong>
+          　
+          <span class="ms-2">
+            <strong><c:out value="${empty cc.name ? '—' : cc.name}"/></strong>
+           様
+          </span>
+        </div>
+      </div>
+      <a href="<%=request.getContextPath()%>/customer/logout" class="btn btn-outline-danger btn-sm">ログアウト</a>
     </div>
 
     <div class="list-group">
-      <a href="<%=request.getContextPath()%>/admin/assignment" class="list-group-item list-group-item-action">
-        アサイン一覧
+      <a href="<%=request.getContextPath()%>/customer/billing_summary" class="list-group-item list-group-item-action">
+        請求サマリー
       </a>
-      <a href="<%=request.getContextPath()%>/admin/customer" class="list-group-item list-group-item-action">
-        顧客一覧
-      </a>
-      <a href="<%=request.getContextPath()%>/admin/customer/register" class="list-group-item list-group-item-action">
-        顧客登録
-      </a>
-      <a href="<%=request.getContextPath()%>/admin/secretary" class="list-group-item list-group-item-action">
-        秘書一覧
-      </a>
-      <a href="<%=request.getContextPath()%>/admin/secretary/register" class="list-group-item list-group-item-action">
-        秘書登録
-      </a>
-      <a href="<%=request.getContextPath()%>/admin/taskrank" class="list-group-item list-group-item-action">
-        タスクランク管理
+      <a href="<%=request.getContextPath()%>/customer/mypage" class="list-group-item list-group-item-action">
+        マイ会社ページ
       </a>
     </div>
   </div>

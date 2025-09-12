@@ -17,7 +17,7 @@ public class CustomerContact implements Serializable {
 
     // FK: customers.id（必要に応じて Customer をぶら下げるなら customer も持たせる）
     private UUID customerId;
-    private Customer customer; // 使わないなら削除可
+    private Customer customer; 
 
     private String name;
     private String nameRuby;

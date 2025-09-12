@@ -11,17 +11,21 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpSession;
 
 import dao.AssignmentDAO;
+import dao.CustomerContactDAO;
+import dao.CustomerDAO;
 import dao.SecretaryDAO;
 import dao.SystemAdminDAO;
 import dao.TaskDAO;
 import dao.TransactionManager;
 import domain.Assignment;
 import domain.Customer;
+import domain.CustomerContact;
 import domain.LoginUser;
 import domain.Secretary;
 import domain.SystemAdmin;
 import domain.Task;
 import dto.AssignmentDTO;
+import dto.CustomerContactDTO;
 import dto.CustomerDTO;
 import dto.SecretaryDTO;
 import dto.SystemAdminDTO;
@@ -60,7 +64,7 @@ public class CommonService extends BaseService {
 
 	/** ロール（どの DAO/遷移系を使うかの分岐に利用） */
 	private enum Role {
-		ADMIN, SECRETARY
+		ADMIN, SECRETARY,CUSTOMER
 	}
 
 	private final Converter conv = new Converter();
@@ -249,70 +253,87 @@ public class CommonService extends BaseService {
 	 * 顧客（会社/担当者）ログイン。
 	 * A社の山田さん/田中さん、どちらでログインしても同じ「A社のホーム」へ。
 	 */
-	//    public String customerLogin() {
-	//        final String loginId  = req.getParameter(P_LOGIN_ID);
-	//        final String password = req.getParameter(P_PASSWORD);
-	//
-	//        // 必須チェック
-	//        validation.isNull("ログインID", loginId);
-	//        validation.isNull("パスワード", password);
-	//        if (validation.hasErrorMsg()) {
-	//            req.setAttribute("errorMsg", validation.getErrorMsg());
-	//            return req.getContextPath() + PATH_CUSTOMER_LOGIN;
-	//        }
-	//
-	//        try (TransactionManager tm = new TransactionManager()) {
-	//
-	//            // ★ 担当者（社員）をメールで検索
-	//            //    ※ あなたの実装に合わせて DAO/メソッド名を置き換えてください
-	//        	CustomerContactDAO userDao = new CustomerContactDAO(tm.getConnection());
-	//        	CustomerContactDTO userDto = userDao.selectById(loginId);
-	//
-	//            if (userDto != null && safeEquals(userDto.getPassword(), password)) {
-	//
-	//                // ★ 会社情報を取得
-	//                CustomerDAO  cdao  = new CustomerDAO(tm.getConnection());
-	//                CustomerDTO  cdto  = cdao.selectByUUId(userDto.getCustomerId());
-	//                if (cdto == null) {
-	//                    validation.addErrorMsg("会社アカウントが見つかりません。");
-	//                    req.setAttribute("errorMsg", validation.getErrorMsg());
-	//                    return req.getContextPath() + PATH_CUSTOMER_LOGIN;
-	//                }
-	//
-	//                // --- セッションへ格納（誰がログインしても同じ会社を見るため、company を主として持つ）
-	//                LoginUser loginUser = new LoginUser();
-	//
-	//                // 最低限の会社情報（必要に応じて拡張）
-	//                Customer company = new Customer();
-	//                company.setId(cdto.getId());
-	//                company.setCompanyName(cdto.getCompanyName());
-	//                // company.set...（必要なら他項目）
-	//
-	//                // 担当者（表示用に必要なら）
-	//                CustomerUser person = new CustomerUser();
-	//                person.setId(userDto.getId());
-	//                person.setMail(userDto.getMail());
-	//                person.setName(userDto.getName());
-	//                // person.set...（必要なら他項目）
-	//
-	//                // ★ LoginUser へ設定（無ければ setter を追加してください）
-	//                loginUser.setCustomer(company);
-	//                loginUser.setCustomerUser(person);
-	//                loginUser.setAuthority(AUTH_CUSTOMER);
-	//
-	//                putLoginUserToSession(loginUser);
-	//                return req.getContextPath() + PATH_CUSTOMER_HOME;
-	//
-	//            } else {
-	//                validation.addErrorMsg("正しいログインIDとパスワードを入力してください。");
-	//                req.setAttribute("errorMsg", validation.getErrorMsg());
-	//                return req.getContextPath() + PATH_CUSTOMER_LOGIN;
-	//            }
-	//
-	//        } catch (RuntimeException e) {
-	//            return req.getContextPath() + req.getServletPath() + "/error";
-	//        }
-	//    }
+	
+	public String customerLogin() {
+	    final String loginId  = req.getParameter(P_LOGIN_ID);
+	    final String password = req.getParameter(P_PASSWORD);
+
+	    // 必須チェック
+	    validation.isNull("ログインID", loginId);
+	    validation.isNull("パスワード", password);
+	    if (validation.hasErrorMsg()) {
+	        req.setAttribute("errorMsg", validation.getErrorMsg());
+	        return req.getContextPath() + PATH_CUSTOMER_LOGIN;
+	    }
+
+	    try (TransactionManager tm = new TransactionManager()) {
+	        // 担当者をIDで検索
+	        CustomerContactDAO ccDao = new CustomerContactDAO(tm.getConnection());
+	        CustomerContactDTO ccDto = ccDao.selectByMail(loginId);
+	        CustomerContact cc = new CustomerContact();
+
+	        if (ccDto != null && safeEquals(ccDto.getPassword(), password)) {
+	            //Domain に詰め替え（customer以外全て）
+	            cc.setId(ccDto.getId());
+	            cc.setCustomerId(ccDto.getCustomerId());
+	            cc.setMail(ccDto.getMail());
+	            cc.setPassword(ccDto.getPassword());
+	            cc.setName(ccDto.getName());
+	            cc.setNameRuby(ccDto.getNameRuby());
+	            cc.setPhone(ccDto.getPhone());
+	            cc.setDepartment(ccDto.getDepartment());
+	            cc.setPrimary(ccDto.isPrimary());
+	            cc.setCreatedAt(ccDto.getCreatedAt());
+	            cc.setUpdatedAt(ccDto.getUpdatedAt());
+	            cc.setDeletedAt(ccDto.getDeletedAt());
+	            cc.setLastLoginAt(ccDto.getLastLoginAt());
+	        
+
+	            // 会社情報を取得してドメインへ詰め替え（同一会社ユーザーで共通画面を見られるようにする）
+	            CustomerDAO cDao = new CustomerDAO(tm.getConnection());                         
+	            CustomerDTO cDto = cDao.selectByUUId(ccDto.getCustomerId());                      
+	            Customer customer = null; 
+	            
+	            if (cDto != null) {   
+	            	System.out.println("[login] companyName = " + cDto.getCompanyName());
+	                customer = new Customer();                                                  
+	                customer.setId(cDto.getId());                                              
+	                customer.setCompanyCode(cDto.getCompanyCode());                              
+	                customer.setCompanyName(cDto.getCompanyName());                              
+	                customer.setMail(cDto.getMail());                                           
+	                customer.setPhone(cDto.getPhone());                                         
+	                customer.setPostalCode(cDto.getPostalCode());                                
+	                customer.setAddress1(cDto.getAddress1());                                    
+	                customer.setAddress2(cDto.getAddress2());                                    
+	                customer.setBuilding(cDto.getBuilding());                                    
+	                customer.setPrimaryContactId(cDto.getPrimaryContactId());                    
+	                customer.setCreatedAt(cDto.getCreatedAt());                                  
+	                customer.setUpdatedAt(cDto.getUpdatedAt());                                  
+	                customer.setDeletedAt(cDto.getDeletedAt());  
+	                System.out.print("[login] companyName = " + customer.getCompanyName());
+	            }                                                                               
+
+	            //セッションへ格納
+	            LoginUser loginUser = new LoginUser();
+	            cc.setCustomer(customer);  
+	            loginUser.setCustomer(customer);
+	            loginUser.setCustomerContact(cc);
+	            loginUser.setAuthority(AUTH_CUSTOMER);                         
+	            putLoginUserToSession(loginUser);
+	            return req.getContextPath() + PATH_CUSTOMER_HOME;
+	            
+
+	        } else {
+	            validation.addErrorMsg("正しいログインIDとパスワードを入力してください。");
+	            req.setAttribute("errorMsg", validation.getErrorMsg());
+	            return req.getContextPath() + PATH_CUSTOMER_LOGIN;
+	        }
+
+	    } catch (RuntimeException e) {
+	        return req.getContextPath() + req.getServletPath() + "/error";
+	    }
+	}
+
 
 	/** 顧客ホーム（会社単位で同一の画面を表示） */
 	public String customerHome() {
