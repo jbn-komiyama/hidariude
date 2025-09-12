@@ -416,7 +416,8 @@ public class FrontController extends HttpServlet {
 	    boolean isAdminRoot = (pathInfo == null) || pathInfo.isEmpty() || "/".equals(pathInfo);
         boolean isLoginPath = "/login".equals(pathInfo);
 		
-		
+	
+       
 		switch(servletPath) {
 			case "/admin"->{
 				boolean loggedIn = (loginUser != null && loginUser.getAuthority() == 1);
