@@ -1,10 +1,13 @@
 package service;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 import jakarta.servlet.http.HttpServletRequest;
@@ -101,6 +104,7 @@ public class CommonService extends BaseService {
 				Secretary sec = new Secretary();
 				sec.setId(dto.getId());
 				sec.setMail(dto.getMail());
+				sec.setName(dto.getName());
 
 				loginUser.setSecretary(sec);
 				loginUser.setAuthority(AUTH_SECRETARY);
@@ -183,6 +187,7 @@ public class CommonService extends BaseService {
 			return req.getContextPath() + PATH_SECRETARY_LOGIN;
 		}
 		UUID secretaryId = lu.getSecretary().getId();
+		String secretaryName = lu.getSecretary().getName();
 
 		// 2) 今月の "YYYY-MM"
 		String yearMonth = LocalDate.now(Z_TOKYO).format(YM_FMT);
@@ -190,26 +195,29 @@ public class CommonService extends BaseService {
 
 		// 3) DAO 呼び出し → DTO を Converter で Domain に詰め替え
 		try (TransactionManager tm = new TransactionManager()) {
-			AssignmentDAO dao = new AssignmentDAO(tm.getConnection());
-			List<CustomerDTO> list = dao.selectBySecretaryAndMonthToCustomer(secretaryId, yearMonth);
 
-			List<Customer> customers = new ArrayList<>();
-			if (list != null) {
-				for (CustomerDTO cdto : list) {
-					// Customer 基本情報
-					Customer c = conv.toDomain(cdto);
+			// ★ ここから：フラットな行を作る（顧客で束ねない表示用）
+	        List<AssignmentDTO> adtosFlat =
+	                new AssignmentDAO(tm.getConnection())
+	                        .selectBySecretaryAndMonthToAssignment(secretaryId, yearMonth);
+	        
+	        List<Map<String, Object>> assignRows = new ArrayList<>();
+	        for (AssignmentDTO a : adtosFlat) {
+	            BigDecimal base    = nz(a.getBasePaySecretary());
+	            BigDecimal incRank = nz(a.getIncreaseBasePaySecretary());
+	            BigDecimal incCont = nz(a.getCustomerBasedIncentiveForSecretary());
+	            BigDecimal total   = base.add(incRank).add(incCont);
 
-					// assignments を個別に詰め替え
-					List<Assignment> as = new ArrayList<>();
-					if (cdto.getAssignmentDTOs() != null) {
-						for (AssignmentDTO adto : cdto.getAssignmentDTOs()) {
-							as.add(conv.toDomain(adto));
-						}
-					}
-					c.setAssignments(as);
-					customers.add(c);
-				}
-			}
+	            Map<String, Object> row = new LinkedHashMap<>();
+	            row.put("company", a.getCustomerCompanyName()); // 顧客
+	            row.put("rank",   a.getTaskRankName());         // タスクランク
+	            row.put("base",   base);                        // 基本単価
+	            row.put("incRank",incRank);                     // 増額(ランク)
+	            row.put("incCont",incCont);                     // 増額(継続)
+	            row.put("total",  total);                       // 合計単価
+	            assignRows.add(row);
+	        }
+	        
 			
 			TaskDAO tdao = new TaskDAO(tm.getConnection());
 			// 今月
@@ -235,9 +243,11 @@ public class CommonService extends BaseService {
 	        req.setAttribute("taskPrev", taskPrev);         // ★先月
 	        req.setAttribute("yearMonth", yearMonth);
 	        req.setAttribute("prevYearMonth", prevYearMonth); // ★先月のYYYY-MM
+	        req.setAttribute("secretaryName", secretaryName);
 
 			// 4) JSP へ渡す
-			req.setAttribute(ATTR_CUSTOMERS, customers);
+//			req.setAttribute(ATTR_CUSTOMERS, customers);
+	        req.setAttribute("assignRows", assignRows); // ★ 新規：フラット行
 			return "common/secretary/home";
 		} catch (RuntimeException e) {
 			e.printStackTrace();
@@ -334,4 +344,6 @@ public class CommonService extends BaseService {
 	private boolean safeEquals(String a, String b) {
 		return (a == null) ? (b == null) : a.equals(b);
 	}
+	
+	private static BigDecimal nz(BigDecimal v) { return v == null ? BigDecimal.ZERO : v; }
 }

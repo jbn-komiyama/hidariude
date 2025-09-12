@@ -12,6 +12,7 @@
   <style>.btn-month{height:32px;width:60px;}</style>
 </head>
 <body class="bg-primary bg-opacity-10"><!-- ★ 青系背景に統一 -->
+<%@ include file="/WEB-INF/jsp/_parts/secretary/navbar.jspf" %>
 <div class="container py-4">
 
   <!-- ========== 先に未承認件数を集計 ========== -->
@@ -43,7 +44,6 @@
         <input type="month" name="yearMonth" class="form-control form-control-sm month-ctl" value="${yearMonth}" />
         <button type="submit" class="btn btn-sm btn-outline-primary btn-month">表示</button>
       </form>
-      <a href="<%=request.getContextPath()%>/secretary/home" class="btn btn-sm btn-outline-secondary">戻る</a>
     </div>
   </div>
 
@@ -243,6 +243,6 @@
   alert('未承認タスクがあります。管理者に承認をしてもらってから請求処理を行ってください。　OK');
 </script>
 </c:if>
-
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>

@@ -599,8 +599,7 @@ public class SecretaryService extends BaseService{
     	        int num = dao.update(dto);                          
     	        tm.commit();
 
-    	        req.setAttribute(A_MESSAGE, "マイページを更新しました（件数:" + num + "）");
-    	        return VIEW_MYPAGE_EDIT_DONE;
+    	        return VIEW_MYPAGE;
     	    } catch (RuntimeException e) {
     	        validation.addErrorMsg("データベースに不正な操作が行われました");
     	        req.setAttribute(A_ERROR_MSG, validation.getErrorMsg());
