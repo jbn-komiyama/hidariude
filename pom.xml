@@ -1,0 +1,106 @@
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+  <groupId>hidariude</groupId>
+  <artifactId>hidariude</artifactId>
+  <version>0.0.1-SNAPSHOT</version>
+  <packaging>war</packaging>
+  <build>
+    <plugins>
+      <plugin>
+        <artifactId>maven-compiler-plugin</artifactId>
+        <version>3.13.0</version>
+        <configuration>
+          <release>17</release>
+        </configuration>
+      </plugin>
+      <plugin>
+        <artifactId>maven-war-plugin</artifactId>
+        <version>3.2.3</version>
+      </plugin>
+      <!-- Maven Compiler Plugin -->
+      <plugin>
+          <groupId>org.apache.maven.plugins</groupId>
+          <artifactId>maven-compiler-plugin</artifactId>
+          <version>3.13.0</version>
+          <configuration>
+              <source>24</source>
+              <target>24</target>
+              <encoding>UTF-8</encoding>
+          </configuration>
+      </plugin>
+     
+      <!-- Maven WAR Plugin -->
+      <plugin>
+          <groupId>org.apache.maven.plugins</groupId>
+          <artifactId>maven-war-plugin</artifactId>
+          <version>3.4.0</version>
+          <configuration>
+              <webXml>src\main\webapp\WEB-INF\web.xml</webXml>
+          </configuration>
+      </plugin>
+     
+      <!-- Tomcat Maven Plugin (開発用) -->
+      <plugin>
+          <groupId>org.apache.tomcat.maven</groupId>
+          <artifactId>tomcat7-maven-plugin</artifactId>
+          <version>2.2</version>
+          <configuration>
+              <port>8080</port>
+              <path>/hidariude</path>
+          </configuration>
+      </plugin>
+    </plugins>
+  </build>
+  <properties>
+      <maven.compiler.source>17</maven.compiler.source>
+      <maven.compiler.target>17</maven.compiler.target>
+      <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+      <jakarta.servlet.version>6.1.0</jakarta.servlet.version>
+      <jakarta.jsp.version>4.0.0</jakarta.jsp.version>
+      <jstl.version>3.0.1</jstl.version>
+      <postgresql.version>42.6.0</postgresql.version>
+  </properties>
+      <dependencies>
+        <!-- Jakarta Servlet API -->
+        <dependency>
+            <groupId>jakarta.servlet</groupId>
+            <artifactId>jakarta.servlet-api</artifactId>
+            <version>${jakarta.servlet.version}</version>
+            <scope>provided</scope>
+        </dependency>
+       
+        <!-- Jakarta JSP API -->
+        <dependency>
+            <groupId>jakarta.servlet.jsp</groupId>
+            <artifactId>jakarta.servlet.jsp-api</artifactId>
+            <version>${jakarta.jsp.version}</version>
+            <scope>provided</scope>
+        </dependency>
+       
+        <!-- JSTL -->
+        <dependency>
+            <groupId>org.glassfish.web</groupId>
+            <artifactId>jakarta.servlet.jsp.jstl</artifactId>
+            <version>${jstl.version}</version>
+        </dependency>
+       
+        <!-- PostgreSQL JDBC Driver -->
+        <dependency>
+            <groupId>org.postgresql</groupId>
+            <artifactId>postgresql</artifactId>
+            <version>${postgresql.version}</version>
+        </dependency>
+        <!-- Excel (Apache POI) -->
+		    <dependency>
+		      <groupId>org.apache.poi</groupId>
+		      <artifactId>poi-ooxml</artifactId>
+		      <version>5.4.1</version>
+		    </dependency>
+		    <dependency>
+		      <groupId>org.apache.poi</groupId>
+		      <artifactId>poi-ooxml-full</artifactId>
+		      <version>5.4.1</version>
+		    </dependency>
+    </dependencies>
+   
+</project>

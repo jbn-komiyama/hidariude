@@ -27,6 +27,12 @@ public class SecretaryDTO implements Serializable {
 	private Timestamp updatedAt;
 	private Timestamp deletedAt;
 	private Timestamp lastLoginAt;
+
+    private String bankName;
+    private String bankBranch;
+    private String bankType;
+    private String bankAccount;
+    private String bankOwner;
 	
 	
 	public UUID getId() {
@@ -138,5 +144,43 @@ public class SecretaryDTO implements Serializable {
 		this.secretaryRankId = secretaryRankId;
 	}
 	
-	
+	public String getBankName() {
+		return bankName;
+	}
+
+	public void setBankName(String bankName) {
+		this.bankName = bankName;
+	}
+
+	public String getBankBranch() {
+		return bankBranch;
+	}
+
+	public void setBankBranch(String bankBranch) {
+		this.bankBranch = bankBranch;
+	}
+
+	public String getBankType() {
+		return bankType;
+	}
+
+	public void setBankType(String bankType) {
+		this.bankType = bankType;
+	}
+
+	public String getBankAccount() {
+		return bankAccount;
+	}
+
+	public void setBankAccount(String bankAccount) {
+		this.bankAccount = bankAccount;
+	}
+
+	public String getBankOwner() {
+		return bankOwner;
+	}
+
+	public void setBankOwner(String bankOwner) {
+		this.bankOwner = bankOwner;
+	}
 }

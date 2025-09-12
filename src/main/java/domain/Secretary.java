@@ -1,9 +1,11 @@
 package domain;
 
+import java.io.Serializable;
 import java.util.Date;
 import java.util.UUID;
 
-public class Secretary {
+public class Secretary  implements Serializable {
+    private static final long serialVersionUID = 1L;
     private UUID id;
     private String secretaryCode;
     private String mail;
@@ -21,8 +23,14 @@ public class Secretary {
     private Date updatedAt;
     private Date deletedAt;
     private Date lastLoginAt;
+    private String bankName;
+    private String bankBranch;
+    private String bankType;
+    private String bankAccount;
+    private String bankOwner;
 
-    // relation
+    
+	// relation
     private SecretaryRank secretaryRank;
 
     public Secretary() {}
@@ -80,4 +88,44 @@ public class Secretary {
 
     public SecretaryRank getSecretaryRank() { return secretaryRank; }
     public void setSecretaryRank(SecretaryRank secretaryRank) { this.secretaryRank = secretaryRank; }
+
+    public String getBankName() {
+		return bankName;
+	}
+
+	public void setBankName(String bankName) {
+		this.bankName = bankName;
+	}
+
+	public String getBankBranch() {
+		return bankBranch;
+	}
+
+	public void setBankBranch(String bankBranch) {
+		this.bankBranch = bankBranch;
+	}
+
+	public String getBankType() {
+		return bankType;
+	}
+
+	public void setBankType(String bankType) {
+		this.bankType = bankType;
+	}
+
+	public String getBankAccount() {
+		return bankAccount;
+	}
+
+	public void setBankAccount(String bankAccount) {
+		this.bankAccount = bankAccount;
+	}
+
+	public String getBankOwner() {
+		return bankOwner;
+	}
+
+	public void setBankOwner(String bankOwner) {
+		this.bankOwner = bankOwner;
+	}
 }

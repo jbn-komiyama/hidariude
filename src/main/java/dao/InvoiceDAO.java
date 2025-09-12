@@ -6,13 +6,10 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
-import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.UUID;
 
 import dto.AssignmentDTO;
-import dto.CustomerDTO;
 import dto.InvoiceDTO;
 import dto.TaskDTO;
 
@@ -27,8 +24,8 @@ public class InvoiceDAO extends BaseDAO {
 		+ " t.start_time,"
 		+ " t.end_time,"
 		+ " t.work_minute,"
-		+ " t.work_minute,"
 		+ " t.work_content,"
+		+ " t.approved_at,"
 		+ " a.base_pay_secretary+a.increase_base_pay_secretary+a.customer_based_incentive_for_secretary hourly_pay,"
 		+ " tr.rank_name"
 		+ " FROM tasks t INNER JOIN assignments a"
@@ -38,7 +35,7 @@ public class InvoiceDAO extends BaseDAO {
 		+ " INNER JOIN task_rank tr"
 		+ " ON a.task_rank_id = tr.id"
 		+ " WHERE a.target_year_month = ?"
-		+ " AND a.secretary_id = ?"
+		+ " AND a.secretary_id = ? AND t.deleted_at IS NULL "
 		+ " ORDER BY t.start_time";
 	
 	private static final String SQL_SELECT_TOTAL_MINUTES_BY_COMPANY_AND_SECRETARY = "SELECT "
@@ -54,7 +51,7 @@ public class InvoiceDAO extends BaseDAO {
 		+ " INNER JOIN task_rank tr"
 		+ " ON a.task_rank_id = tr.id"
 		+ " WHERE a.target_year_month = ?"
-		+ " AND a.secretary_id = ?"
+		+ " AND a.secretary_id = ? AND t.deleted_at IS NULL "
 		+ " GROUP BY c.id,"
 		+ " c.company_name,"
 		+ " a.increase_base_pay_secretary,"
@@ -91,6 +88,7 @@ public class InvoiceDAO extends BaseDAO {
 	                dto.setEndTime(rs.getTimestamp("end_time"));
 	                dto.setWorkMinute(rs.getObject("work_minute", Integer.class));
 	                dto.setWorkContent(rs.getString("work_content"));
+	                dto.setApprovedAt(rs.getTimestamp("approved_at"));
 
 	                // assignment（表示用の付帯情報を AssignmentDTO に寄せる）
 	                AssignmentDTO asg = new AssignmentDTO();

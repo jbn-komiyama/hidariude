@@ -27,6 +27,18 @@ public class SecretaryDAO extends BaseDAO {
 	      + " s.created_at, s.updated_at, s.deleted_at, s.last_login_at "
 	      + " FROM secretaries s "
 	      + " INNER JOIN secretary_rank sr ON s.secretary_rank_id = sr.id ";
+	
+	private static final String SQL_SELECT_BASIC_INCLUDE_ACCOUNT =
+	        "SELECT "
+	      + " s.id, s.secretary_code, s.mail, s.password, "
+	      + " sr.id, sr.rank_name, sr.description, sr.increase_base_pay_customer, sr.increase_base_pay_secretary, "
+	      + " sr.created_at, sr.updated_at, sr.deleted_at, "
+	      + " s.is_pm_secretary, s.name, s.name_ruby, s.phone, s.postal_code, "
+	      + " s.address1, s.address2, s.building, "
+	      + " s.created_at, s.updated_at, s.deleted_at, s.last_login_at,"
+	      + " s.bank_name, s.bank_branch, s.bank_type, s.bank_account, s.bank_owner "
+	      + " FROM secretaries s "
+	      + " INNER JOIN secretary_rank sr ON s.secretary_rank_id = sr.id ";
 
     private static final String SQL_INSERT =
 	        "INSERT INTO secretaries ("
@@ -132,6 +144,38 @@ public class SecretaryDAO extends BaseDAO {
      * @return 該当があれば {@link SecretaryDTO}、なければ空のDTO
      * @throws DAOException DBアクセスに失敗した場合
      */
+    public SecretaryDTO selectByUUIdIncludeAccount(UUID id) {
+        final String sql = SQL_SELECT_BASIC_INCLUDE_ACCOUNT
+                         + " WHERE s.deleted_at IS NULL AND s.id = ?";
+
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setObject(1, id);
+
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                	SecretaryDTO dto = resultSetToSecretaryDTO(rs);
+                	dto.setBankName(rs.getString(25));
+                	dto.setBankBranch(rs.getString(26));
+                	dto.setBankType(rs.getString(27));
+                	dto.setBankAccount(rs.getString(28));
+                	dto.setBankOwner(rs.getString(29));
+                	return dto;
+                
+                }
+                return new SecretaryDTO();
+            }
+        } catch (SQLException e) {
+            throw new DAOException("E:S13 秘書IDによる単一取得に失敗しました。", e);
+        }
+    }
+	
+    /**
+     * 主キーで秘書を1件取得します（削除済みは除外）。
+     *
+     * @param id 秘書ID
+     * @return 該当があれば {@link SecretaryDTO}、なければ空のDTO
+     * @throws DAOException DBアクセスに失敗した場合
+     */
     public SecretaryDTO selectByUUId(UUID id) {
         final String sql = SQL_SELECT_BASIC
                          + " WHERE s.deleted_at IS NULL AND s.id = ?";
@@ -147,7 +191,6 @@ public class SecretaryDAO extends BaseDAO {
             throw new DAOException("E:S13 秘書IDによる単一取得に失敗しました。", e);
         }
     }
-	
     
     /**
      * メールアドレスで秘書を1件取得します（削除済みは除外）。

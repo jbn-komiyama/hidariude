@@ -314,7 +314,10 @@ public class FrontController extends HttpServlet {
 			case "/invoice"->{
 				nextPath = new InvoiceService(req, true).invoiceSummery();
 			}
-			
+			case "/invoice/issue"->{
+				new InvoiceService(req, true).issueInvoiceExcel(res);
+				return;
+			}
     	}
 	}
     
@@ -409,6 +412,12 @@ public class FrontController extends HttpServlet {
 		    	else customerExecute(req, res);
 			}
 		}
+		
+		// ページ遷移
+		if (res.isCommitted()) {   // ★ 追加：ファイルDLやsendErrorでレスポンスが確定していたら何もしない
+		    return;
+		}
+		
 		// ページ遷移
 		char firstPath = nextPath.charAt(0);
 		if(firstPath == '/') {
