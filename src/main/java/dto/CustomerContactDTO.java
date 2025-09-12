@@ -10,6 +10,7 @@ public class CustomerContactDTO implements Serializable {
 	private UUID id;
 	private String mail;
 	private String password;
+	private UUID customerId;
 	private CustomerDTO customerDTO;
 	private String name;
 	private String nameRuby;
@@ -21,12 +22,12 @@ public class CustomerContactDTO implements Serializable {
 	private Timestamp deletedAt;
 	private Timestamp lastLoginAt;
 
-	public UUID getId() {
+	public UUID getCustomerId() {
 		return id;
 	}
 
-	public void setId(UUID id) {
-		this.id = id;
+	public void setCustomerId(UUID customerId) {
+		this.customerId = customerId;
 	}
 
 	public String getMail() {
@@ -43,6 +44,14 @@ public class CustomerContactDTO implements Serializable {
 
 	public void setPassword(String password) {
 		this.password = password;
+	}
+	
+	public UUID getId() {
+		return id;
+	}
+
+	public void setId(UUID id) {
+		this.id = id;
 	}
 
 	public CustomerDTO getCustomerDTO() {

@@ -1,7 +1,6 @@
 package domain;
 
 import java.io.Serializable;
-import java.util.UUID;
 public class LoginUser implements Serializable {
 	private static final long serialVersionUID = 1L;
 	
@@ -9,6 +8,7 @@ public class LoginUser implements Serializable {
 	private Secretary secretary;
 	private SystemAdmin systemAdmin;
 	private Customer customer;
+	private CustomerContact customerContact;
 	
 	public int getAuthority() {
 		return authority;
@@ -28,6 +28,13 @@ public class LoginUser implements Serializable {
 	public void setSystemAdmin(SystemAdmin systemAdmin) {
 		this.systemAdmin = systemAdmin;
 	}
+	public CustomerContact getCustomerContact() {
+		return customerContact;
+	}
+	public void setCustomerContact(CustomerContact customerContact) {
+		this.customerContact = customerContact;
+	}
+	
 	public Customer getCustomer() {
 		return customer;
 	}

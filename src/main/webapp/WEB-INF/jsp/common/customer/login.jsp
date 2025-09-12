@@ -6,7 +6,7 @@
 <html>
 <head>
   <meta charset="UTF-8">
-  <title>管理者ログイン</title>
+  <title>顧客ログイン</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
 </head>
 <body class="bg-light">
@@ -15,16 +15,16 @@
       <div class="col-md-4">
         <div class="card shadow-sm">
           <div class="card-body">
-            <h1 class="h4 mb-3 text-center">管理者ログイン</h1>
+            <h1 class="h4 mb-3 text-center">顧客ログイン</h1>
 
             <c:if test="${not empty errorMsg}">
               <div class="alert alert-danger">${errorMsg}</div>
             </c:if>
 
-            <form method="post" action="<%=request.getContextPath()%>/admin/login">
+            <form method="post" action="<%=request.getContextPath()%>/customer/login">
               <div class="mb-3">
                 <label class="form-label">メールアドレス</label>
-                <input type="email" name="loginId" class="form-control" required value="admin1@example.com">
+                <input type="email" name="loginId" class="form-control" required value="contact1@example.com">
               </div>
               <div class="mb-3">
                 <label class="form-label">パスワード</label>

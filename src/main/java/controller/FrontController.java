@@ -336,22 +336,62 @@ public class FrontController extends HttpServlet {
 			/**
 			 * A01 共通
 			 */
-//			case "/login"->{
-//				nextPath = new CommonService(req, true).customerLogin();
-//			}
-//			
-//			case "/home"->{
-//				nextPath = new CommonService(req, true).customerHome();
-//			}
+			case "/login"->{
+				nextPath = new CommonService(req, true).customerLogin();
+			}
+			
+			case "/home"->{
+				nextPath = new CommonService(req, true).customerHome();
+			}
 			
 			/**
-			 * A02 秘書管理業務
+			 * A02 顧客担当者管理業務
 			 * 
 			 */
+			case "/contact/register"->{
+				nextPath = new ContactService(req, false).contactRegister();
+			}
+			case "/contact/register_check"->{
+				nextPath = new ContactService(req, true).contactRegisterCheck();
+			}
+			case "/contact/register_done"->{
+				nextPath = new ContactService(req, true).contactRegisterDone();
+			}
+			case "/contact/edit"->{
+				nextPath = new ContactService(req, true).contactEdit();
+			}
+			case "/contact/edit_check"->{
+				nextPath = new ContactService(req, true).contactEditCheck();
+			}
+			case "/contact/edit_done"->{
+				nextPath = new ContactService(req, true).contactEditDone();
+			}
+			case "/contact/delete"->{
+				nextPath = new ContactService(req, true).contactDelete();
+			}
+			
 			/**
-			 * A04 顧客ページ編集業務
+			 * A03 請求サマリー業務
 			 * 
 			 */
+			
+			/**
+			 * A04 顧客ページ（マイページ）編集業務
+			 * 
+			 */
+			case "/mypage"->{
+				nextPath = new ContactService(req, true).myPageList();
+			}
+			
+//			case "/mypage/edit"->{
+//				nextPath = new ContactService(req, true).myPageEdit();
+//			}
+//			case "/mypage/edit_check"->{
+//				nextPath = new ContactService(req, true).myPageEditCheck();
+//			}
+//			case "/mypage/edit_done"->{
+//				nextPath = new ContactService(req, true).myPageEditDone();
+//			}
 			
 			
     	}
@@ -379,7 +419,8 @@ public class FrontController extends HttpServlet {
 	    boolean isAdminRoot = (pathInfo == null) || pathInfo.isEmpty() || "/".equals(pathInfo);
         boolean isLoginPath = "/login".equals(pathInfo);
 		
-		
+	
+       
 		switch(servletPath) {
 			case "/admin"->{
 				boolean loggedIn = (loginUser != null && loginUser.getAuthority() == 1);
@@ -402,6 +443,7 @@ public class FrontController extends HttpServlet {
 		    	else secretaryExecute(req, res);
 			}
 			case "/customer"->{
+
 				boolean loggedIn = (loginUser != null && loginUser.getAuthority() == 3);
 		        if (!loggedIn && (!isAdminRoot && !isLoginPath)) {
 		            res.sendRedirect(contextPath + "/customer");

@@ -184,9 +184,11 @@ public class CustomerDAO extends BaseDAO {
             try (ResultSet rs = ps.executeQuery()) {
                 if (rs.next()) {
                     dto = resultSetToCustomerDTO(rs);
+                    return dto;
                 }
+                return null;
             }
-            return dto;
+            
         } catch (SQLException e) {
             String errorMsg = "E:C12 Customers 単一取得中にエラーが発生しました。";
             throw new DAOException(errorMsg, e);
