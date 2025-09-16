@@ -8,6 +8,7 @@
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" />
 </head>
 <body class="bg-light">
+<%@ include file="/WEB-INF/jsp/_parts/admin/navbar.jspf" %>
 <div class="container py-4">
   <div class="alert alert-success">
     登録が完了しました。
@@ -16,5 +17,6 @@
     <a href="<%= request.getContextPath() %>/admin/assignment" class="btn btn-primary">一覧へ戻る</a>
   </div>
 </div>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>

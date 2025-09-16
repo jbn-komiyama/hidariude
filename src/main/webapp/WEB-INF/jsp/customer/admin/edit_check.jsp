@@ -10,6 +10,7 @@
 <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
 </head>
 <body class="bg-primary bg-opacity-10">
+<%@ include file="/WEB-INF/jsp/_parts/admin/navbar.jspf" %>
   <!-- id は必須 -->
   <c:set var="vId"          value="${empty id ? param.id : id}" />
   <c:set var="vCompanyCode" value="${empty companyCode ? param.companyCode : companyCode}" />
@@ -79,5 +80,6 @@
       </form>
     </div>
   </div>
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>

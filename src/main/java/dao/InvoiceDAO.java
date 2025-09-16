@@ -61,6 +61,19 @@ public class InvoiceDAO extends BaseDAO {
 		+ " tr.rank_no"
 		+ " ORDER BY c.id, tr.rank_no";
 	
+	private static final String SQL_UPSERT_MONTHLY_SUMMARY =
+		    "INSERT INTO secretary_monthly_summaries (" +
+		    "  secretary_id, target_year_month, total_secretary_amount, " +
+		    "  total_tasks_count, total_work_time, finalized_at, status" +
+		    ") VALUES (?,?,?,?,?,?,?) " +
+		    "ON CONFLICT (secretary_id, target_year_month) DO UPDATE SET " +
+		    "  total_secretary_amount = EXCLUDED.total_secretary_amount, " +
+		    "  total_tasks_count     = EXCLUDED.total_tasks_count, " +
+		    "  total_work_time       = EXCLUDED.total_work_time, " +
+		    "  finalized_at          = EXCLUDED.finalized_at, " +
+		    "  status                = EXCLUDED.status, " +
+		    "  updated_at            = CURRENT_TIMESTAMP";
+	
 	
 	public InvoiceDAO(Connection conn) {
 		super(conn);
@@ -148,6 +161,54 @@ public class InvoiceDAO extends BaseDAO {
 	    } catch (SQLException e) {
 	    	e.printStackTrace();
 	        throw new DAOException("E:INV02 会社別集計取得に失敗しました", e);
+	    }
+	}
+	
+	/**
+	 * 秘書×年月の月次サマリをUPSERT（存在しなければINSERT、あればUPDATE）します。
+	 *
+	 * @param secretaryId 秘書ID
+	 * @param targetYM    "yyyy-MM"
+	 * @param totalAmount 総額（秘書取り分）
+	 * @param totalTasks  タスク件数
+	 * @param totalMinutes 合計稼働分（分）
+	 * @param finalizedAt  確定日時（確定でなければ null）
+	 * @param status      任意（不要なら null）
+	 * @return 影響行数
+	 */
+	public int upsertSecretaryMonthlySummary(
+	        UUID secretaryId,
+	        String targetYM,
+	        java.math.BigDecimal totalAmount,
+	        int totalTasks,
+	        int totalMinutes,
+	        java.sql.Timestamp finalizedAt,
+	        String status
+	) {
+	    try (PreparedStatement ps = conn.prepareStatement(SQL_UPSERT_MONTHLY_SUMMARY)) {
+	        int i = 1;
+	        ps.setObject(i++, secretaryId);
+	        ps.setString(i++, targetYM);
+	        if (totalAmount == null) {
+	            ps.setNull(i++, java.sql.Types.NUMERIC);
+	        } else {
+	            ps.setBigDecimal(i++, totalAmount);
+	        }
+	        ps.setInt(i++, totalTasks);
+	        ps.setInt(i++, totalMinutes);
+	        if (finalizedAt == null) {
+	            ps.setNull(i++, java.sql.Types.TIMESTAMP);
+	        } else {
+	            ps.setTimestamp(i++, finalizedAt);
+	        }
+	        if (status == null || status.isBlank()) {
+	            ps.setNull(i++, java.sql.Types.VARCHAR);
+	        } else {
+	            ps.setString(i++, status);
+	        }
+	        return ps.executeUpdate();
+	    } catch (SQLException e) {
+	        throw new DAOException("E:INV99 月次サマリUPSERTに失敗しました。", e);
 	    }
 	}
 }

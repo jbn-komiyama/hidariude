@@ -14,6 +14,7 @@
 	rel="stylesheet">
 </head>
 <body class="bg-primary bg-opacity-10">
+<%@ include file="/WEB-INF/jsp/_parts/admin/navbar.jspf" %>
 	<div class="container py-4">
 		<div class="d-flex align-items-center justify-content-between mb-3">
 			<h1 class="h3 mb-0">${targetYM}のアサイン</h1>
@@ -197,6 +198,6 @@
 			});
 		})();
 	</script>
-
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>
