@@ -1,10 +1,14 @@
 package service;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.time.YearMonth;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 import jakarta.servlet.http.HttpServletRequest;
@@ -17,9 +21,6 @@ import dao.SecretaryDAO;
 import dao.SystemAdminDAO;
 import dao.TaskDAO;
 import dao.TransactionManager;
-import domain.Assignment;
-import domain.Customer;
-import domain.CustomerContact;
 import domain.LoginUser;
 import domain.Secretary;
 import domain.SystemAdmin;
@@ -105,6 +106,7 @@ public class CommonService extends BaseService {
 				Secretary sec = new Secretary();
 				sec.setId(dto.getId());
 				sec.setMail(dto.getMail());
+				sec.setName(dto.getName());
 
 				loginUser.setSecretary(sec);
 				loginUser.setAuthority(AUTH_SECRETARY);
@@ -187,33 +189,37 @@ public class CommonService extends BaseService {
 			return req.getContextPath() + PATH_SECRETARY_LOGIN;
 		}
 		UUID secretaryId = lu.getSecretary().getId();
+		String secretaryName = lu.getSecretary().getName();
 
 		// 2) 今月の "YYYY-MM"
 		String yearMonth = LocalDate.now(Z_TOKYO).format(YM_FMT);
-		String prevYearMonth = LocalDate.now(Z_TOKYO).minusMonths(1).format(YM_FMT); // ★先月
+		String prevYearMonth = LocalDate.now(Z_TOKYO).minusMonths(1).format(YM_FMT); 
 
 		// 3) DAO 呼び出し → DTO を Converter で Domain に詰め替え
 		try (TransactionManager tm = new TransactionManager()) {
-			AssignmentDAO dao = new AssignmentDAO(tm.getConnection());
-			List<CustomerDTO> list = dao.selectBySecretaryAndMonthToCustomer(secretaryId, yearMonth);
 
-			List<Customer> customers = new ArrayList<>();
-			if (list != null) {
-				for (CustomerDTO cdto : list) {
-					// Customer 基本情報
-					Customer c = conv.toDomain(cdto);
+			// ★ ここから：フラットな行を作る（顧客で束ねない表示用）
+	        List<AssignmentDTO> adtosFlat =
+	                new AssignmentDAO(tm.getConnection())
+	                        .selectBySecretaryAndMonthToAssignment(secretaryId, yearMonth);
+	        
+	        List<Map<String, Object>> assignRows = new ArrayList<>();
+	        for (AssignmentDTO a : adtosFlat) {
+	            BigDecimal base    = nz(a.getBasePaySecretary());
+	            BigDecimal incRank = nz(a.getIncreaseBasePaySecretary());
+	            BigDecimal incCont = nz(a.getCustomerBasedIncentiveForSecretary());
+	            BigDecimal total   = base.add(incRank).add(incCont);
 
-					// assignments を個別に詰め替え
-					List<Assignment> as = new ArrayList<>();
-					if (cdto.getAssignmentDTOs() != null) {
-						for (AssignmentDTO adto : cdto.getAssignmentDTOs()) {
-							as.add(conv.toDomain(adto));
-						}
-					}
-					c.setAssignments(as);
-					customers.add(c);
-				}
-			}
+	            Map<String, Object> row = new LinkedHashMap<>();
+	            row.put("company", a.getCustomerCompanyName()); // 顧客
+	            row.put("rank",   a.getTaskRankName());         // タスクランク
+	            row.put("base",   base);                        // 基本単価
+	            row.put("incRank",incRank);                     // 増額(ランク)
+	            row.put("incCont",incCont);                     // 増額(継続)
+	            row.put("total",  total);                       // 合計単価
+	            assignRows.add(row);
+	        }
+	        
 			
 			TaskDAO tdao = new TaskDAO(tm.getConnection());
 			// 今月
@@ -239,9 +245,11 @@ public class CommonService extends BaseService {
 	        req.setAttribute("taskPrev", taskPrev);         // ★先月
 	        req.setAttribute("yearMonth", yearMonth);
 	        req.setAttribute("prevYearMonth", prevYearMonth); // ★先月のYYYY-MM
+	        req.setAttribute("secretaryName", secretaryName);
 
 			// 4) JSP へ渡す
-			req.setAttribute(ATTR_CUSTOMERS, customers);
+//			req.setAttribute(ATTR_CUSTOMERS, customers);
+	        req.setAttribute("assignRows", assignRows); // ★ 新規：フラット行
 			return "common/secretary/home";
 		} catch (RuntimeException e) {
 			e.printStackTrace();
@@ -250,10 +258,10 @@ public class CommonService extends BaseService {
 	}
 
 	/**
-	 * 顧客（会社/担当者）ログイン。
-	 * A社の山田さん/田中さん、どちらでログインしても同じ「A社のホーム」へ。
+	 * 顧客ログイン。
+	 * セッションに loginUser.customer（会社） と loginUser.customerContact（担当者）を積む。
+	 * @return 遷移先
 	 */
-	
 	public String customerLogin() {
 	    final String loginId  = req.getParameter(P_LOGIN_ID);
 	    final String password = req.getParameter(P_PASSWORD);
@@ -267,68 +275,48 @@ public class CommonService extends BaseService {
 	    }
 
 	    try (TransactionManager tm = new TransactionManager()) {
-	        // 担当者をIDで検索
 	        CustomerContactDAO ccDao = new CustomerContactDAO(tm.getConnection());
+	        CustomerDAO cDao         = new CustomerDAO(tm.getConnection());
+	        Converter conv           = new Converter();
+
+	        // ログインID=mail で担当者取得
 	        CustomerContactDTO ccDto = ccDao.selectByMail(loginId);
-	        CustomerContact cc = new CustomerContact();
 
+	        // パスワード照合
 	        if (ccDto != null && safeEquals(ccDto.getPassword(), password)) {
-	            //Domain に詰め替え（customer以外全て）
-	            cc.setId(ccDto.getId());
-	            cc.setCustomerId(ccDto.getCustomerId());
-	            cc.setMail(ccDto.getMail());
-	            cc.setPassword(ccDto.getPassword());
-	            cc.setName(ccDto.getName());
-	            cc.setNameRuby(ccDto.getNameRuby());
-	            cc.setPhone(ccDto.getPhone());
-	            cc.setDepartment(ccDto.getDepartment());
-	            cc.setPrimary(ccDto.isPrimary());
-	            cc.setCreatedAt(ccDto.getCreatedAt());
-	            cc.setUpdatedAt(ccDto.getUpdatedAt());
-	            cc.setDeletedAt(ccDto.getDeletedAt());
-	            cc.setLastLoginAt(ccDto.getLastLoginAt());
-	        
 
-	            // 会社情報を取得してドメインへ詰め替え（同一会社ユーザーで共通画面を見られるようにする）
-	            CustomerDAO cDao = new CustomerDAO(tm.getConnection());                         
-	            CustomerDTO cDto = cDao.selectByUUId(ccDto.getCustomerId());                      
-	            Customer customer = null; 
-	            
-	            if (cDto != null) {   
-	            	System.out.println("[login] companyName = " + cDto.getCompanyName());
-	                customer = new Customer();                                                  
-	                customer.setId(cDto.getId());                                              
-	                customer.setCompanyCode(cDto.getCompanyCode());                              
-	                customer.setCompanyName(cDto.getCompanyName());                              
-	                customer.setMail(cDto.getMail());                                           
-	                customer.setPhone(cDto.getPhone());                                         
-	                customer.setPostalCode(cDto.getPostalCode());                                
-	                customer.setAddress1(cDto.getAddress1());                                    
-	                customer.setAddress2(cDto.getAddress2());                                    
-	                customer.setBuilding(cDto.getBuilding());                                    
-	                customer.setPrimaryContactId(cDto.getPrimaryContactId());                    
-	                customer.setCreatedAt(cDto.getCreatedAt());                                  
-	                customer.setUpdatedAt(cDto.getUpdatedAt());                                  
-	                customer.setDeletedAt(cDto.getDeletedAt());  
-	                System.out.print("[login] companyName = " + customer.getCompanyName());
-	            }                                                                               
+	            // 担当者Domain
+	            domain.CustomerContact cc = conv.toDomain(ccDto);
 
-	            //セッションへ格納
+	            // 顧客IDを確実に取得（DTO直下 or FKフィールド）
+	            java.util.UUID customerId =
+	                (ccDto.getCustomerDTO() != null && ccDto.getCustomerDTO().getId() != null)
+	                    ? ccDto.getCustomerDTO().getId()
+	                    : cc.getCustomerId();
+	            if (customerId == null) {
+	                validation.addErrorMsg("担当者に紐づく会社情報が見つかりません。");
+	                req.setAttribute("errorMsg", validation.getErrorMsg());
+	                return req.getContextPath() + PATH_CUSTOMER_LOGIN;
+	            }
+
+	            // 会社Domain（会社名をJSPに出すため必須）
+	            CustomerDTO cDto = cDao.selectByUUId(customerId);
+	            domain.Customer customer = conv.toDomain(cDto);
+
+	            // セッションへ格納（JSPは sessionScope.loginUser.customer / customerContact を参照）
 	            LoginUser loginUser = new LoginUser();
-	            cc.setCustomer(customer);  
 	            loginUser.setCustomer(customer);
 	            loginUser.setCustomerContact(cc);
-	            loginUser.setAuthority(AUTH_CUSTOMER);                         
+	            loginUser.setAuthority(AUTH_CUSTOMER);
 	            putLoginUserToSession(loginUser);
-	            return req.getContextPath() + PATH_CUSTOMER_HOME;
-	            
 
+	            // 顧客ホームへ（例：/customer/home → 顧客ホームJSPにフォワード）
+	            return req.getContextPath() + PATH_CUSTOMER_HOME;
 	        } else {
 	            validation.addErrorMsg("正しいログインIDとパスワードを入力してください。");
 	            req.setAttribute("errorMsg", validation.getErrorMsg());
 	            return req.getContextPath() + PATH_CUSTOMER_LOGIN;
 	        }
-
 	    } catch (RuntimeException e) {
 	        return req.getContextPath() + req.getServletPath() + "/error";
 	    }
@@ -337,8 +325,25 @@ public class CommonService extends BaseService {
 
 	/** 顧客ホーム（会社単位で同一の画面を表示） */
 	public String customerHome() {
-		// ここではビューだけ返す。会社IDはセッションの LoginUser から取り、JSP/別サービスで会社単位のデータ読み込みに利用
-		return "common/customer/home";
+
+	    // Asia/Tokyo で「今月」と過去3か月の YearMonth を算出
+	    YearMonth ymNow   = YearMonth.now(Z_TOKYO);
+	    YearMonth ymPrev1 = ymNow.minusMonths(1);
+	    YearMonth ymPrev2 = ymNow.minusMonths(2);
+	    YearMonth ymPrev3 = ymNow.minusMonths(3);
+
+	    // JSP で使う「表示用の月（数値1〜12）」と「YYYY-MM」をリクエスト属性に格納
+	    req.setAttribute("m0", ymNow.getMonthValue());
+	    req.setAttribute("m1", ymPrev1.getMonthValue());
+	    req.setAttribute("m2", ymPrev2.getMonthValue());
+	    req.setAttribute("m3", ymPrev3.getMonthValue());
+
+	    req.setAttribute("ymNow",   ymNow.format(YM_FMT));   // 例: 2025-09
+	    req.setAttribute("ymPrev1", ymPrev1.format(YM_FMT)); // 例: 2025-08
+	    req.setAttribute("ymPrev2", ymPrev2.format(YM_FMT)); // 例: 2025-07
+	    req.setAttribute("ymPrev3", ymPrev3.format(YM_FMT)); // 例: 2025-06
+
+	    return "common/customer/home";
 	}
 
 	// =========================================================
@@ -355,4 +360,6 @@ public class CommonService extends BaseService {
 	private boolean safeEquals(String a, String b) {
 		return (a == null) ? (b == null) : a.equals(b);
 	}
+	
+	private static BigDecimal nz(BigDecimal v) { return v == null ? BigDecimal.ZERO : v; }
 }

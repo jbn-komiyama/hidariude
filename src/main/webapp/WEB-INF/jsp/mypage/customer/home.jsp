@@ -17,10 +17,6 @@
 <body class="bg-light">
 <div class="container py-4">
 
-  <!-- セッションから取得（customer は customerContact の中から参照） -->
-  <c:set var="cc" value="${sessionScope.loginUser.customerContact}" />
-  <c:set var="customer" value="${cc.customer}" />
-
   <div class="d-flex align-items-center justify-content-between mb-3">
     <h1 class="h4 mb-0">顧客マイページ</h1>
   </div>

@@ -358,6 +358,17 @@ ALTER TABLE tasks
   ON UPDATE CASCADE
   ON DELETE SET NULL;
 
+ALTER TABLE secretaries
+  ADD COLUMN IF NOT EXISTS bank_name    VARCHAR(255),
+  ADD COLUMN IF NOT EXISTS bank_branch  VARCHAR(255),
+  ADD COLUMN IF NOT EXISTS bank_type    VARCHAR(255),
+  ADD COLUMN IF NOT EXISTS bank_account CHAR(64),
+  ADD COLUMN IF NOT EXISTS bank_owner   VARCHAR(255);
+  
+-- （任意）bank_type の値を制限したい場合（例：普通/当座）
+ALTER TABLE secretaries
+  ADD CONSTRAINT chk_secretaries_bank_type
+  CHECK (bank_type IN ('普通', '当座'));
 
 -- 下記は、assignment_idを修正する必要あり
 -- 2025-09-01（10件）

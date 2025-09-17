@@ -6,13 +6,10 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
-import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.UUID;
 
 import dto.AssignmentDTO;
-import dto.CustomerDTO;
 import dto.InvoiceDTO;
 import dto.TaskDTO;
 
@@ -27,8 +24,8 @@ public class InvoiceDAO extends BaseDAO {
 		+ " t.start_time,"
 		+ " t.end_time,"
 		+ " t.work_minute,"
-		+ " t.work_minute,"
 		+ " t.work_content,"
+		+ " t.approved_at,"
 		+ " a.base_pay_secretary+a.increase_base_pay_secretary+a.customer_based_incentive_for_secretary hourly_pay,"
 		+ " tr.rank_name"
 		+ " FROM tasks t INNER JOIN assignments a"
@@ -38,7 +35,7 @@ public class InvoiceDAO extends BaseDAO {
 		+ " INNER JOIN task_rank tr"
 		+ " ON a.task_rank_id = tr.id"
 		+ " WHERE a.target_year_month = ?"
-		+ " AND a.secretary_id = ?"
+		+ " AND a.secretary_id = ? AND t.deleted_at IS NULL "
 		+ " ORDER BY t.start_time";
 	
 	private static final String SQL_SELECT_TOTAL_MINUTES_BY_COMPANY_AND_SECRETARY = "SELECT "
@@ -54,7 +51,7 @@ public class InvoiceDAO extends BaseDAO {
 		+ " INNER JOIN task_rank tr"
 		+ " ON a.task_rank_id = tr.id"
 		+ " WHERE a.target_year_month = ?"
-		+ " AND a.secretary_id = ?"
+		+ " AND a.secretary_id = ? AND t.deleted_at IS NULL "
 		+ " GROUP BY c.id,"
 		+ " c.company_name,"
 		+ " a.increase_base_pay_secretary,"
@@ -64,6 +61,30 @@ public class InvoiceDAO extends BaseDAO {
 		+ " tr.rank_no"
 		+ " ORDER BY c.id, tr.rank_no";
 	
+	private static final String SQL_SELECT_TASKS_BY_MONTH_AND_CUSTOMER =
+		    "SELECT s.name AS secretary_name," +
+		    "       t.work_date, t.start_time, t.end_time, t.work_minute, t.work_content, t.approved_at," +
+		    "       (a.base_pay_customer + a.increase_base_pay_customer + a.customer_based_incentive_for_customer) AS hourly_pay_customer," +
+		    "       tr.rank_name " +
+		    "  FROM tasks t " +
+		    "  JOIN assignments a ON t.assignment_id = a.id " +
+		    "  JOIN secretaries s  ON a.secretary_id  = s.id " +
+		    "  JOIN task_rank tr   ON a.task_rank_id  = tr.id " +
+		    " WHERE a.target_year_month = ? AND a.customer_id = ? AND t.deleted_at IS NULL " +
+		    " ORDER BY t.start_time";
+
+		private static final String SQL_SELECT_TOTAL_MINUTES_BY_SECRETARY_AND_CUSTOMER =
+		    "SELECT s.id, s.name AS secretary_name," +
+		    "       SUM(t.work_minute) AS total_minute," +
+		    "       (a.base_pay_customer + a.increase_base_pay_customer + a.customer_based_incentive_for_customer) AS hourly_pay," +
+		    "       tr.rank_name, tr.rank_no " +
+		    "  FROM tasks t " +
+		    "  JOIN assignments a ON t.assignment_id = a.id " +
+		    "  JOIN secretaries s  ON a.secretary_id  = s.id " +
+		    "  JOIN task_rank tr   ON a.task_rank_id  = tr.id " +
+		    " WHERE a.target_year_month = ? AND a.customer_id = ? AND t.deleted_at IS NULL " +
+		    " GROUP BY s.id, s.name, a.base_pay_customer, a.increase_base_pay_customer, a.customer_based_incentive_for_customer, tr.rank_name, tr.rank_no " +
+		    " ORDER BY s.name, tr.rank_no";
 	
 	public InvoiceDAO(Connection conn) {
 		super(conn);
@@ -91,6 +112,7 @@ public class InvoiceDAO extends BaseDAO {
 	                dto.setEndTime(rs.getTimestamp("end_time"));
 	                dto.setWorkMinute(rs.getObject("work_minute", Integer.class));
 	                dto.setWorkContent(rs.getString("work_content"));
+	                dto.setApprovedAt(rs.getTimestamp("approved_at"));
 
 	                // assignment（表示用の付帯情報を AssignmentDTO に寄せる）
 	                AssignmentDTO asg = new AssignmentDTO();
@@ -151,5 +173,67 @@ public class InvoiceDAO extends BaseDAO {
 	    	e.printStackTrace();
 	        throw new DAOException("E:INV02 会社別集計取得に失敗しました", e);
 	    }
+	}
+	
+	public List<TaskDTO> selectTasksByMonthAndCustomer(UUID customerId, String targetYM) {
+	    final List<TaskDTO> list = new ArrayList<>();
+	    try (PreparedStatement ps = conn.prepareStatement(SQL_SELECT_TASKS_BY_MONTH_AND_CUSTOMER)) {
+	        ps.setString(1, targetYM);
+	        ps.setObject(2, customerId);
+	        try (ResultSet rs = ps.executeQuery()) {
+	            while (rs.next()) {
+	                TaskDTO dto = new TaskDTO();
+	                dto.setWorkDate(rs.getDate("work_date"));
+	                dto.setStartTime(rs.getTimestamp("start_time"));
+	                dto.setEndTime(rs.getTimestamp("end_time"));
+	                dto.setWorkMinute(rs.getObject("work_minute", Integer.class));
+	                dto.setWorkContent(rs.getString("work_content"));
+	                dto.setApprovedAt(rs.getTimestamp("approved_at"));
+
+	                AssignmentDTO asg = new AssignmentDTO();
+	                asg.setSecretaryName(rs.getString("secretary_name"));
+	                asg.setHourlyPayCustomer(rs.getBigDecimal("hourly_pay_customer"));
+	                asg.setTaskRankName(rs.getString("rank_name"));
+	                asg.setTargetYearMonth(targetYM);
+	                asg.setAssignmentCustomerId(customerId);
+	                dto.setAssignment(asg);
+
+	                list.add(dto);
+	            }
+	        }
+	    } catch (SQLException e) {
+	        throw new RuntimeException("E:INV-C01 顧客用タスク明細取得に失敗しました", e);
+	    }
+	    return list;
+	}
+
+	public List<InvoiceDTO> selectTotalMinutesBySecretaryAndCustomer(UUID customerId, String targetYM) {
+	    final List<InvoiceDTO> list = new ArrayList<>();
+	    try (PreparedStatement ps = conn.prepareStatement(SQL_SELECT_TOTAL_MINUTES_BY_SECRETARY_AND_CUSTOMER)) {
+	        ps.setString(1, targetYM);
+	        ps.setObject(2, customerId);
+	        try (ResultSet rs = ps.executeQuery()) {
+	            while (rs.next()) {
+	                InvoiceDTO dto = new InvoiceDTO();
+	                // 顧客向けでは「最左列=秘書名」で表示したいので流用
+	                dto.setCustomerId((UUID) rs.getObject("id"));                // ← secretary_id を格納
+	                dto.setCustomerCompanyName(rs.getString("secretary_name"));  // ← 表示用に秘書名を入れる
+	                int totalMin = rs.getInt("total_minute");
+	                dto.setTotalMinute(totalMin);
+	                var hourlyPay = rs.getBigDecimal("hourly_pay");
+	                dto.setHourlyPay(hourlyPay);
+	                dto.setTaskRankName(rs.getString("rank_name"));
+	                dto.setTargetYM(targetYM);
+
+	                var fee = hourlyPay.multiply(java.math.BigDecimal.valueOf(totalMin))
+	                                   .divide(java.math.BigDecimal.valueOf(60), 0, java.math.RoundingMode.HALF_UP);
+	                dto.setFee(fee);
+	                list.add(dto);
+	            }
+	        }
+	    } catch (SQLException e) {
+	        throw new RuntimeException("E:INV-C02 顧客用集計取得に失敗しました", e);
+	    }
+	    return list;
 	}
 }

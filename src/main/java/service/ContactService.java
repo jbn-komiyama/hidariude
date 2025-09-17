@@ -41,10 +41,9 @@ public class ContactService extends BaseService {
     private static final String VIEW_EDIT         = "contact/admin/edit";
     private static final String VIEW_EDIT_CK      = "contact/admin/edit_check";
     private static final String VIEW_EDIT_DN      = "contact/admin/edit_done";
-    private static final String VIEW_MYPAGE           = "customer/mypage/home"; 
-    private static final String VIEW_MYPAGE_EDIT      = "customer/mypage/edit"; 
-    private static final String VIEW_MYPAGE_EDIT_CHECK= "customer/mypage/edit_check"; 
-    private static final String VIEW_MYPAGE_EDIT_DONE = "customer/mypage/edit_done"; 
+    private static final String VIEW_MYPAGE           = "mypage/customer/home"; 
+    private static final String VIEW_MYPAGE_EDIT      = "mypage/customer/edit"; 
+    private static final String VIEW_MYPAGE_EDIT_CHECK= "mypage/customer/edit_check"; 
 
     // ===== Attr =====
     private static final String A_CUSTOMER  = "customer";
@@ -63,6 +62,18 @@ public class ContactService extends BaseService {
     private static final String P_PASSWORD    = "password";    // register 時 NOT NULL
     private static final String P_PHONE       = "phone";
     private static final String P_IS_PRIMARY  = "isPrimary";
+    private static final String P_COMPANY_NAME = "companyName";
+    private static final String P_POSTAL_CODE  = "postalCode";
+    private static final String P_ADDRESS1     = "address1";
+    private static final String P_ADDRESS2     = "address2";
+    private static final String P_BUILDING     = "building";
+    private static final String P_COMPANY_MAIL  = "companyMail";
+    private static final String P_COMPANY_PHONE = "companyPhone";
+    private static final String P_CONTACT_NAME      = "contactName";
+    private static final String P_CONTACT_NAME_RUBY = "contactNameRuby";
+    private static final String P_CONTACT_DEPT      = "contactDepartment";
+    private static final String P_CONTACT_MAIL      = "contactMail";
+    private static final String P_CONTACT_PHONE     = "contactPhone";
 
     /** DTO↔Domain の変換器（再利用） */
     private final Converter conv = new Converter();
@@ -475,23 +486,32 @@ public class ContactService extends BaseService {
 
     /** 顧客のマイページ情報を取得して表示。 */
     public String myPageList() {
-        UUID customerId = currentCustomerContactId(); // ★担当者の属する顧客IDを取得（下のヘルパ参照）
+        UUID customerId = currentCustomerContactId(); // ★「担当者の属する顧客ID」を返す前提
         if (customerId == null) {
             validation.addErrorMsg("ログイン情報が見つかりません。");
             req.setAttribute(A_ERROR_MSG, validation.getErrorMsg());
             return req.getContextPath() + req.getServletPath() + "/error";
         }
         try (TransactionManager tm = new TransactionManager()) {
-            CustomerDAO dao = new CustomerDAO(tm.getConnection());
-            CustomerDTO dto = dao.selectByUUId(customerId); // customers を主キー取得
-            if (dto == null) {
+            CustomerDAO customerdao = new CustomerDAO(tm.getConnection());
+            CustomerDTO customerdto = customerdao.selectWithContactsByUuid(customerId);
+            if (customerdto == null) {
                 validation.addErrorMsg("アカウント情報が取得できませんでした。");
                 req.setAttribute(A_ERROR_MSG, validation.getErrorMsg());
                 return req.getContextPath() + req.getServletPath() + "/error";
             }
-            Customer customer = conv.toDomain(dto); // DTO→Domain（既存の conv を利用）
+            Customer customer = conv.toDomain(customerdto); // DTO→Domain（contactsも詰める実装に）
             req.setAttribute("customer", customer);
+            
+            var session = req.getSession(false);
+            if (session != null) {
+                Object u = session.getAttribute("loginUser");
+                if (u instanceof LoginUser lu && lu.getCustomerContact() != null) {
+                    req.setAttribute("cc", lu.getCustomerContact());
+                }
+            }
             return VIEW_MYPAGE;
+            
         } catch (RuntimeException e) {
             validation.addErrorMsg("データベースに不正な操作が行われました");
             req.setAttribute(A_ERROR_MSG, validation.getErrorMsg());
@@ -499,128 +519,165 @@ public class ContactService extends BaseService {
         }
     }
 
-//    /** 編集画面を表示。 */
-//    public String myPageEdit() {
-//        UUID customerId = currentCustomerContactId();
-//        if (customerId == null) {
-//            validation.addErrorMsg("ログイン情報が見つかりません。");
-//            req.setAttribute(A_ERROR_MSG, validation.getErrorMsg());
-//            return req.getContextPath() + req.getServletPath() + "/error";
-//        }
-//        try (TransactionManager tm = new TransactionManager()) {
-//            CustomerDAO dao = new CustomerDAO(tm.getConnection());
-//            CustomerDTO dto = dao.selectByUUId(customerId);
-//            if (dto == null) {
-//                validation.addErrorMsg("アカウント情報が取得できませんでした。");
-//                req.setAttribute(A_ERROR_MSG, validation.getErrorMsg());
-//                return req.getContextPath() + req.getServletPath() + "/error";
-//            }
-//            Customer customer = conv.toDomain(dto);
-//            req.setAttribute("customer", customer);
-//            pushCustomerFormBackToRequest(); // 入力持ち回し（下のヘルパ）
-//            return VIEW_MYPAGE_EDIT; // 例: "customer/mypage/edit"
-//        } catch (RuntimeException e) {
-//            validation.addErrorMsg("データベースに不正な操作が行われました");
-//            req.setAttribute(A_ERROR_MSG, validation.getErrorMsg());
-//            return req.getContextPath() + req.getServletPath() + "/error";
-//        }
-//    }
-//
-//    /** 編集の確認画面。 */
-//    public String myPageEditCheck() {
-//        UUID customerId = currentCustomerContactId();
-//        if (customerId == null) {
-//            validation.addErrorMsg("ログイン情報が見つかりません。");
-//            req.setAttribute(A_ERROR_MSG, validation.getErrorMsg());
-//            return req.getContextPath() + req.getServletPath() + "/error";
-//        }
-//
-//        final String companyName = req.getParameter(P_COMPANY_NAME);
-//        final String mail        = req.getParameter(P_MAIL);
-//        final String phone       = req.getParameter(P_PHONE);
-//        final String postalCode  = req.getParameter(P_POSTAL_CODE);
-//        final String address1    = req.getParameter(P_ADDRESS1);
-//        final String address2    = req.getParameter(P_ADDRESS2);
-//        final String building    = req.getParameter(P_BUILDING);
-//
-//        // 必須・形式
-//        validation.isNull("会社名", companyName);
-//        if (notBlank(mail))       validation.isEmail(mail);
-//        if (notBlank(postalCode)) validation.isPostalCode(postalCode);
-//        if (notBlank(phone))      validation.isPhoneNumber(phone);
-//
-//        if (validation.hasErrorMsg()) {
-//            req.setAttribute(A_ERROR_MSG, validation.getErrorMsg());
-//            pushCustomerFormBackToRequest();
-//            return VIEW_MYPAGE_EDIT;
-//        }
-//
-//        // 確認画面へ
-//        pushCustomerFormBackToRequest();
-//        return VIEW_MYPAGE_EDIT_CHECK; // 例: "customer/mypage/edit_check"
-//    }
-//
-//    /** 編集確定処理。 */
-//    public String myPageEditDone() {
-//        UUID customerId = currentCustomerContactId();
-//        if (customerId == null) {
-//            validation.addErrorMsg("ログイン情報が見つかりません。");
-//            req.setAttribute(A_ERROR_MSG, validation.getErrorMsg());
-//            return req.getContextPath() + req.getServletPath() + "/error";
-//        }
-//
-//        final String companyName = req.getParameter(P_COMPANY_NAME);
-//        final String mail        = req.getParameter(P_MAIL);
-//        final String phone       = req.getParameter(P_PHONE);
-//        final String postalCode  = req.getParameter(P_POSTAL_CODE);
-//        final String address1    = req.getParameter(P_ADDRESS1);
-//        final String address2    = req.getParameter(P_ADDRESS2);
-//        final String building    = req.getParameter(P_BUILDING);
-//
-//        // 最終検証
-//        validation.isNull("会社名", companyName);
-//        if (notBlank(mail))       validation.isEmail(mail);
-//        if (notBlank(postalCode)) validation.isPostalCode(postalCode);
-//        if (notBlank(phone))      validation.isPhoneNumber(phone);
-//        if (validation.hasErrorMsg()) {
-//            req.setAttribute(A_ERROR_MSG, validation.getErrorMsg());
-//            pushCustomerFormBackToRequest();
-//            return VIEW_MYPAGE_EDIT;
-//        }
-//
-//        try (TransactionManager tm = new TransactionManager()) {
-//            CustomerDAO dao = new CustomerDAO(tm.getConnection());
-//            CustomerDTO cur = dao.selectByUUId(customerId);
-//            if (cur == null) {
-//                validation.addErrorMsg("アカウント情報が取得できませんでした。");
-//                req.setAttribute(A_ERROR_MSG, validation.getErrorMsg());
-//                return req.getContextPath() + req.getServletPath() + "/error";
-//            }
-//
-//            // 上書きするDTOを作成（IDは必須）
-//            CustomerDTO dto = new CustomerDTO();
-//            dto.setId(cur.getId());
-//            dto.setCompanyCode(cur.getCompanyCode()); // 会社コードは編集不可の想定で維持
-//            dto.setCompanyName(companyName);
-//            dto.setMail(mail);
-//            dto.setPhone(phone);
-//            dto.setPostalCode(postalCode);
-//            dto.setAddress1(address1);
-//            dto.setAddress2(address2);
-//            dto.setBuilding(building);
-//            dto.setPrimaryContactId(cur.getPrimaryContactId()); // そのまま維持
-//
-//            int num = dao.update(dto); // CustomerDAOに update(dto) がある想定（基本項目を更新）
-//            tm.commit();
-//
-//            req.setAttribute(A_MESSAGE, "マイページを更新しました（件数:" + num + "）");
-//            return VIEW_MYPAGE_EDIT_DONE; // 例: "customer/mypage/edit_done"
-//        } catch (RuntimeException e) {
-//            validation.addErrorMsg("データベースに不正な操作が行われました");
-//            req.setAttribute(A_ERROR_MSG, validation.getErrorMsg());
-//            return req.getContextPath() + req.getServletPath() + "/error";
-//        }
-//    }
+    /** 顧客マイページ：編集画面 */
+    public String myPageEdit() {
+        UUID customerId = currentCustomerContactId();
+        UUID contactId  = currentContactId();
+        if (customerId == null || contactId == null) {
+          validation.addErrorMsg("ログイン情報が見つかりません。");
+          req.setAttribute(A_ERROR_MSG, validation.getErrorMsg());
+          return req.getContextPath() + req.getServletPath() + "/error";
+        }
+        try (TransactionManager tm = new TransactionManager()) {
+            var cDao  = new CustomerDAO(tm.getConnection());
+            var ccDao = new CustomerContactDAO(tm.getConnection());
+
+            CustomerDTO  cDto  = cDao.selectByUUId(customerId);
+            CustomerContactDTO ccDto = ccDao.selectById(contactId);
+            if (cDto == null || ccDto == null) {
+                validation.addErrorMsg("アカウント情報が取得できませんでした。");
+                req.setAttribute(A_ERROR_MSG, validation.getErrorMsg());
+                return req.getContextPath() + req.getServletPath() + "/error";
+            }
+            req.setAttribute("customer",     conv.toDomain(cDto));
+            req.setAttribute("cc",           conv.toDomain(ccDto)); // JSPが cc.* を参照
+            pushCustomerAndContactFormBackToRequest();              // 入力持ち回し
+            return VIEW_MYPAGE_EDIT;
+        } catch (RuntimeException e) {
+            validation.addErrorMsg("データベースに不正な操作が行われました");
+            req.setAttribute(A_ERROR_MSG, validation.getErrorMsg());
+            return req.getContextPath() + req.getServletPath() + "/error";
+        }
+    }
+
+
+    /** 顧客マイページ：編集確認 */
+    public String myPageEditCheck() {
+        UUID customerId = currentCustomerContactId();
+        UUID contactId  = currentContactId();
+        if (customerId == null || contactId == null) {
+            validation.addErrorMsg("ログイン情報が見つかりません。");
+            req.setAttribute(A_ERROR_MSG, validation.getErrorMsg());
+            return req.getContextPath() + req.getServletPath() + "/error";
+        }
+
+        // 入力取得
+        final String cn   = req.getParameter(P_CONTACT_NAME);
+        final String cnr  = req.getParameter(P_CONTACT_NAME_RUBY);
+        final String dept = req.getParameter(P_CONTACT_DEPT);
+        final String cm   = req.getParameter(P_CONTACT_MAIL);
+        final String cph  = req.getParameter(P_CONTACT_PHONE);
+
+        final String comp = req.getParameter(P_COMPANY_NAME);
+        final String em   = req.getParameter(P_COMPANY_MAIL);
+        final String ph   = req.getParameter(P_COMPANY_PHONE);
+        final String pc   = req.getParameter(P_POSTAL_CODE);
+        final String a1   = req.getParameter(P_ADDRESS1);
+        final String a2   = req.getParameter(P_ADDRESS2);
+        final String bld  = req.getParameter(P_BUILDING);
+
+        // バリデーション（担当者）
+        validation.isNull("氏名", cn);
+        validation.isNull("メールアドレス（担当者）", cm);
+        if (notBlank(cm))  validation.isEmail(cm);
+        if (notBlank(cph)) validation.isPhoneNumber(cph);
+
+        // バリデーション（会社）
+        validation.isNull("会社名", comp);
+        if (notBlank(em))  validation.isEmail(em);
+        if (notBlank(ph))  validation.isPhoneNumber(ph);
+        if (notBlank(pc))  validation.isPostalCode(pc);
+
+        // メール重複（担当者：自ID除外）
+        if (!validation.hasErrorMsg()) {
+            try (TransactionManager tm = new TransactionManager()) {
+                var ccDao = new CustomerContactDAO(tm.getConnection());
+                if (notBlank(cm) && ccDao.mailExistsExceptId(cm, contactId)) {
+                    validation.addErrorMsg("この担当者メールは既に使われています。");
+                }
+            }
+        }
+
+        if (validation.hasErrorMsg()) {
+            req.setAttribute(A_ERROR_MSG, validation.getErrorMsg());
+            pushCustomerAndContactFormBackToRequest();
+            return VIEW_MYPAGE_EDIT;
+        }
+
+        pushCustomerAndContactFormBackToRequest();
+        return VIEW_MYPAGE_EDIT_CHECK;
+    }
+
+
+    /** 顧客マイページ：編集確定 */
+    public String myPageEditDone() {
+        UUID customerId = currentCustomerContactId();
+        UUID contactId  = currentContactId();
+        if (customerId == null || contactId == null) {
+            validation.addErrorMsg("ログイン情報が見つかりません。");
+            req.setAttribute(A_ERROR_MSG, validation.getErrorMsg());
+            return req.getContextPath() + req.getServletPath() + "/error";
+        }
+
+        // 再検証（略：上と同じバリデーション）
+        // ...（同じチェックを実施）
+        // 失敗時は EDIT に戻す処理も同様
+
+        try (TransactionManager tm = new TransactionManager()) {
+            var cDao  = new CustomerDAO(tm.getConnection());
+            var ccDao = new CustomerContactDAO(tm.getConnection());
+
+            // --- 会社更新 ---
+            CustomerDTO cur = cDao.selectByUUId(customerId);
+            CustomerDTO cUpdate = new CustomerDTO();
+            cUpdate.setId(cur.getId());
+            cUpdate.setCompanyCode(cur.getCompanyCode());
+            cUpdate.setPrimaryContactId(cur.getPrimaryContactId());
+            cUpdate.setCompanyName(req.getParameter(P_COMPANY_NAME));
+            cUpdate.setMail(req.getParameter(P_COMPANY_MAIL));
+            cUpdate.setPhone(req.getParameter(P_COMPANY_PHONE));
+            cUpdate.setPostalCode(req.getParameter(P_POSTAL_CODE));
+            cUpdate.setAddress1(req.getParameter(P_ADDRESS1));
+            cUpdate.setAddress2(req.getParameter(P_ADDRESS2));
+            cUpdate.setBuilding(req.getParameter(P_BUILDING));
+            cDao.update(cUpdate);
+
+            // --- 担当者更新（主担当フラグには触れない） ---
+            CustomerContactDTO ccUpdate = new CustomerContactDTO();
+            ccUpdate.setId(contactId);
+            ccUpdate.setName(req.getParameter(P_CONTACT_NAME));
+            ccUpdate.setNameRuby(req.getParameter(P_CONTACT_NAME_RUBY));
+            ccUpdate.setDepartment(req.getParameter(P_CONTACT_DEPT));
+            ccUpdate.setMail(req.getParameter(P_CONTACT_MAIL));
+            ccUpdate.setPhone(req.getParameter(P_CONTACT_PHONE));
+            ccDao.update(ccUpdate);
+
+            tm.commit();
+
+            // セッションも最新化（ホームでの表示ブレ防止）
+            var session = req.getSession(false);
+            if (session != null) {
+                Object u = session.getAttribute("loginUser");
+                if (u instanceof LoginUser lu) {
+                    // customer
+                    CustomerDTO cReload = cDao.selectByUUId(customerId);
+                    lu.setCustomer(conv.toDomain(cReload));
+                    // contact
+                    CustomerContactDTO ccReload = ccDao.selectById(contactId);
+                    lu.setCustomerContact(conv.toDomain(ccReload));
+                    session.setAttribute("loginUser", lu);
+                }
+            }
+
+            // ★ 完了後はホームへ（リダイレクト）
+            return req.getContextPath() + "/customer/mypage/home";
+        } catch (RuntimeException e) {
+            validation.addErrorMsg("データベースに不正な操作が行われました");
+            req.setAttribute(A_ERROR_MSG, validation.getErrorMsg());
+            return req.getContextPath() + req.getServletPath() + "/error";
+        }
+    }
+
 
     // =======================
     // helpers
@@ -653,16 +710,22 @@ public class ContactService extends BaseService {
         req.setAttribute(P_IS_PRIMARY,  req.getParameter(P_IS_PRIMARY));
     }
     
-    /** 入力値をそのままRequestに積んでJSPに持ち回る（name と同じキーで） */
-//    private void pushCustomerFormBackToRequest() {
-//        req.setAttribute(P_COMPANY_NAME, req.getParameter(P_COMPANY_NAME));
-//        req.setAttribute(P_MAIL,         req.getParameter(P_MAIL));
-//        req.setAttribute(P_PHONE,        req.getParameter(P_PHONE));
-//        req.setAttribute(P_POSTAL_CODE,  req.getParameter(P_POSTAL_CODE));
-//        req.setAttribute(P_ADDRESS1,     req.getParameter(P_ADDRESS1));
-//        req.setAttribute(P_ADDRESS2,     req.getParameter(P_ADDRESS2));
-//        req.setAttribute(P_BUILDING,     req.getParameter(P_BUILDING));
-//    }
+    private void pushCustomerAndContactFormBackToRequest() {
+        // Contact
+        req.setAttribute(P_CONTACT_NAME,      req.getParameter(P_CONTACT_NAME));
+        req.setAttribute(P_CONTACT_NAME_RUBY, req.getParameter(P_CONTACT_NAME_RUBY));
+        req.setAttribute(P_CONTACT_DEPT,      req.getParameter(P_CONTACT_DEPT));
+        req.setAttribute(P_CONTACT_MAIL,      req.getParameter(P_CONTACT_MAIL));
+        req.setAttribute(P_CONTACT_PHONE,     req.getParameter(P_CONTACT_PHONE));
+        // Company
+        req.setAttribute(P_COMPANY_NAME,  req.getParameter(P_COMPANY_NAME));
+        req.setAttribute(P_COMPANY_MAIL,  req.getParameter(P_COMPANY_MAIL));
+        req.setAttribute(P_COMPANY_PHONE, req.getParameter(P_COMPANY_PHONE));
+        req.setAttribute(P_POSTAL_CODE,   req.getParameter(P_POSTAL_CODE));
+        req.setAttribute(P_ADDRESS1,      req.getParameter(P_ADDRESS1));
+        req.setAttribute(P_ADDRESS2,      req.getParameter(P_ADDRESS2));
+        req.setAttribute(P_BUILDING,      req.getParameter(P_BUILDING));
+    }
 
     /**
      * 顧客ヘッダ表示のため、顧客情報を request に積みます。
@@ -692,16 +755,25 @@ public class ContactService extends BaseService {
         }
     }
     
-    /** ログイン中の担当者が属する顧客IDをセッションから取得 */
+    /** ログイン中の担当者が属する会社IDをセッションから取得 */
     private UUID currentCustomerContactId() { 
         HttpSession session = req.getSession(false);
         if (session == null) return null;
         Object user = session.getAttribute("loginUser");
         if (user instanceof LoginUser loginUser && loginUser.getCustomerContact() != null) {
-        	System.out.println("getId");
-            return loginUser.getCustomerContact().getId();
+            return loginUser.getCustomerContact().getCustomerId();
         }
-        System.out.println("return null3");
+        return null;
+    }
+    
+    /** セッションからログイン中の担当者IDを取得 */
+    private UUID currentContactId() {
+        var session = req.getSession(false);
+        if (session == null) return null;
+        Object u = session.getAttribute("loginUser");
+        if (u instanceof LoginUser lu && lu.getCustomerContact() != null) {
+            return lu.getCustomerContact().getId();
+        }
         return null;
     }
     

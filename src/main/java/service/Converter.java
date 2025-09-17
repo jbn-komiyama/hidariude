@@ -108,6 +108,11 @@ public class Converter {
         s.setLastLoginAt(ts2date(dto.getLastLoginAt()));
 
         s.setSecretaryRank(toDomain(dto.getSecretaryRankDTO()));
+        s.setBankName(dto.getBankName());
+        s.setBankBranch(dto.getBankBranch());
+        s.setBankType(dto.getBankType());
+        s.setBankAccount(dto.getBankAccount());
+        s.setBankOwner(dto.getBankOwner());
         return s;
 	}
 

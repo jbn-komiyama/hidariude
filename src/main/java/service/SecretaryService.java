@@ -32,10 +32,9 @@ public class SecretaryService extends BaseService{
     private static final String VIEW_EDIT            = "secretary/admin/edit";
     private static final String VIEW_EDIT_CHECK      = "secretary/admin/edit_check";
     private static final String VIEW_EDIT_DONE       = "secretary/admin/edit_done";
-    private static final String VIEW_MYPAGE           = "secretary/mypage/home"; 
-    private static final String VIEW_MYPAGE_EDIT      = "secretary/mypage/edit"; 
-    private static final String VIEW_MYPAGE_EDIT_CHECK= "secretary/mypage/edit_check"; 
-    private static final String VIEW_MYPAGE_EDIT_DONE = "secretary/mypage/edit_done"; 
+    private static final String VIEW_MYPAGE           = "mypage/secretary/home"; 
+    private static final String VIEW_MYPAGE_EDIT      = "mypage/secretary/edit"; 
+    private static final String VIEW_MYPAGE_EDIT_CHECK= "mypage/secretary/edit_check"; 
     
 
     // ==============================
@@ -599,8 +598,7 @@ public class SecretaryService extends BaseService{
     	        int num = dao.update(dto);                          
     	        tm.commit();
 
-    	        req.setAttribute(A_MESSAGE, "マイページを更新しました（件数:" + num + "）");
-    	        return VIEW_MYPAGE_EDIT_DONE;
+    	        return VIEW_MYPAGE;
     	    } catch (RuntimeException e) {
     	        validation.addErrorMsg("データベースに不正な操作が行われました");
     	        req.setAttribute(A_ERROR_MSG, validation.getErrorMsg());

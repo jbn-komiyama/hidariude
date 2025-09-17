@@ -660,6 +660,8 @@ public class TaskService extends BaseService {
 
 			// 5) 一覧へ戻る（会社名はURLエンコード）
 			return req.getContextPath() + req.getServletPath() + "/task/list_unapproved?status=approved&yearMonth=" + yearMonth;
+			// 5) 一覧へ戻る（会社名はURLエンコード）
+//			return req.getContextPath() + req.getServletPath() + "/task/list_unapproved?status=approved&yearMonth=" + yearMonth;
 
 		} catch (RuntimeException e) {
 			validation.addErrorMsg("更新に失敗しました。入力内容をご確認ください。");
@@ -706,12 +708,7 @@ public class TaskService extends BaseService {
 
 			tm.commit();
 
-			String nextPath = req.getContextPath() + req.getServletPath() + "/task/list" + "?"
-					+ A_COMPANY_ID + "=" + companyIdStr
-					+ "&" + A_COMPANY_NAME + "=" + URLEncoder.encode(companyName, StandardCharsets.UTF_8)
-					+ "&" + A_YEAR_MONTH + "=" + yearMonth;
-
-			// --- 戻り先を決定（companyId等があれば一覧へ） ---
+			String nextPath = req.getContextPath() + req.getServletPath() + "/task/list_unapproved?status=approved&yearMonth=" + yearMonth;
 			return nextPath;
 
 		} catch (RuntimeException e) {

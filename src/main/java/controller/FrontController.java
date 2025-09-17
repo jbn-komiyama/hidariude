@@ -314,7 +314,10 @@ public class FrontController extends HttpServlet {
 			case "/invoice"->{
 				nextPath = new InvoiceService(req, true).invoiceSummery();
 			}
-			
+			case "/invoice/issue"->{
+				new InvoiceService(req, true).issueInvoiceExcel(res);
+				return;
+			}
     	}
 	}
     
@@ -371,24 +374,28 @@ public class FrontController extends HttpServlet {
 			 * A03 請求サマリー業務
 			 * 
 			 */
+			case "/invoice" -> {
+			    nextPath = new InvoiceService(req, true).customerInvoiceSummary();
+			}
 			
 			/**
 			 * A04 顧客ページ（マイページ）編集業務
 			 * 
 			 */
-			case "/mypage"->{
+			case "/mypage/home"->{
 				nextPath = new ContactService(req, true).myPageList();
 			}
-			
-//			case "/mypage/edit"->{
-//				nextPath = new ContactService(req, true).myPageEdit();
-//			}
-//			case "/mypage/edit_check"->{
-//				nextPath = new ContactService(req, true).myPageEditCheck();
-//			}
-//			case "/mypage/edit_done"->{
-//				nextPath = new ContactService(req, true).myPageEditDone();
-//			}
+
+			case "/mypage/edit"->{
+			    nextPath = new ContactService(req, true).myPageEdit();
+			}
+			case "/mypage/edit_check"->{
+			    nextPath = new ContactService(req, true).myPageEditCheck();
+			}
+			case "/mypage/edit_done"->{
+			    nextPath = new ContactService(req, true).myPageEditDone();
+			}
+
 			
 			
     	}
@@ -451,6 +458,12 @@ public class FrontController extends HttpServlet {
 		    	else customerExecute(req, res);
 			}
 		}
+		
+		// ページ遷移
+		if (res.isCommitted()) {   // ★ 追加：ファイルDLやsendErrorでレスポンスが確定していたら何もしない
+		    return;
+		}
+		
 		// ページ遷移
 		char firstPath = nextPath.charAt(0);
 		if(firstPath == '/') {
