@@ -175,7 +175,53 @@ public class CommonService extends BaseService {
 
 	/** 管理者ホーム */
 	public String adminHome() {
-		return "common/admin/home";
+	    // ログイン確認（名前表示に使うだけ）
+	    HttpSession session = req.getSession(false);
+	    String adminName = "";
+	    if (session != null) {
+	        LoginUser lu = (LoginUser) session.getAttribute("loginUser");
+	        if (lu != null && lu.getSystemAdmin() != null) {
+	            adminName = lu.getSystemAdmin().getName();
+	        }
+	    }
+
+	    // 今月 / 先月
+	    String yearMonth      = LocalDate.now(Z_TOKYO).format(YM_FMT);
+	    String prevYearMonth  = LocalDate.now(Z_TOKYO).minusMonths(1).format(YM_FMT);
+
+	    try (TransactionManager tm = new TransactionManager()) {
+	        TaskDAO tdao = new TaskDAO(tm.getConnection());
+
+	        // 今月
+	        TaskDTO tdThis = tdao.selectCountsForAdminMonth(yearMonth);
+	        domain.Task tThis = new domain.Task();
+	        tThis.setUnapproved(tdThis.getUnapproved());
+	        tThis.setApproved(tdThis.getApproved());
+	        tThis.setRemanded(tdThis.getRemanded());
+	        tThis.setTotal(tdThis.getTotal());
+	        tThis.setSumAmountApproved(tdThis.getTotalAmountApproved()); // 合計金額（承認済み）
+
+	        // 先月
+	        TaskDTO tdPrev = tdao.selectCountsForAdminMonth(prevYearMonth);
+	        domain.Task tPrev = new domain.Task();
+	        tPrev.setUnapproved(tdPrev.getUnapproved());
+	        tPrev.setApproved(tdPrev.getApproved());
+	        tPrev.setRemanded(tdPrev.getRemanded());
+	        tPrev.setTotal(tdPrev.getTotal());
+	        tPrev.setSumAmountApproved(tdPrev.getTotalAmountApproved());
+
+	        // JSPへ
+	        req.setAttribute("task", tThis);
+	        req.setAttribute("taskPrev", tPrev);
+	        req.setAttribute("yearMonth", yearMonth);
+	        req.setAttribute("prevYearMonth", prevYearMonth);
+	        req.setAttribute("adminName", adminName);
+
+	        return "common/admin/home";
+	    } catch (RuntimeException e) {
+	        e.printStackTrace();
+	        return req.getContextPath() + req.getServletPath() + "/error";
+	    }
 	}
 
 	public String secretaryHome() {

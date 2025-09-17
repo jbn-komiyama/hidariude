@@ -11,6 +11,7 @@
 <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
 </head>
 <body class="bg-primary bg-opacity-10">
+<%@ include file="/WEB-INF/jsp/_parts/admin/navbar.jspf" %>
 
 <div class="container py-4">
 
@@ -201,5 +202,6 @@ document.getElementById('remandModal')?.addEventListener('show.bs.modal', functi
   document.getElementById('remandTaskId').value = taskId || '';
 });
 </script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>

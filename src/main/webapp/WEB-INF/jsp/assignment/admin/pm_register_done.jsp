@@ -9,6 +9,7 @@
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" />
 </head>
 <body class="bg-light">
+<%@ include file="/WEB-INF/jsp/_parts/admin/navbar.jspf" %>
 <div class="container py-4">
   <h1 class="h4 mb-3">PM秘書 アサイン登録（完了）</h1>
 
@@ -23,5 +24,6 @@
     <a href="<%= request.getContextPath() %>/admin/assignment" class="btn btn-primary">一覧へ戻る</a>
   </div>
 </div>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>
