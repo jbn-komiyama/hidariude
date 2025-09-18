@@ -14,7 +14,7 @@
       <ul class="navbar-nav me-auto mb-2 mb-lg-0">
         <li class="nav-item"><a class="nav-link" href="<c:url value='/admin/home'/>">ホーム</a></li>
         <li class="nav-item"><a class="nav-link" href="<c:url value='/admin/secretary'/>">秘書管理</a></li>
-        <li class="nav-item"><a class="nav-link" href="<c:url value='/admin/contact'/>">顧客担当管理</a></li>
+        <li class="nav-item"><a class="nav-link" href="<c:url value='/admin/customer'/>">顧客管理</a></li>
         <li class="nav-item"><a class="nav-link" href="<c:url value='/admin/mypage'/>">ID管理</a></li>
         <li class="nav-item"><a class="nav-link" href="<c:url value='/admin/assignment'/>">アサイン管理</a></li>
         <li class="nav-item"><a class="nav-link" href="<c:url value='/admin/task/list_all'/>">タスク管理</a></li>
