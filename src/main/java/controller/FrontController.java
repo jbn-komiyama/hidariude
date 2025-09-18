@@ -17,6 +17,7 @@ import service.CommonService;
 import service.ContactService;
 import service.CustomerService;
 import service.InvoiceService;
+import service.SalesCostSummaryService;
 import service.SecretaryService;
 import service.SystemAdminService;
 import service.TaskService;
@@ -91,6 +92,9 @@ public class FrontController extends HttpServlet {
 		case "/secretary/delete"->{
 			nextPath = new SecretaryService(req, true).secretaryDelete();
 		}
+		case "/secretary/detail"->{
+			nextPath = new SecretaryService(req, true).secretaryDetail();
+		}
 		
 		
 		/**
@@ -121,6 +125,7 @@ public class FrontController extends HttpServlet {
 		case "/customer/delete"->{
 			nextPath = new CustomerService(req, true).customerDelete();
 		}
+		
 		
 		
 		/**
@@ -246,6 +251,16 @@ public class FrontController extends HttpServlet {
 		}
 		case "/task/remand_done"->{
 			nextPath = new TaskService(req, true).adminTaskRemandDone();
+		}
+		
+		
+		
+		
+		case "/summary/costs"->{
+			nextPath = new SalesCostSummaryService(req, true).costSummary();
+		}
+		case "/summary/sales"->{
+			nextPath = new SalesCostSummaryService(req, true).salesSummary();
 		}
 	}
     }

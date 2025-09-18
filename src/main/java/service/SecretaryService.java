@@ -1,19 +1,31 @@
 package service;
 
+import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
+import java.time.LocalDate;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpSession;
 
+import dao.AssignmentDAO;
 import dao.SecretaryDAO;
+import dao.SecretaryMonthlySummaryDAO;
 import dao.TransactionManager;
 import domain.LoginUser;
 import domain.Secretary;
 import domain.SecretaryRank;
+import domain.SecretaryTotals;
+import domain.SecretaryMonthlySummary;
+import dto.AssignmentDTO;
 import dto.SecretaryDTO;
+import dto.SecretaryMonthlySummaryDTO;
 import dto.SecretaryRankDTO;
+import dto.SecretaryTotalsDTO;
 
 
 /**
@@ -218,6 +230,83 @@ public class SecretaryService extends BaseService{
             return req.getContextPath() + req.getServletPath() + "/error";
         }
     }
+    
+    /** 秘書詳細：/admin/secretary/detail?id={secretaryId} */
+    public String secretaryDetail() {
+        final String idStr = req.getParameter("id");
+        if (!validation.isUuid(idStr)) {
+            validation.addErrorMsg("不正なIDが指定されました。");
+            req.setAttribute("errorMsg", validation.getErrorMsg());
+            return req.getContextPath() + req.getServletPath() + "/error";
+        }
+
+        final ZoneId Z = ZoneId.of("Asia/Tokyo");
+        final LocalDate today = LocalDate.now(Z);
+        final String ym = today.format(DateTimeFormatter.ofPattern("yyyy-MM"));
+        final String ymFrom12 = today.minusMonths(11).format(DateTimeFormatter.ofPattern("yyyy-MM"));
+
+        try (TransactionManager tm = new TransactionManager()) {
+            UUID secId = UUID.fromString(idStr);
+            Converter conv = new Converter();
+
+            // ① 秘書情報
+            SecretaryDAO sdao = new SecretaryDAO(tm.getConnection());
+            SecretaryDTO sDto = sdao.selectByUUId(secId);
+            Secretary secretary = conv.toDomain(sDto);
+            req.setAttribute("secretary", secretary);
+            req.setAttribute("yearMonth", ym);
+
+            // ② 今月のアサイン（継続月数付き / 秘書IDでフィルタ）
+            AssignmentDAO adao = new AssignmentDAO(tm.getConnection());
+            Map<UUID, Integer> contMap = new HashMap<>();
+            List<AssignmentDTO> assignThisMonth =
+                    adao.selectAssignmentsForMonthWithCont(ym, secId, null, null, false, contMap);
+            req.setAttribute("assignThisMonth", assignThisMonth);
+
+            // ④ 今月までのアサイン（最新月→過去月）
+            //    直近12ヶ月など上限を付けたい場合は minusMonths(N) で調整
+            List<AssignmentDTO> uptoList = new ArrayList<>();
+            LocalDate cursor = today;
+            // 必要に応じて「何ヶ月まで遡るか」を調整（ここでは max 24 ヶ月遡るサンプル）
+            for (int i = 0; i < 24; i++) {
+                String ymLoop = cursor.format(DateTimeFormatter.ofPattern("yyyy-MM"));
+                List<AssignmentDTO> rows = adao.selectAssignmentsForMonthWithCont(ymLoop, secId, null, null, false, null);
+                if (rows != null && !rows.isEmpty()) {
+                    // 最新月→過去月 並びを保ちたいので、そのまま追加（外側では降順で積み上がる）
+                    uptoList.addAll(rows);
+                }
+                // もっと過去にアサインが無ければブレイクしても可
+                cursor = cursor.minusMonths(1);
+                // 安全停止：極端に過去に行かないため
+                if (cursor.isBefore(today.minusYears(5))) break;
+            }
+            // ここで「月降順」かつ「同月内は顧客名→ランク→作成日」ソートになるように
+            // selectAssignmentsForMonthWithCont の ORDER BY を利用（呼び出し順で降順）
+            req.setAttribute("assignUptoMonth", uptoList);
+
+            // ③ + ⑤ secretary_monthly_summaries
+            SecretaryMonthlySummaryDAO smdao = new SecretaryMonthlySummaryDAO(tm.getConnection());
+
+            // ③ 合計
+            SecretaryTotalsDTO totalsDto = smdao.selectTotals(secId);
+            SecretaryTotals totals = conv.toDomain(totalsDto);
+            req.setAttribute("totals", totals);
+
+            // ⑤ 直近12ヶ月（from..to）
+            List<SecretaryMonthlySummaryDTO> last12Dto = smdao.selectLast12Months(secId, ymFrom12, ym);
+            List<SecretaryMonthlySummary> last12 = new ArrayList<>();
+            for (SecretaryMonthlySummaryDTO d : last12Dto) last12.add(conv.toDomain(d));
+            req.setAttribute("last12", last12);
+
+            return "secretary/admin/detail"; // ← JSP へのフォワード
+        } catch (RuntimeException e) {
+        	e.printStackTrace();
+        	validation.addErrorMsg("データ取得に失敗しました。");
+            req.setAttribute("errorMsg", validation.getErrorMsg());
+            return req.getContextPath() + req.getServletPath() + "/error";
+        }
+    }
+
     
     
     // =========================================================
