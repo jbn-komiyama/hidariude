@@ -57,11 +57,13 @@ public class CommonService extends BaseService {
 	private static final String PATH_ADMIN_HOME = "/admin/home";
 	private static final String PATH_CUSTOMER_LOGIN = "/customer";
 	private static final String PATH_CUSTOMER_HOME = "/customer/home";
+	private static final String PATH_ADMIN_MYPAGE = "common/admin/mypage";
+	private static final String PATH_ADMIN_ID_EDIT = "common/admin/id_edit";
 
 	// アトリビュート
 	private static final String ATTR_LOGIN_USER = "loginUser";
-	private static final String ATTR_CUSTOMERS = "customers";
-	private static final String ATTR_YEAR_MONTH = "yearMonth";
+	private static final String ATTR_ADMIN = "admin";
+	private static final String ATTR_FORM = "form";
 
 	private static final ZoneId Z_TOKYO = ZoneId.of("Asia/Tokyo");
 	private static final DateTimeFormatter YM_FMT = DateTimeFormatter.ofPattern("yyyy-MM");
@@ -224,6 +226,126 @@ public class CommonService extends BaseService {
 	    } catch (RuntimeException e) {
 	        e.printStackTrace();
 	        return req.getContextPath() + req.getServletPath() + "/error";
+	    }
+	}
+	
+	// --- マイページ表示 ---
+	public String adminMyPage() {
+	    // ログインチェック
+	    HttpSession session = req.getSession(false);
+	    if (session == null) return req.getContextPath() + PATH_ADMIN_LOGIN; // 既存の定数
+	    LoginUser lu = (LoginUser) session.getAttribute(ATTR_LOGIN_USER);
+	    if (lu == null || lu.getSystemAdmin() == null || lu.getSystemAdmin().getId() == null) {
+	        return req.getContextPath() + PATH_ADMIN_LOGIN;
+	    }
+
+	    // そのまま Domain を JSP に渡す
+	    req.setAttribute(ATTR_ADMIN, lu.getSystemAdmin());
+	    return PATH_ADMIN_MYPAGE;
+	}
+
+	// --- 編集フォーム表示（GET） ---
+	public String adminIdEditForm() {
+	    HttpSession session = req.getSession(false);
+	    if (session == null) return req.getContextPath() + PATH_ADMIN_LOGIN;
+	    LoginUser lu = (LoginUser) session.getAttribute(ATTR_LOGIN_USER);
+	    if (lu == null || lu.getSystemAdmin() == null || lu.getSystemAdmin().getId() == null) {
+	        return req.getContextPath() + PATH_ADMIN_LOGIN;
+	    }
+
+	    // 既存値をフォーム初期値へ
+	    Map<String, String> form = new LinkedHashMap<>();
+	    form.put("mail", lu.getSystemAdmin().getMail());
+	    form.put("name", lu.getSystemAdmin().getName());
+	    form.put("nameRuby", lu.getSystemAdmin().getNameRuby());
+	    req.setAttribute(ATTR_FORM, form);
+
+	    return PATH_ADMIN_ID_EDIT;
+	}
+
+	// --- 編集送信（POST） ---
+	public String adminIdEditSubmit() {
+	    HttpSession session = req.getSession(false);
+	    if (session == null) return req.getContextPath() + PATH_ADMIN_LOGIN;
+	    LoginUser lu = (LoginUser) session.getAttribute(ATTR_LOGIN_USER);
+	    if (lu == null || lu.getSystemAdmin() == null || lu.getSystemAdmin().getId() == null) {
+	        return req.getContextPath() + PATH_ADMIN_LOGIN;
+	    }
+
+	    UUID adminId = lu.getSystemAdmin().getId();
+
+	    // 入力取得
+	    String mail = req.getParameter("mail");
+	    String password = req.getParameter("password"); // 空なら据え置き
+	    String name = req.getParameter("name");
+	    String nameRuby = req.getParameter("nameRuby");
+
+	    // 最低限のバリデーション
+	    validation.isNull("メールアドレス", mail);
+	    validation.isNull("氏名", name);
+
+	    // フォーム値（エラー時の戻し用）
+	    Map<String, String> form = new LinkedHashMap<>();
+	    form.put("mail", mail);
+	    form.put("name", name);
+	    form.put("nameRuby", nameRuby);
+	    req.setAttribute(ATTR_FORM, form);
+
+	    if (validation.hasErrorMsg()) {
+	        req.setAttribute("errorMsg", validation.getErrorMsg());
+	        return PATH_ADMIN_ID_EDIT;
+	    }
+
+	    try (TransactionManager tm = new TransactionManager()) {
+	        SystemAdminDAO dao = new SystemAdminDAO(tm.getConnection());
+
+	        // 自分以外でメール重複が無いか
+	        if (dao.mailExistsExceptId(mail, adminId)) {
+	            req.setAttribute("errorMsg", "入力されたメールアドレスは既に使用されています。");
+	            return PATH_ADMIN_ID_EDIT;
+	        }
+
+	        // 既存情報取得
+	        SystemAdminDTO current = dao.selectById(adminId);
+	        if (current.getId() == null) {
+	            req.setAttribute("errorMsg", "対象の管理者が見つかりません。");
+	            return PATH_ADMIN_ID_EDIT;
+	        }
+
+	        // 更新DTO作成（パスワード空なら据え置き）
+	        SystemAdminDTO upd = new SystemAdminDTO();
+	        upd.setId(adminId);
+	        upd.setMail(mail);
+	        upd.setPassword( (password == null || password.isBlank()) ? current.getPassword() : password );
+	        upd.setName(name);
+	        upd.setNameRuby(nameRuby);
+
+	        int cnt = dao.update(upd);
+	        if (cnt != 1) {
+	            req.setAttribute("errorMsg", "更新に失敗しました。");
+	            return PATH_ADMIN_ID_EDIT;
+	        }
+
+	        tm.commit();
+
+	        // セッション内の Domain も更新
+	        lu.getSystemAdmin().setMail(mail);
+	        lu.getSystemAdmin().setName(name);
+	        lu.getSystemAdmin().setNameRuby(nameRuby);
+	        if (password != null && !password.isBlank()) {
+	            lu.getSystemAdmin().setPassword(password);
+	        }
+	        session.setAttribute(ATTR_LOGIN_USER, lu);
+
+	        // マイページへ遷移（成功メッセージ）
+	        req.setAttribute("successMsg", "アカウント情報を更新しました。");
+	        req.setAttribute(ATTR_ADMIN, lu.getSystemAdmin());
+	        return req.getContextPath() + "/admin/mypage";
+
+	    } catch (RuntimeException e) {
+	        e.printStackTrace();
+	        req.setAttribute("errorMsg", "予期せぬエラーが発生しました。");
+	        return PATH_ADMIN_ID_EDIT;
 	    }
 	}
 

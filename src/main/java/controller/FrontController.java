@@ -52,6 +52,15 @@ public class FrontController extends HttpServlet {
 		case "/home"->{
 			nextPath = new CommonService(req, false).adminHome();
 		}
+		case "/mypage"->{
+			nextPath = new CommonService(req, false).adminMyPage();
+		}
+		case "/id_edit"->{
+			nextPath = new CommonService(req, false).adminIdEditForm();
+		}
+		case "/id_edit_done"->{
+			nextPath = new CommonService(req, false).adminIdEditSubmit();
+		}
 
 
 		/**
@@ -167,6 +176,21 @@ public class FrontController extends HttpServlet {
 		}
 		case "/assignment/pm_register_done"->{
 			nextPath = new AssignmentService(req, true).assignmentPMRegisterDone();
+		}
+		case "/assignment/carry_over_preview"->{
+			nextPath = new AssignmentService(req, true).assignmentCarryOverPreview();
+		}
+		case "/assignment/carry_over_apply"->{
+			nextPath = new AssignmentService(req, true).assignmentCarryOverApply();
+		}
+		case "/assignment/edit"->{
+			nextPath = new AssignmentService(req, true).assignmentEditIncentiveForm();
+		}
+		case "/assignment/edit_update"->{
+			nextPath = new AssignmentService(req, true).assignmentEditIncentiveUpdate();
+		}
+		case "/assignment/delete"->{
+			nextPath = new AssignmentService(req, true).assignmentDelete();
 		}
 		
 		/**

@@ -2,12 +2,16 @@ package service;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.time.YearMonth;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 
 import jakarta.servlet.http.HttpServletRequest;
@@ -69,6 +73,8 @@ public class AssignmentService extends BaseService {
     private static final String VIEW_PM_REGISTER         = "assignment/admin/pm_register";
     private static final String VIEW_PM_REGISTER_CHECK   = "assignment/admin/pm_register_check";
     private static final String VIEW_PM_REGISTER_DONE    = "assignment/admin/pm_register_done";
+    private static final String VIEW_CARRY_OVER_PREVIEW = "assignment/admin/carry_over_preview";
+    private static final String VIEW_EDIT_INCENTIVE = "assignment/admin/edit_incentive";
 
     // ----- Attribute keys -----
     private static final String A_CUSTOMERS    = "customers";
@@ -109,70 +115,120 @@ public class AssignmentService extends BaseService {
 	}
 
 	/**
-     * アサインの管理ホーム（当月分一覧）を表示。
-     * @return ビュー名またはリダイレクト先
-     */
+	 * アサインの管理ホーム（当月分一覧）を表示。
+	 * ・当月にアサインが無い顧客も「PM秘書登録」行を出すため、基本は customers を起点に LEFT JOIN した結果を使う
+	 * ・フィルタ（顧客名 / 秘書 / 継続≧N）も SQL 側で実施
+	 * ・「継続月数の高い順」ソートは、フィルタ未指定のときのみ専用SQLを使用（全社＋継続DESC）
+	 */
 	public String assignmentList() {
-		String targetYM = req.getParameter(A_TARGET_YM);
-		if(targetYM == null) {
-			ZoneId zone = ZoneId.of("Asia/Tokyo"); // 任意のタイムゾーン
-			targetYM = LocalDate.now(zone).format(DateTimeFormatter.ofPattern("yyyy-MM"));
-		}
-		try (TransactionManager tm = new TransactionManager()) {
+	    String targetYM = req.getParameter(A_TARGET_YM);
 
+	    // 参照可能な上限は「来月」までにクランプ（JST基準）
+	    ZoneId Z_JST = ZoneId.of("Asia/Tokyo");
+	    String ymNow  = LocalDate.now(Z_JST).format(YM_FMT);
+	    String ymNext = LocalDate.now(Z_JST).plusMonths(1).format(YM_FMT);
+	    if (targetYM == null || targetYM.isBlank()) targetYM = ymNow;
+	    try {
+	        if (YearMonth.parse(targetYM).isAfter(YearMonth.parse(ymNext))) {
+	            targetYM = ymNext;
+	        }
+	    } catch (Exception ignore) { targetYM = ymNow; }
 
-			CustomerDAO customerDAO = new CustomerDAO(tm.getConnection());
-			List<CustomerDTO> customerDtos = customerDAO.selectAllWithAssignmentsByMonth(targetYM);
+	    // ===== 検索条件 =====
+	    String minMonthsStr   = req.getParameter("minMonths"); // 例: "6"
+	    Integer minMonths     = null;
+	    try {
+	        if (minMonthsStr != null && !minMonthsStr.isBlank()) {
+	            minMonths = Integer.valueOf(minMonthsStr);
+	        }
+	    } catch (Exception ignore) {}
 
-			List<Customer> customers = new ArrayList<>();
-			Converter conv = new Converter();
+	    String secretaryIdStr = req.getParameter("secretaryId");
+	    UUID filterSecId      = (secretaryIdStr != null && validation.isUuid(secretaryIdStr))
+	                            ? UUID.fromString(secretaryIdStr) : null;
 
-			for (CustomerDTO customerDTO : customerDtos) {
-				Customer c = conv.toDomain(customerDTO); // 既存の Customer 変換
-				// AssignmentDTO -> Assignment に変換してぶら下げ
-				List<Assignment> list = new ArrayList<>();
-				if (customerDTO.getAssignmentDTOs() != null) {
-					for (AssignmentDTO assignmentDTO : customerDTO.getAssignmentDTOs()) {
-						list.add(conv.toDomain(assignmentDTO));
-					}
-				}
-				c.setAssignments(list);
+	    String qCustomer      = req.getParameter("qCustomer");   // 顧客名 部分一致
+	    String sort           = req.getParameter("sort");        // "months_desc" なら継続月数降順
+	    boolean sortByMonthsDesc = "months_desc".equalsIgnoreCase(sort);
 
-				// ===== ここから秘書ごとにグルーピング =====
-				// key: secretaryId (null可) -> AssignmentGroup
-				Map<UUID, AssignmentGroup> gmap = new LinkedHashMap<>();
-				for (Assignment a : list) {
-					UUID secId = (a.getSecretary() != null ? a.getSecretary().getId() : null);
-					AssignmentGroup g = gmap.get(secId);
-					if (g == null) {
-						g = new AssignmentGroup();
-						g.setSecretary(a.getSecretary()); // null なら「未登録」束
-						gmap.put(secId, g);
-					}
-					g.getAssignments().add(a);
-				}
+	    boolean hasFilters = (filterSecId != null)
+	                      || (minMonths != null)
+	                      || (qCustomer != null && !qCustomer.isBlank());
 
-				// 並び替えたい場合（例：秘書名→タスクランク）ここでソート
-				List<AssignmentGroup> groups = new ArrayList<>(gmap.values());
-				// 秘書名(未登録は最後)でソート
-				groups.sort((g1, g2) -> {
-					String n1 = g1.getSecretary() == null ? "\uFFFF" : g1.getSecretary().getName();
-					String n2 = g2.getSecretary() == null ? "\uFFFF" : g2.getSecretary().getName();
-					return n1.compareTo(n2);
-				});
+	    try (TransactionManager tm = new TransactionManager()) {
+	        // プルダウン用：秘書一覧
+	        loadSecretariesToRequest(tm, false);
 
-				c.setAssignmentGroups(groups);
+	        AssignmentDAO aDao = new AssignmentDAO(tm.getConnection());
 
-				customers.add(c);
-			}
-			req.setAttribute(A_CUSTOMERS, customers);
-            req.setAttribute(A_TARGET_YM, targetYM);
-            return VIEW_HOME;
+	        // ===== データ取得（customers 起点で「当月アサイン無しの顧客」も含める）=====
+	        // フィルタ無しで「継続月数の高い順」を要求された場合のみ、専用SQLで継続DESCを実現
+	        List<dto.CustomerDTO> cRows;
+	        if (sortByMonthsDesc && !hasFilters) {
+	            cRows = aDao.selectAllByMonthOrderByConsecutiveDesc(targetYM);
+	        } else {
+	            cRows = aDao.selectAllByMonthFiltered(targetYM, qCustomer, filterSecId, minMonths);
+	            // ※ フィルタ併用時の「継続月数DESC」ソートは DB 側に実装していないため、通常順（社名→秘書名→rank→作成日）
+	        }
 
-		} catch (RuntimeException e) {
-			e.printStackTrace();
-			return req.getContextPath() + req.getServletPath() + "/error";
-		}
+	        // ===== DTO → Domain 整形（秘書ごとグルーピング & contMonths マップ作成）=====
+	        Map<UUID, Integer> contMonths = new HashMap<>();
+	        List<Customer> customers = new ArrayList<>();
+
+	        for (CustomerDTO cdto : cRows) {
+	            Customer c = new Customer();
+	            c.setId(cdto.getId());
+	            c.setCompanyName(cdto.getCompanyName());
+
+	            if (cdto.getAssignmentDTOs() != null && !cdto.getAssignmentDTOs().isEmpty()) {
+	                Map<UUID, AssignmentGroup> gmap = new LinkedHashMap<>();
+
+	                for (AssignmentDTO adto : cdto.getAssignmentDTOs()) {
+	                    // 継続月数マップ（a.id -> cont）。null は 0 扱い
+	                    if (adto.getAssignmentId() != null) {
+	                        Integer cont = adto.getConsecutiveMonths();
+	                        contMonths.put(adto.getAssignmentId(), cont == null ? 0 : cont);
+	                    }
+
+	                    Assignment a = conv.toDomain(adto); // ← フィールドの Converter を使用
+	                    UUID sid = (a.getSecretary() != null ? a.getSecretary().getId() : null);
+
+	                    AssignmentGroup g = gmap.get(sid);
+	                    if (g == null) {
+	                        g = new AssignmentGroup();
+	                        g.setSecretary(a.getSecretary()); // null の場合は JSP 側で '—' 表示
+	                        gmap.put(sid, g);
+	                    }
+	                    g.getAssignments().add(a); // SQL の並びを保持
+	                }
+	                c.setAssignmentGroups(new ArrayList<>(gmap.values()));
+	                // ※ アサインが1件も無い顧客は assignmentGroups を null のままにしておく
+	            }
+
+	            customers.add(c);
+	        }
+
+	        // ===== 画面用属性 =====
+	        String prevYM = LocalDate.parse(targetYM + "-01").minusMonths(1).format(YM_FMT);
+	        req.setAttribute("canCarryOver", ymNow.equals(targetYM) || ymNext.equals(targetYM));
+	        req.setAttribute("prevYM", prevYM);
+	        req.setAttribute("maxYM", ymNext);
+
+	        req.setAttribute("contMonths", contMonths); // JSP で a.id をキーに継続月数を表示
+	        req.setAttribute(A_CUSTOMERS, customers);
+	        req.setAttribute(A_TARGET_YM, targetYM);
+
+	        // 検索フォームの値戻し
+	        req.setAttribute("f_minMonths",  minMonthsStr);
+	        req.setAttribute("f_secretaryId", secretaryIdStr);
+	        req.setAttribute("f_qCustomer",  qCustomer);
+	        req.setAttribute("f_sort",       sort);
+
+	        return "assignment/admin/home";
+	    } catch (RuntimeException e) {
+	        e.printStackTrace();
+	        return req.getContextPath() + req.getServletPath() + "/error";
+	    }
 	}
 
 	
@@ -637,6 +693,209 @@ public class AssignmentService extends BaseService {
         }
         req.setAttribute(A_TASK_RANK, conv.toDomain(trd));
     }
+    
+    /** 引継ぎプレビュー（先月→対象月）。候補のみ表示、重複（同顧客×同秘書×同ランク×対象月）は除外 */
+    public String assignmentCarryOverPreview() {
+        final String toYM   = req.getParameter("toYM");   // 対象月（今月 or 来月）
+        final String fromYM = req.getParameter("fromYM"); // 先月（= toYM - 1）
+        if (!validation.isYearMonth(toYM) || !validation.isYearMonth(fromYM)) {
+            return req.getContextPath() + "/admin/assignment?targetYM=" + (toYM != null ? toYM : "");
+        }
+
+        try (TransactionManager tm = new TransactionManager()) {
+            AssignmentDAO dao = new AssignmentDAO(tm.getConnection());
+            // 1) 先月にあるが対象月に未登録の候補を取得
+            List<AssignmentDTO> candidates = dao.selectCarryOverCandidates(fromYM, toYM);
+
+            // 2) 継続月数（秘書×顧客の“連続”月数。fromYM を末尾とした連続カウント）
+            Map<UUID,Integer> contMonths = new HashMap<>();
+            for (AssignmentDTO a : candidates) {
+                int n = countConsecutiveMonths(tm, a.getAssignmentSecretaryId(), a.getAssignmentCustomerId(), fromYM);
+                contMonths.put(a.getAssignmentId(), n);
+            }
+
+            req.setAttribute("fromYM", fromYM);
+            req.setAttribute("toYM",   toYM);
+            req.setAttribute("candidates", candidates);
+            req.setAttribute("contMonths", contMonths);
+            return VIEW_CARRY_OVER_PREVIEW;
+        } catch (RuntimeException e) {
+            e.printStackTrace();
+            return req.getContextPath() + req.getServletPath() + "/error";
+        }
+    }
+
+    /** 引継ぎ適用（チェック済みIDを対象月に一括INSERT） */
+    public String assignmentCarryOverApply() {
+        final String toYM = req.getParameter("toYM");
+        if (!validation.isYearMonth(toYM)) {
+            return req.getContextPath() + "/admin/assignment";
+        }
+        String[] ids = req.getParameterValues("assignmentId");
+        if (ids == null || ids.length == 0) {
+            // 何も選ばれていなければ一覧へ
+            return req.getContextPath() + "/admin/assignment/carry_over_preview?toYM=" + toYM +
+                   "&fromYM=" + java.time.LocalDate.parse(toYM + "-01").minusMonths(1).format(YM_FMT);
+        }
+
+        // 文字列→UUID
+        java.util.List<UUID> idList = new java.util.ArrayList<>();
+        for (String s : ids) try { idList.add(UUID.fromString(s)); } catch (Exception ignore) {}
+
+        try (TransactionManager tm = new TransactionManager()) {
+            AssignmentDAO dao = new AssignmentDAO(tm.getConnection());
+            // 1) 元データをまとめて取得
+            List<AssignmentDTO> rows = dao.selectByIds(idList);
+
+            int inserted = 0;
+            for (AssignmentDTO src : rows) {
+                // 2) toYM へコピー用DTO作成（単価等は元の値そのまま、年月のみ変更）
+                AssignmentDTO dto = new AssignmentDTO();
+                dto.setAssignmentCustomerId(src.getAssignmentCustomerId());
+                dto.setAssignmentSecretaryId(src.getAssignmentSecretaryId());
+                dto.setTaskRankId(src.getTaskRankId());
+                dto.setTargetYearMonth(toYM);
+                dto.setBasePayCustomer(src.getBasePayCustomer());
+                dto.setBasePaySecretary(src.getBasePaySecretary());
+                dto.setIncreaseBasePayCustomer(src.getIncreaseBasePayCustomer());
+                dto.setIncreaseBasePaySecretary(src.getIncreaseBasePaySecretary());
+                dto.setCustomerBasedIncentiveForCustomer(src.getCustomerBasedIncentiveForCustomer());
+                dto.setCustomerBasedIncentiveForSecretary(src.getCustomerBasedIncentiveForSecretary());
+                dto.setAssignmentStatus(src.getAssignmentStatus());
+
+                if (!dao.existsDuplicate(dto)) {
+                    dao.insert(dto);
+                    inserted++;
+                }
+            }
+            tm.commit();
+            // 完了後は対象月の一覧へ
+            return req.getContextPath() + "/admin/assignment?targetYM=" + toYM;
+        } catch (RuntimeException e) {
+            e.printStackTrace();
+            return req.getContextPath() + req.getServletPath() + "/error";
+        }
+    }
+    
+    /** 継続単価の編集画面（顧客/秘書/年月/ランクは変更不可・表示のみ） */
+    public String assignmentEditIncentiveForm() {
+        final String idStr = req.getParameter("id");
+        final String ym    = req.getParameter(A_TARGET_YM); // 呼び出し元一覧への戻り用
+        if (!validation.isUuid(idStr)) {
+            req.setAttribute(A_ERROR, java.util.List.of("不正なアサインIDです。"));
+            return req.getContextPath() + "/admin/assignment?targetYM=" + (ym != null ? ym : "");
+        }
+
+        try (TransactionManager tm = new TransactionManager()) {
+            AssignmentDAO dao = new AssignmentDAO(tm.getConnection());
+            AssignmentDTO d = dao.selectOneWithNames(UUID.fromString(idStr));
+            if (d == null) {
+                req.setAttribute(A_ERROR, java.util.List.of("対象のアサインが見つかりません。"));
+                return req.getContextPath() + "/admin/assignment?targetYM=" + (ym != null ? ym : "");
+            }
+            req.setAttribute("row", d);
+            req.setAttribute(A_TARGET_YM, ym != null ? ym : d.getTargetYearMonth());
+            return VIEW_EDIT_INCENTIVE;
+        } catch (RuntimeException e) {
+            e.printStackTrace();
+            return req.getContextPath() + req.getServletPath() + "/error";
+        }
+    }
+
+    /** 継続単価の更新（顧客×秘書×対象月の全レコードを一括更新） */
+    public String assignmentEditIncentiveUpdate() {
+        final String idStr   = req.getParameter("id");
+        final String ymBack  = req.getParameter(A_TARGET_YM);
+        final String incCust = req.getParameter(P_INCENT_CUST);
+        final String incSec  = req.getParameter(P_INCENT_SEC);
+
+        if (!validation.isUuid(idStr)) {
+            req.setAttribute(A_ERROR, java.util.List.of("不正なアサインIDです。"));
+            return req.getContextPath() + "/admin/assignment?targetYM=" + (ymBack != null ? ymBack : "");
+        }
+        validation.mustBeMoneyOrZero("継続単価（顧客）", incCust);
+        validation.mustBeMoneyOrZero("継続単価（秘書）", incSec);
+        if (validation.hasErrorMsg()) {
+            req.setAttribute(A_ERROR, validation.getErrorMsg());
+            return assignmentEditIncentiveForm();
+        }
+
+        try (TransactionManager tm = new TransactionManager()) {
+            AssignmentDAO dao = new AssignmentDAO(tm.getConnection());
+
+            // キー特定
+            AssignmentDTO cur = dao.selectOne(UUID.fromString(idStr));
+            if (cur == null) {
+                req.setAttribute(A_ERROR, java.util.List.of("対象のアサインが見つかりません。"));
+                return req.getContextPath() + "/admin/assignment?targetYM=" + (ymBack != null ? ymBack : "");
+            }
+
+            // 入力値→BigDecimal
+            var custVal = parseMoneyOrZero(incCust);
+            var secVal  = parseMoneyOrZero(incSec);
+
+            // ① 当月（=編集対象の年月）へ一括反映（顧客×秘書×年月）
+            dao.updateIncentivesByPairAndMonth(
+                cur.getAssignmentCustomerId(),
+                cur.getAssignmentSecretaryId(),
+                cur.getTargetYearMonth(),
+                custVal, secVal
+            );
+
+            // ② 翌月が「登録されていれば」同様に反映
+            //    → UPDATE を試み、0件ならスルー（＝未登録）
+            YearMonth thisYm = YearMonth.parse(cur.getTargetYearMonth());   // "yyyy-MM"
+            String nextYm    = thisYm.plusMonths(1).toString();             // "yyyy-MM"
+
+            dao.updateIncentivesByPairAndMonth(
+                cur.getAssignmentCustomerId(),
+                cur.getAssignmentSecretaryId(),
+                nextYm,
+                custVal, secVal
+            );
+            // ※ update 件数は戻り値で取れるので、必要なら画面に「翌月にも反映(n件)」など表示可能
+
+            tm.commit();
+
+            // 一覧は編集対象の月へ戻す（要件に合わせて nextYm へ戻す等でもOK）
+            return req.getContextPath() + "/admin/assignment?targetYM=" + cur.getTargetYearMonth();
+        } catch (RuntimeException e) {
+            e.printStackTrace();
+            return req.getContextPath() + req.getServletPath() + "/error";
+        }
+    }
+
+    /** 削除（紐づくタスクが無い場合のみ論理削除） */
+    public String assignmentDelete() {
+        final String idStr  = req.getParameter("id");
+        final String ymBack = req.getParameter(A_TARGET_YM);
+        if (!validation.isUuid(idStr)) {
+            req.setAttribute(A_ERROR, java.util.List.of("不正なアサインIDです。"));
+            return req.getContextPath() + "/admin/assignment?targetYM=" + (ymBack != null ? ymBack : "");
+        }
+
+        try (TransactionManager tm = new TransactionManager()) {
+            AssignmentDAO dao = new AssignmentDAO(tm.getConnection());
+            UUID id = UUID.fromString(idStr);
+
+            // 一覧戻り用に年月を先に取っておく
+            AssignmentDTO cur = dao.selectOne(id);
+            String ym = (cur != null ? cur.getTargetYearMonth() : ymBack);
+
+            // 紐づくタスクがあるなら削除不可
+            if (dao.hasTasks(id)) {
+                req.setAttribute(A_ERROR, java.util.List.of("このアサインにはタスクが登録されています。削除できません。"));
+                return req.getContextPath() + "/admin/assignment?targetYM=" + (ym != null ? ym : "");
+            }
+
+            dao.delete(id);
+            tm.commit();
+            return req.getContextPath() + "/admin/assignment?targetYM=" + (ym != null ? ym : "");
+        } catch (RuntimeException e) {
+            e.printStackTrace();
+            return req.getContextPath() + req.getServletPath() + "/error";
+        }
+    }
 
     /** 文字列群から AssignmentDTO を構築。 */
     private AssignmentDTO buildAssignmentDto(
@@ -661,5 +920,20 @@ public class AssignmentService extends BaseService {
         dto.setCustomerBasedIncentiveForSecretary(parseMoneyOrZero(incentiveSecretaryStr));
         dto.setAssignmentStatus(status);
         return dto;
+    }
+    
+    /** fromYM を末尾とした「秘書×顧客」の連続月数を数える（同ランクか否かは不問） */
+    private int countConsecutiveMonths(TransactionManager tm, UUID secretaryId, UUID customerId, String fromYM) {
+        AssignmentDAO dao = new AssignmentDAO(tm.getConnection());
+        List<String> months = dao.selectMonthsForPairUpTo(secretaryId, customerId, fromYM);
+        Set<String> set = new HashSet<>(months);
+
+        YearMonth ym = YearMonth.parse(fromYM);
+        int count = 0;
+        while (set.contains(ym.toString())) { // "yyyy-MM"
+            count++;
+            ym = ym.minusMonths(1);
+        }
+        return count;
     }
 }
