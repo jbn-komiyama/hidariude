@@ -663,6 +663,27 @@ public class AssignmentDAO extends BaseDAO {
         "SELECT id, customer_id, secretary_id, task_rank_id, target_year_month, " +
         "       customer_based_incentive_for_customer, customer_based_incentive_for_secretary " +
         "  FROM assignments WHERE id = ? AND deleted_at IS NULL";
+    
+ // ④ 今月まで（<= uptoYM）のアサインを取得。月の新しい順 → 会社名 → rank_no → 作成日時
+    private static final String SQL_SELECT_BY_SECRETARY_UPTO_MONTH_ORDER_BY_YM_DESC =
+        "WITH eff AS ( " +
+        "  SELECT ? AS upto_ym " +
+        "), a_upto AS ( " +
+        "  SELECT a.* FROM assignments a, eff " +
+        "   WHERE a.deleted_at IS NULL AND a.target_year_month <= eff.upto_ym " +
+        ") " +
+        "SELECT " +
+        "  a.id, a.customer_id, a.secretary_id, a.task_rank_id, a.target_year_month, " +
+        "  a.base_pay_customer, a.base_pay_secretary, " +
+        "  a.increase_base_pay_customer, a.increase_base_pay_secretary, " +
+        "  a.customer_based_incentive_for_customer, a.customer_based_incentive_for_secretary, " +
+        "  a.status, a.created_at, a.updated_at, a.deleted_at, " +
+        "  c.company_name, tr.rank_name, tr.rank_no " +
+        "FROM a_upto a " +
+        "JOIN customers c ON c.id = a.customer_id AND c.deleted_at IS NULL " +
+        "LEFT JOIN task_rank tr ON tr.id = a.task_rank_id " +
+        "WHERE a.secretary_id = ? " +
+        "ORDER BY a.target_year_month DESC, c.company_name, tr.rank_no NULLS LAST, a.created_at";
 
     private static final String SQL_SELECT_SECRETARIES_BY_CUSTOMER_AND_MONTH =
     	      "SELECT DISTINCT s.id, s.name, s.postal_code, s.address1, s.address2, s.building "
@@ -691,6 +712,8 @@ public class AssignmentDAO extends BaseDAO {
 	public AssignmentDAO(Connection conn) {
 		super(conn);
 	}
+	
+	
 	
 	// ========================
     // SELECT
@@ -998,6 +1021,43 @@ public class AssignmentDAO extends BaseDAO {
 	        }
 	    } catch (SQLException e) {
 	        throw new DAOException("E:AS11F フィルタ付き assignments 取得に失敗しました。", e);
+	    }
+	}
+	
+	public List<AssignmentDTO> selectBySecretaryUpToMonthOrderByYmDesc(UUID secretaryId, String uptoYm) {
+	    try (PreparedStatement ps = conn.prepareStatement(SQL_SELECT_BY_SECRETARY_UPTO_MONTH_ORDER_BY_YM_DESC)) {
+	        int p = 1;
+	        ps.setString(p++, uptoYm);
+	        ps.setObject(p++, secretaryId);
+	        try (ResultSet rs = ps.executeQuery()) {
+	            List<AssignmentDTO> list = new ArrayList<>();
+	            while (rs.next()) {
+	                int i = 1;
+	                AssignmentDTO ad = new AssignmentDTO();
+	                ad.setAssignmentId(rs.getObject(i++, UUID.class));
+	                ad.setAssignmentCustomerId(rs.getObject(i++, UUID.class));
+	                ad.setAssignmentSecretaryId(rs.getObject(i++, UUID.class));
+	                ad.setTaskRankId(rs.getObject(i++, UUID.class));
+	                ad.setTargetYearMonth(rs.getString(i++));
+	                ad.setBasePayCustomer(rs.getBigDecimal(i++));
+	                ad.setBasePaySecretary(rs.getBigDecimal(i++));
+	                ad.setIncreaseBasePayCustomer(rs.getBigDecimal(i++));
+	                ad.setIncreaseBasePaySecretary(rs.getBigDecimal(i++));
+	                ad.setCustomerBasedIncentiveForCustomer(rs.getBigDecimal(i++));
+	                ad.setCustomerBasedIncentiveForSecretary(rs.getBigDecimal(i++));
+	                ad.setAssignmentStatus(rs.getString(i++));
+	                ad.setAssignmentCreatedAt(rs.getTimestamp(i++));
+	                ad.setAssignmentUpdatedAt(rs.getTimestamp(i++));
+	                ad.setAssignmentDeletedAt(rs.getTimestamp(i++));
+	                ad.setCustomerCompanyName(rs.getString(i++)); // c.company_name
+	                ad.setTaskRankName(rs.getString(i++));        // tr.rank_name
+	                /* int rankNo = */ rs.getInt(i++);            // tr.rank_no（必要ならDTOへ）
+	                list.add(ad);
+	            }
+	            return list;
+	        }
+	    } catch (SQLException e) {
+	        throw new DAOException("E:AS11U 今月までの assignments 取得に失敗しました。", e);
 	    }
 	}
 

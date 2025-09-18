@@ -10,7 +10,9 @@ import domain.Customer;
 import domain.CustomerContact;
 import domain.Invoice;
 import domain.Secretary;
+import domain.SecretaryMonthlySummary;
 import domain.SecretaryRank;
+import domain.SecretaryTotals;
 import domain.Task;
 import domain.TaskRank;
 import dto.AssignmentDTO;
@@ -18,7 +20,9 @@ import dto.CustomerContactDTO;
 import dto.CustomerDTO;
 import dto.InvoiceDTO;
 import dto.SecretaryDTO;
+import dto.SecretaryMonthlySummaryDTO;
 import dto.SecretaryRankDTO;
+import dto.SecretaryTotalsDTO;
 import dto.TaskDTO;
 import dto.TaskRankDTO;
 
@@ -293,6 +297,32 @@ public class Converter {
             list.add(inv);
         }
         return list;
+    }
+    
+    public SecretaryMonthlySummary toDomain(SecretaryMonthlySummaryDTO d) {
+        if (d == null) return null;
+        SecretaryMonthlySummary s = new SecretaryMonthlySummary();
+        s.setId(d.getId());
+        // s.setSecretary(...); // 必要なら secretary を別途セット
+        s.setTargetYearMonth(d.getTargetYearMonth());
+        s.setTotalSecretaryAmount(d.getTotalSecretaryAmount());
+        s.setTotalTasksCount(d.getTotalTasksCount());
+        s.setTotalWorkTime(d.getTotalWorkTime());
+        s.setFinalizedAt(d.getFinalizedAt());
+        s.setStatus(d.getStatus());
+        s.setCreatedAt(d.getCreatedAt());
+        s.setUpdatedAt(d.getUpdatedAt());
+        s.setDeletedAt(d.getDeletedAt());
+        return s;
+    }
+
+    public SecretaryTotals toDomain(SecretaryTotalsDTO d) {
+        if (d == null) return null;
+        SecretaryTotals s = new SecretaryTotals();
+        s.setTotalSecretaryAmount(d.getTotalSecretaryAmount());
+        s.setTotalTasksCount(d.getTotalTasksCount());
+        s.setTotalWorkTime(d.getTotalWorkTime());
+        return s;
     }
 
     // -------------------------

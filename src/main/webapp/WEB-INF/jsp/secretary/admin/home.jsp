@@ -15,7 +15,8 @@
     <div class="d-flex align-items-center justify-content-between mb-3">
       <h1 class="h3 mb-0">秘書一覧</h1>
       <form method="post" action="<%= request.getContextPath() %>/admin/secretary/register" class="m-0">
-        <button type="submit" class="btn btn-success">新規登録</button>
+        <!-- 青系に統一 -->
+        <button type="submit" class="btn btn-primary">新規登録</button>
       </form>
     </div>
 
@@ -34,7 +35,7 @@
               <th>ランク</th>
               <th>PM対応</th>
               <th>連絡先</th>
-              <th style="width:140px;">操作</th>
+              <th style="width:220px;">操作</th>
             </tr>
           </thead>
           <tbody>
@@ -42,7 +43,7 @@
               <tr>
                 <td class="text-center fw-semibold">${st.index + 1}</td>
                 <td class="text-nowrap">${sec.secretaryCode}</td>
-                <td class="text-nowrap">${sec.name} <span class="text-muted small">${sec.nameRuby}</span></td>
+                <td class="text-nowrap"><a href="<%= request.getContextPath() %>/admin/secretary/detail?id=${sec.id}">${sec.name}</a> <span class="text-muted small">${sec.nameRuby}</span></td>
                 <td class="text-nowrap"><c:out value="${sec.secretaryRank.rankName}"/></td>
                 <td class="text-center">
                   <c:choose>
@@ -60,14 +61,21 @@
                   <c:out value="${sec.building}"/>
                 </td>
                 <td class="text-center">
-                  <div class="d-flex gap-1 justify-content-center">
+                  <div class="d-flex flex-wrap gap-1 justify-content-center">
+                    <!-- 追加：詳細（青系、GETリンク） -->
+                    <a class="btn btn-sm btn-primary"
+                       href="<%= request.getContextPath() %>/admin/secretary/detail?id=${sec.id}">
+                      詳細
+                    </a>
+                    <!-- 既存：編集（青系に統一：outline） -->
                     <form method="post" action="<%= request.getContextPath() %>/admin/secretary/edit" class="m-0">
                       <input type="hidden" name="id" value="${sec.id}">
-                      <button type="submit" class="btn btn-sm btn-primary">編集</button>
+                      <button type="submit" class="btn btn-sm btn-outline-primary">編集</button>
                     </form>
+                    <!-- 既存：削除（青系に統一：outline） -->
                     <form method="post" action="<%= request.getContextPath() %>/admin/secretary/delete" class="m-0" onsubmit="return confirm('本当に削除しますか？');">
                       <input type="hidden" name="id" value="${sec.id}">
-                      <button type="submit" class="btn btn-sm btn-danger">削除</button>
+                      <button type="submit" class="btn btn-sm btn-outline-primary">削除</button>
                     </form>
                   </div>
                 </td>

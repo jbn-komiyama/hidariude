@@ -585,18 +585,6 @@ public class InvoiceService extends BaseService {
 	}
 
 	
-	// ===== ヘルパ（InvoiceService 内に追記） =====
-//	private static String nvl(String s){ return s==null ? "" : s; }
-//	private static String safe(String s){ return s==null ? "" : s.replaceAll("[\\r\\n]", " "); }
-//	private static String safeFileName(String s){
-//	    String base = (s==null || s.isBlank()) ? "secretary" : s;
-//	    return base.replaceAll("[\\\\/:*?\"<>|]", "_");
-//	}
-//	private void sendError(HttpServletResponse resp, int code, String msg){
-//	    try {
-//	        resp.sendError(code, msg);
-//	    } catch (IOException ignore) {}
-//	}
 
 
 	private static Row getOrCreateRow(Sheet sh, int row1){  // 1始まり
