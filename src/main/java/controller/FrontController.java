@@ -425,7 +425,7 @@ public class FrontController extends HttpServlet {
 			 * 
 			 */
 			case "/outsource/list"->{
-				nextPath = new CustomerService(req, false).outsourceList();
+				nextPath = new AssignmentService(req, true).outsourceList();
 			}
 			
     	}

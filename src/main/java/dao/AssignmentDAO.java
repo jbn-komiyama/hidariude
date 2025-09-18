@@ -664,6 +664,23 @@ public class AssignmentDAO extends BaseDAO {
         "       customer_based_incentive_for_customer, customer_based_incentive_for_secretary " +
         "  FROM assignments WHERE id = ? AND deleted_at IS NULL";
 
+    private static final String SQL_SELECT_SECRETARIES_BY_CUSTOMER_AND_MONTH =
+    	      "SELECT DISTINCT s.id, s.name, s.postal_code, s.address1, s.address2, s.building "
+    	    + "  FROM assignments a "
+    	    + "  JOIN secretaries s ON s.id = a.secretary_id AND s.deleted_at IS NULL "
+    	    + " WHERE a.deleted_at IS NULL "
+    	    + "   AND a.customer_id = ? "
+    	    + "   AND a.target_year_month = ? "
+    	    + " ORDER BY s.name";
+    
+    private static final String SQL_SELECT_SECRETARIES_BY_CUSTOMER =
+    	    "SELECT DISTINCT s.id, s.name, s.postal_code, s.address1, s.address2, s.building " +
+    	    "  FROM assignments a " +
+    	    "  JOIN secretaries s ON s.id = a.secretary_id AND s.deleted_at IS NULL " +
+    	    " WHERE a.deleted_at IS NULL " +
+    	    "   AND a.customer_id = ? " +
+    	    " ORDER BY s.name";
+    
 	
 	public AssignmentDAO(Connection conn) {
 		super(conn);
@@ -1579,7 +1596,71 @@ public class AssignmentDAO extends BaseDAO {
         return list;
     }
     
+    /**
+     * 指定顧客・指定年月（yyyy-MM）にアサインされている秘書（重複除外）を取得。
+     * 戻り値は JSP 互換の List<Map>（name/address）です。
+     */
+    public List<Map<String, Object>> selectSecretariesByCustomerAndMonth(
+            java.util.UUID customerId, String yearMonth) {
+        List<Map<String, Object>> list = new ArrayList<>();
+        try (PreparedStatement ps = conn.prepareStatement(SQL_SELECT_SECRETARIES_BY_CUSTOMER_AND_MONTH)) {
+            ps.setObject(1, customerId);
+            ps.setString(2, yearMonth);
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    String name = rs.getString("name");
+                    String postal = rs.getString("postal_code");
+                    String a1 = rs.getString("address1");
+                    String a2 = rs.getString("address2");
+                    String bld = rs.getString("building");
 
+                    StringBuilder addr = new StringBuilder();
+                    if (postal != null && !postal.isBlank()) addr.append("〒").append(postal.trim()).append(' ');
+                    if (a1 != null && !a1.isBlank()) addr.append(a1.trim());
+                    if (a2 != null && !a2.isBlank()) addr.append(a2.startsWith(" ") ? a2 : " " + a2.trim());
+                    if (bld != null && !bld.isBlank()) addr.append(bld.startsWith(" ") ? bld : " " + bld.trim());
+
+                    Map<String, Object> m = new LinkedHashMap<>();
+                    m.put("name", name);
+                    m.put("address", addr.toString().trim());
+                    list.add(m);
+                }
+            }
+        } catch (SQLException e) {
+            throw new DAOException("E:AS-SX 顧客×年月の秘書一覧取得に失敗しました。", e);
+        }
+        return list;
+    }
+
+    public List<Map<String, Object>> selectSecretariesByCustomer(java.util.UUID customerId) {
+        List<Map<String, Object>> list = new ArrayList<>();
+        try (PreparedStatement ps = conn.prepareStatement(SQL_SELECT_SECRETARIES_BY_CUSTOMER)) {
+            ps.setObject(1, customerId);
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    String name   = rs.getString("name");
+                    String postal = rs.getString("postal_code");
+                    String a1     = rs.getString("address1");
+                    String a2     = rs.getString("address2");
+                    String bld    = rs.getString("building");
+
+                    StringBuilder addr = new StringBuilder();
+                    if (postal != null && !postal.isBlank()) addr.append("〒").append(postal.trim()).append(' ');
+                    if (a1 != null && !a1.isBlank())         addr.append(a1.trim());
+                    if (a2 != null && !a2.isBlank())         addr.append(a2.startsWith(" ") ? a2 : " " + a2.trim());
+                    if (bld != null && !bld.isBlank())       addr.append(bld.startsWith(" ") ? bld : " " + bld.trim());
+
+                    Map<String, Object> m = new LinkedHashMap<>();
+                    m.put("name", name);
+                    m.put("address", addr.toString().trim()); // JSP側で（${s.address}）と括弧付き表示
+                    list.add(m);
+                }
+            }
+        } catch (SQLException e) {
+            throw new DAOException("E:AS-SC 顧客IDの秘書一覧（案件ベース）取得に失敗しました。", e);
+        }
+        return list;
+    }
     // ========================
     // Helper
     // ========================
