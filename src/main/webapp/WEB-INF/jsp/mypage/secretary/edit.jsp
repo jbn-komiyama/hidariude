@@ -124,7 +124,6 @@
   </form>
 </div>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-<<<<<<< HEAD:src/main/webapp/WEB-INF/jsp/mypage/secretary/edit.jsp
 <script>
 (function() {
   const pcInput = document.getElementById("postalCode");
@@ -164,9 +163,5 @@
   });
 })();
 </script>
-
-
-=======
->>>>>>> 74fab764cd51c7a43394114c73bac2d966746c14:src/main/webapp/WEB-INF/jsp/secretary/mypage/edit.jsp
 </body>
 </html>

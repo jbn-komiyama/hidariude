@@ -232,12 +232,6 @@
 
 </div>
 
-<!-- 未承認アラート（任意） -->
-<c:if test="${unapprovedCount gt 0}">
-<script>
-  alert('未承認タスクがあります。管理者に承認をしてもらってから請求処理を行ってください。　OK');
-</script>
-</c:if>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>

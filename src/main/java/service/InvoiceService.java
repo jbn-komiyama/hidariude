@@ -7,10 +7,12 @@ import java.math.BigDecimal;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.time.LocalDate;
+import java.time.YearMonth;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.UUID;
 
@@ -667,8 +669,9 @@ public class InvoiceService extends BaseService {
     
     
     /** 顧客向け：請求サマリー（秘書×ランク集計） */
+    /** 顧客向け：請求サマリー（秘書×ランク集計）＋ダッシュボード用ステータスも積む */
     public String customerInvoiceSummary() {
-        // 対象年月
+        // 対象年月（明細画面用）
         String targetYM = req.getParameter(A_TARGET_YM);
         if (targetYM == null || targetYM.isBlank()) {
             targetYM = LocalDate.now(ZoneId.of("Asia/Tokyo")).format(YM_FMT);
@@ -681,32 +684,116 @@ public class InvoiceService extends BaseService {
         UUID customerId = null;
         if (lu != null) {
             if (lu.getCustomer() != null) customerId = lu.getCustomer().getId();
-            if (customerId == null && lu.getCustomerContact() != null) customerId = lu.getCustomerContact().getCustomerId();
+            if (customerId == null && lu.getCustomerContact() != null) {
+                customerId = lu.getCustomerContact().getCustomerId();
+            }
         }
         if (customerId == null) throw new ServiceException("E:INV-C01 顧客IDが取得できません。");
 
+        // ダッシュボード用（今月＋過去3ヶ月）
+        ZoneId JST = ZoneId.of("Asia/Tokyo");
+        YearMonth ym0 = YearMonth.now(JST);        // 今月
+        YearMonth ym1 = ym0.minusMonths(1);        // 先月
+        YearMonth ym2 = ym0.minusMonths(2);        // 2か月前
+        YearMonth ym3 = ym0.minusMonths(3);        // 3か月前
+
+        // タイル表示ラベル用（数字の月）
+        req.setAttribute("m0", String.valueOf(ym0.getMonthValue()));
+        req.setAttribute("m1", String.valueOf(ym1.getMonthValue()));
+        req.setAttribute("m2", String.valueOf(ym2.getMonthValue()));
+        req.setAttribute("m3", String.valueOf(ym3.getMonthValue()));
+
+        // タイルリンク用YM
+        req.setAttribute("ymNow",   ym0.toString());  // "yyyy-MM"
+        req.setAttribute("ymPrev1", ym1.toString());
+        req.setAttribute("ymPrev2", ym2.toString());
+        req.setAttribute("ymPrev3", ym3.toString());
+
         try (TransactionManager tm = new TransactionManager()) {
             InvoiceDAO dao = new InvoiceDAO(tm.getConnection());
-            List<TaskDTO> taskDtos  = dao.selectTasksByMonthAndCustomer(customerId, targetYM);
-            List<InvoiceDTO> invDtos= dao.selectTotalMinutesBySecretaryAndCustomer(customerId, targetYM);
 
-            List<Task> tasks      = conv.toTaskDomainList(taskDtos);
-            List<Invoice> invoices = conv.toInvoiceDomainList(invDtos);
+            // ====== 明細画面（指定月）既存機能は維持 ======
+            List<TaskDTO> taskDtos   = dao.selectTasksByMonthAndCustomer(customerId, targetYM);
+            List<InvoiceDTO> invDtos = dao.selectTotalMinutesBySecretaryAndCustomer(customerId, targetYM);
 
-            BigDecimal grandTotal = invoices.stream()
+            List<Task> tasks        = conv.toTaskDomainList(taskDtos);
+            List<Invoice> invoices  = conv.toInvoiceDomainList(invDtos);
+
+            java.math.BigDecimal grandTotal = invoices.stream()
                     .map(Invoice::getFee)
-                    .filter(Objects::nonNull)
-                    .reduce(BigDecimal.ZERO, BigDecimal::add);
+                    .filter(java.util.Objects::nonNull)
+                    .reduce(java.math.BigDecimal.ZERO, java.math.BigDecimal::add);
 
             req.setAttribute("tasks", tasks);
             req.setAttribute("invoices", invoices);
             req.setAttribute("grandTotalFee", grandTotal);
             req.setAttribute(A_TARGET_YM, targetYM);
 
+            // ====== ダッシュボード用ステータス（未承認/合計）を4ヶ月分セット ======
+            req.setAttribute("statNow",   buildMonthlyStat(dao, customerId, ym0.toString()));
+            req.setAttribute("statPrev1", buildMonthlyStat(dao, customerId, ym1.toString()));
+            req.setAttribute("statPrev2", buildMonthlyStat(dao, customerId, ym2.toString()));
+            req.setAttribute("statPrev3", buildMonthlyStat(dao, customerId, ym3.toString()));
+
             tm.commit();
-            return VIEW_SUMMARY_CUSTOMER;
+            return VIEW_SUMMARY_CUSTOMER; // 既存の戻り先を維持（ダッシュボードJSPを使う場合はそのパスに変更）
         } catch (Exception e) {
             throw new ServiceException("E:INV-C02 顧客向け請求サマリーの取得に失敗しました。", e);
         }
     }
+
+    /** 月次ステータス生成：未承認件数と合計金額（データ無しは total=null） */
+    private Map<String, Object> buildMonthlyStat(InvoiceDAO dao, UUID customerId, String yearMonth) {
+        Map<String, Object> stat = new java.util.HashMap<>();
+
+        // 1) 未承認件数（タスクから算出）
+        int unapproved = 0;
+        List<TaskDTO> taskDtos = dao.selectTasksByMonthAndCustomer(customerId, yearMonth);
+        if (taskDtos != null) {
+            for (TaskDTO t : taskDtos) {
+                // 承認フラグの名前がプロジェクト差異ありのため、代表的なパターンを順に判定
+                boolean approved = false;
+                try {
+                    try { // getApproved(): Boolean
+                        java.lang.reflect.Method m = t.getClass().getMethod("getApproved");
+                        Object v = m.invoke(t);
+                        if (v instanceof Boolean b) approved = b;
+                    } catch (NoSuchMethodException ignore) {}
+
+                    if (!approved) try { // isApproved(): boolean
+                        java.lang.reflect.Method m = t.getClass().getMethod("isApproved");
+                        Object v = m.invoke(t);
+                        if (v instanceof Boolean b) approved = b;
+                    } catch (NoSuchMethodException ignore) {}
+
+                    if (!approved) try { // getApprovalStatus(): String -> "APPROVED" / "承認済み"
+                        java.lang.reflect.Method m = t.getClass().getMethod("getApprovalStatus");
+                        Object v = m.invoke(t);
+                        if (v != null) {
+                            String s = v.toString();
+                            approved = "APPROVED".equalsIgnoreCase(s) || "承認済み".equals(s);
+                        }
+                    } catch (NoSuchMethodException ignore) {}
+                } catch (Exception ignore) {}
+
+                if (!approved) unapproved++;
+            }
+        }
+        stat.put("unapproved", unapproved);
+
+        // 2) 合計金額（データ無しなら null）
+        List<InvoiceDTO> invs = dao.selectTotalMinutesBySecretaryAndCustomer(customerId, yearMonth);
+        java.math.BigDecimal total = null;
+        if (invs != null && !invs.isEmpty()) {
+            java.math.BigDecimal sum = java.math.BigDecimal.ZERO;
+            for (InvoiceDTO d : invs) {
+                if (d.getFee() != null) sum = sum.add(d.getFee());
+            }
+            total = sum;
+        }
+        stat.put("total", total);
+
+        return stat;
+    }
+
 }

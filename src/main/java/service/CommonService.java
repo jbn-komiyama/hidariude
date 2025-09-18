@@ -18,6 +18,7 @@ import dao.AssignmentDAO;
 import dao.CustomerContactDAO;
 import dao.CustomerDAO;
 import dao.CustomerMonthlyInvoiceDAO;
+import dao.InvoiceDAO;
 import dao.SecretaryDAO;
 import dao.SystemAdminDAO;
 import dao.TaskDAO;
@@ -31,6 +32,7 @@ import domain.Task;
 import dto.AssignmentDTO;
 import dto.CustomerContactDTO;
 import dto.CustomerDTO;
+import dto.InvoiceDTO;
 import dto.SecretaryDTO;
 import dto.SystemAdminDTO;
 import dto.TaskDTO;
@@ -523,24 +525,22 @@ public class CommonService extends BaseService {
 	    req.setAttribute("ymPrev3", ymPrev3.format(YM_FMT));
 
 	    try (TransactionManager tm = new TransactionManager()) {
-	        TaskDAO tdao = new TaskDAO(tm.getConnection());
 	        CustomerMonthlyInvoiceDAO cmiDao = new CustomerMonthlyInvoiceDAO(tm.getConnection());
+	        InvoiceDAO invDao = new InvoiceDAO(tm.getConnection());
 
-	        // 未承認件数（全月）— Task集計（件数）
-	        MonthStat statNow   = loadCustomerMonthStat(customerId, ymNow,   tdao);
-	        MonthStat statPrev1 = loadCustomerMonthStat(customerId, ymPrev1, tdao);
-	        MonthStat statPrev2 = loadCustomerMonthStat(customerId, ymPrev2, tdao);
-	        MonthStat statPrev3 = loadCustomerMonthStat(customerId, ymPrev3, tdao);
+	        // ★ 未承認件数は work_date 基準で毎月タスクを読み、approvedAt==null をカウント
+	        MonthStat statNow   = loadCustomerMonthStatByWorkDate(customerId, ymNow,   invDao);
+	        MonthStat statPrev1 = loadCustomerMonthStatByWorkDate(customerId, ymPrev1, invDao);
+	        MonthStat statPrev2 = loadCustomerMonthStatByWorkDate(customerId, ymPrev2, invDao);
+	        MonthStat statPrev3 = loadCustomerMonthStatByWorkDate(customerId, ymPrev3, invDao);
 
-	        // ★ 今月：tasks×assignments（承認済みだけ合算）
-	        TaskDTO td = tdao.selectCountsForCustomerMonth(customerId, ymNow.format(YM_FMT));
-	        statNow.setTotal(td != null && td.getTotalAmountAll() != null ? td.getTotalAmountAll() : BigDecimal.ZERO);
+	        // ★ 金額合計：今月/先月は InvoiceDAO の fee を合算（work_date基準）
+	        statNow.setTotal(sumFee(invDao, customerId, ymNow));
+	        statPrev1.setTotal(sumFee(invDao, customerId, ymPrev1));
 
-	        // ★ 先月/2ヶ月前/3ヶ月前：customer_monthly_invoices.total_amount を採用
-	        BigDecimal amt1 = cmiDao.selectTotalAmountByCustomerAndMonth(customerId, ymPrev1.format(YM_FMT));
+	        // ★ 2か月前/3か月前は確定テーブル（必要あれば同様に差し替え可）
 	        BigDecimal amt2 = cmiDao.selectTotalAmountByCustomerAndMonth(customerId, ymPrev2.format(YM_FMT));
 	        BigDecimal amt3 = cmiDao.selectTotalAmountByCustomerAndMonth(customerId, ymPrev3.format(YM_FMT));
-	        statPrev1.setTotal(amt1 != null ? amt1 : BigDecimal.ZERO);
 	        statPrev2.setTotal(amt2 != null ? amt2 : BigDecimal.ZERO);
 	        statPrev3.setTotal(amt3 != null ? amt3 : BigDecimal.ZERO);
 
@@ -556,6 +556,40 @@ public class CommonService extends BaseService {
 	        return req.getContextPath() + req.getServletPath() + "/error";
 	    }
 	}
+
+	/** work_date 基準でその月の未承認件数を数える（approvedAt==null） */
+	private MonthStat loadCustomerMonthStatByWorkDate(UUID customerId, YearMonth ym, InvoiceDAO invDao) {
+	    final String ymStr = ym.format(YM_FMT);
+	    MonthStat s = new MonthStat();
+	    s.setYm(ymStr);
+
+	    List<TaskDTO> tasks = invDao.selectTasksByMonthAndCustomer(customerId, ymStr);
+	    int unapproved = 0;
+	    if (tasks != null) {
+	        for (TaskDTO t : tasks) {
+	            if (t.getApprovedAt() == null) unapproved++;
+	        }
+	    }
+	    s.setUnapproved(unapproved);
+	    s.setTotal(null); // 金額は呼び出し側で設定
+	    return s;
+	}
+
+	/** work_date 基準でその月の fee を合算 */
+	private BigDecimal sumFee(InvoiceDAO invDao, UUID customerId, YearMonth ym) {
+	    String ymStr = ym.format(YM_FMT);
+	    List<InvoiceDTO> rows =
+	            invDao.selectTotalMinutesBySecretaryAndCustomer(customerId, ymStr);
+	    BigDecimal sum = BigDecimal.ZERO;
+	    if (rows != null) {
+	        for (InvoiceDTO d : rows) {
+	            if (d.getFee() != null) sum = sum.add(d.getFee());
+	        }
+	    }
+	    return sum;
+	}
+
+
 
 
 

@@ -66,6 +66,7 @@ public class AssignmentService extends BaseService {
     private static final String P_COMPANY_ID    = "companyId";
     private static final String P_COMPANY_NAME  = "companyName";
     private static final String P_ID            = "id";
+    private static final String P_ASSIGNMENT_ID = "assignmentId";
 
     // ----- View names -----
     private static final String VIEW_HOME                = "assignment/admin/home";
@@ -77,6 +78,7 @@ public class AssignmentService extends BaseService {
     private static final String VIEW_PM_REGISTER_DONE    = "assignment/admin/pm_register_done";
     private static final String VIEW_CARRY_OVER_PREVIEW = "assignment/admin/carry_over_preview";
     private static final String VIEW_EDIT_INCENTIVE = "assignment/admin/edit_incentive";
+    private static final String VIEW_OUTSOURCE_LIST = "assignment/customer/list";
 
     // ----- Attribute keys -----
     private static final String A_CUSTOMERS    = "customers";
@@ -101,7 +103,7 @@ public class AssignmentService extends BaseService {
     private static final String A_FORM_INCENT_CUST  = "form_customerBasedIncentiveForCustomer";
     private static final String A_FORM_INCENT_SEC   = "form_customerBasedIncentiveForSecretary";
     private static final String A_FORM_STATUS       = "form_status";
-    private static final String VIEW_OUTSOURCE_LIST = "outsource/customer/list";
+   
 
     // PM確認画面の hidden 受け渡し（h_*）
     private static final String A_H_CUSTOMER_ID     = "h_customerId";
@@ -617,33 +619,35 @@ public class AssignmentService extends BaseService {
     
     //ここに仮作成
     //委託先一覧表示
+ // AssignmentService 内：outsourceList を置き換え
     public String outsourceList() {
-        // 表示用ラベルだけ（JSPの「対象年月」）
-        String yearMonth = LocalDate.now().format(YM_FMT);
-        req.setAttribute("yearMonth", yearMonth);
-
-        // ---- ログイン確認：セッションから顧客IDを取得 ----
-        UUID customerId = currentCustomerContactId(); // ★ご提示のメソッドを使用
+        // 1) ログイン中の顧客ID（会社ID）をセッションから取得
+        UUID customerId = currentCustomerId();
         if (customerId == null) {
-            req.setAttribute(A_ERROR, java.util.List.of("ログインが必要です。"));
+            req.setAttribute(A_ERROR, List.of("ログインが必要です。"));
             return req.getContextPath() + req.getServletPath() + "/error";
         }
 
-        // ---- 二次（案件＝assignmentsベースで秘書を重複なく取得）----
+        // 2) 対象年月はJSTの当月固定（パラメータは受け取らない）
+        String yearMonth = LocalDate.now(ZoneId.of("Asia/Tokyo")).format(YM_FMT);
+
+        // 3) 当月のこの顧客に紐づく秘書（重複なし）を取得
         List<Map<String, Object>> secondaries = java.util.Collections.emptyList();
         try (TransactionManager tm = new TransactionManager()) {
             AssignmentDAO dao = new AssignmentDAO(tm.getConnection());
-            secondaries = dao.selectSecretariesByCustomer(customerId);
+            secondaries = dao.selectSecretariesByCustomerAndMonth(customerId, yearMonth);
         } catch (RuntimeException ignore) {
-            // 失敗時は一次だけ表示（ログ出力なしの運用）
+            // 
         }
-        req.setAttribute("secondaries", secondaries);
 
-        // 備考（任意）
+        // 4) 画面属性
+        req.setAttribute("yearMonth", yearMonth);
+        req.setAttribute("secondaries", secondaries);
         req.setAttribute("note", null);
 
-        return VIEW_OUTSOURCE_LIST; // "outsource/customer/list"
+        return VIEW_OUTSOURCE_LIST;
     }
+
     
 
     // ========= Helper =========
@@ -971,7 +975,7 @@ public class AssignmentService extends BaseService {
     }
     
     /** ログイン中の担当者が属する会社IDをセッションから取得 */
-    private UUID currentCustomerContactId() { 
+    private UUID currentCustomerId() { 
         HttpSession session = req.getSession(false);
         if (session == null) return null;
         Object user = session.getAttribute("loginUser");
@@ -981,14 +985,5 @@ public class AssignmentService extends BaseService {
         return null;
     }
     
-    /** セッションからログイン中の担当者IDを取得 */
-    private UUID currentContactId() {
-        var session = req.getSession(false);
-        if (session == null) return null;
-        Object u = session.getAttribute("loginUser");
-        if (u instanceof LoginUser lu && lu.getCustomerContact() != null) {
-            return lu.getCustomerContact().getId();
-        }
-        return null;
-    }
+   
 }

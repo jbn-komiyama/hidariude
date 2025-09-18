@@ -1,17 +1,21 @@
 <%@ page language="java" contentType="text/html; charset=UTF-8" pageEncoding="UTF-8"%>
 <%@ page isELIgnored="false" %>
 <%@ taglib prefix="c"  uri="jakarta.tags.core" %>
+<%@ taglib prefix="fn" uri="jakarta.tags.functions" %>
 <!DOCTYPE html>
-<html>
+<html lang="ja">
 <head>
 <meta charset="UTF-8">
-<title>マイページ編集（担当者＋会社）</title>
+<title>顧客 マイページ編集</title>
 <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
 </head>
-<body class="bg-light">
-<div class="container py-4">
-  <h1 class="h3 mb-3">マイページ編集</h1>
+<body class="bg-light"><!-- ★ 秘書側と同じ薄グレー背景 -->
+<%@ include file="/WEB-INF/jsp/_parts/customer/navbar.jspf" %>
 
+<div class="container py-4">
+  <h1 class="h3 mb-3">顧客 マイページ編集</h1>
+
+  <!-- ★ エラーブロック（秘書側と同じ扱い） -->
   <c:if test="${not empty errorMsg}">
     <div class="alert alert-danger">
       <ul class="mb-0">
@@ -22,8 +26,9 @@
     </div>
   </c:if>
 
+  <!-- ★ フォームカード（shadow-sm / p-3） -->
   <form method="post" action="<c:url value='/customer/mypage/edit_check'/>" class="card p-3 shadow-sm">
-    <h2 class="h6">顧客担当者情報</h2>
+    <h2 class="h6 mb-3">顧客担当者情報</h2>
     <div class="row g-3">
       <div class="col-md-6">
         <label class="form-label">氏名 <span class="text-danger">*</span></label>
@@ -54,7 +59,7 @@
 
     <hr class="my-4"/>
 
-    <h2 class="h6">会社情報</h2>
+    <h2 class="h6 mb-3">会社情報</h2>
     <div class="row g-3">
       <div class="col-md-8">
         <label class="form-label">会社名 <span class="text-danger">*</span></label>
@@ -108,18 +113,26 @@
   </form>
 </div>
 
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 <script>
 (function() {
   const pcInput = document.getElementById("postalCode");
   const addrInput = document.getElementById("address1");
   if (!pcInput || !addrInput) return;
+
   pcInput.addEventListener("blur", async function () {
     const digits = (pcInput.value || "").replace(/\D/g, "");
     if (digits.length !== 7) return;
+
     try {
       pcInput.disabled = true;
-      const res = await fetch("https://zipcloud.ibsnet.co.jp/api/search?zipcode=" + digits);
+      const res = await fetch("https://zipcloud.ibsnet.co.jp/api/search?zipcode=" + digits, {
+        method: "GET",
+        mode: "cors",
+        cache: "no-store"
+      });
       const data = await res.json();
+
       if (data && data.status === 200 && Array.isArray(data.results) && data.results.length > 0) {
         const r = data.results[0];
         addrInput.value = (r.address1 || "") + (r.address2 || "") + (r.address3 || "");
@@ -127,8 +140,12 @@
       } else {
         alert("住所が見つかりませんでした（郵便番号を確認してください）");
       }
-    } catch (e) { alert("住所検索でエラーが発生しました。"); }
-    finally { pcInput.disabled = false; }
+    } catch (e) {
+      console.error("住所検索エラー:", e);
+      alert("住所検索でエラーが発生しました。時間をおいてお試しください。");
+    } finally {
+      pcInput.disabled = false;
+    }
   });
 })();
 </script>
