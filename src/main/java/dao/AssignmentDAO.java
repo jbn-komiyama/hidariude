@@ -461,32 +461,31 @@ public class AssignmentDAO extends BaseDAO {
       + "   AND deleted_at IS NULL";
     
     private static final String SQL_SELECT_BY_SEC_AND_MONTH =
-        "SELECT "
-      + "  a.id                              AS a_id, "
-      + "  a.customer_id                     AS a_customer_id, "
-      + "  a.secretary_id                    AS a_secretary_id, "
-      + "  a.task_rank_id                    AS a_task_rank_id, "
-      + "  a.target_year_month               AS a_target_year_month, "
-      + "  a.base_pay_customer               AS a_base_pay_customer, "
-      + "  a.base_pay_secretary              AS a_base_pay_secretary, "
-      + "  a.increase_base_pay_customer      AS a_increase_base_pay_customer, "
-      + "  a.increase_base_pay_secretary     AS a_increase_base_pay_secretary, "
-      + "  a.customer_based_incentive_for_customer  AS a_cust_incentive_for_customer, "
-      + "  a.customer_based_incentive_for_secretary AS a_cust_incentive_for_secretary, "
-      + "  a.status                          AS a_status, "
-      + "  a.created_at                      AS a_created_at, "
-      + "  a.updated_at                      AS a_updated_at, "
-      + "  a.deleted_at                      AS a_deleted_at, "
-      + "  tr.rank_name                      AS tr_rank_name, "
-      + "  tr.rank_no                        AS tr_rank_no, "
-      + "  c.company_name                    AS c_company_name "
-      + "FROM assignments a "
-      + "LEFT JOIN task_rank tr ON tr.id = a.task_rank_id AND tr.deleted_at IS NULL "
-      + "INNER JOIN customers c ON c.id = a.customer_id AND c.deleted_at IS NULL "
-      + "WHERE a.deleted_at IS NULL "
-      + "  AND a.secretary_id = ? "
-      + "  AND a.target_year_month = ? "
-      + "ORDER BY c.company_name, tr.rank_no NULLS LAST, a.created_at";
+            "SELECT " +
+            "  a.id                              AS a_id, " +
+            "  a.customer_id                     AS a_customer_id, " +
+            "  a.secretary_id                    AS a_secretary_id, " +
+            "  a.task_rank_id                    AS a_task_rank_id, " +
+            "  a.target_year_month               AS a_target_year_month, " +
+            "  a.base_pay_customer               AS a_base_pay_customer, " +
+            "  a.base_pay_secretary              AS a_base_pay_secretary, " +
+            "  a.increase_base_pay_customer      AS a_increase_base_pay_customer, " +
+            "  a.increase_base_pay_secretary     AS a_increase_base_pay_secretary, " +
+            "  a.customer_based_incentive_for_customer  AS a_cust_incentive_for_customer, " +
+            "  a.customer_based_incentive_for_secretary AS a_cust_incentive_for_secretary, " +
+            "  a.status                          AS a_status, " +
+            "  a.created_at                      AS a_created_at, " +
+            "  a.updated_at                      AS a_updated_at, " +
+            "  a.deleted_at                      AS a_deleted_at, " +
+            "  tr.rank_name                      AS tr_rank_name, " +
+            "  c.company_name                    AS c_company_name " +
+            "FROM assignments a " +
+            "LEFT JOIN task_rank tr ON tr.id = a.task_rank_id AND tr.deleted_at IS NULL " +
+            "INNER JOIN customers c ON c.id = a.customer_id AND c.deleted_at IS NULL " +
+            "WHERE a.deleted_at IS NULL " +
+            "  AND a.secretary_id = ? " +
+            "  AND a.target_year_month = ? " +
+            "ORDER BY c.company_name, tr.rank_name NULLS LAST, a.created_at";
     
  // 指定月(yyyy-MM)のアサイン（当月分のみ）＋継続月数を算出。
  // フィルタ：顧客名キーワード・秘書ID・継続月数≧N
@@ -685,6 +684,24 @@ public class AssignmentDAO extends BaseDAO {
         "LEFT JOIN task_rank tr ON tr.id = a.task_rank_id " +
         "WHERE a.secretary_id = ? " +
         "ORDER BY a.target_year_month DESC, c.company_name, tr.rank_no NULLS LAST, a.created_at";
+
+    private static final String SQL_SELECT_SECRETARIES_BY_CUSTOMER_AND_MONTH =
+    	      "SELECT DISTINCT s.id, s.name, s.postal_code, s.address1, s.address2, s.building "
+    	    + "  FROM assignments a "
+    	    + "  JOIN secretaries s ON s.id = a.secretary_id AND s.deleted_at IS NULL "
+    	    + " WHERE a.deleted_at IS NULL "
+    	    + "   AND a.customer_id = ? "
+    	    + "   AND a.target_year_month = ? "
+    	    + " ORDER BY s.name";
+    
+    private static final String SQL_SELECT_SECRETARIES_BY_CUSTOMER =
+    	    "SELECT DISTINCT s.id, s.name, s.postal_code, s.address1, s.address2, s.building " +
+    	    "  FROM assignments a " +
+    	    "  JOIN secretaries s ON s.id = a.secretary_id AND s.deleted_at IS NULL " +
+    	    " WHERE a.deleted_at IS NULL " +
+    	    "   AND a.customer_id = ? " +
+    	    " ORDER BY s.name";
+    
 	
 	public AssignmentDAO(Connection conn) {
 		super(conn);
@@ -778,6 +795,7 @@ public class AssignmentDAO extends BaseDAO {
 	        throw new DAOException("E:AS11 指定月の assignments 取得に失敗しました。", e);
 	    }
 	}
+
 	
 	/**
 	 * 指定月のアサイン（当月分）を継続月数付きで取得し、必要に応じて絞り込み・並べ替え。
@@ -1115,6 +1133,7 @@ public class AssignmentDAO extends BaseDAO {
 	        throw new DAOException("E:AS11S 継続月数ソート assignments 取得に失敗しました。", e);
 	    }
 	}
+
     /**
      * 指定した秘書ID・年月（yyyy-MM）のアサイン情報を顧客単位で取得します。
      * <p>顧客は {@code id, company_name} のみをセットし、その配下に {@link AssignmentDTO} を格納します。</p>
@@ -1637,7 +1656,71 @@ public class AssignmentDAO extends BaseDAO {
         return list;
     }
     
+    /**
+     * 指定顧客・指定年月（yyyy-MM）にアサインされている秘書（重複除外）を取得。
+     * 戻り値は JSP 互換の List<Map>（name/address）です。
+     */
+    public List<Map<String, Object>> selectSecretariesByCustomerAndMonth(
+            java.util.UUID customerId, String yearMonth) {
+        List<Map<String, Object>> list = new ArrayList<>();
+        try (PreparedStatement ps = conn.prepareStatement(SQL_SELECT_SECRETARIES_BY_CUSTOMER_AND_MONTH)) {
+            ps.setObject(1, customerId);
+            ps.setString(2, yearMonth);
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    String name = rs.getString("name");
+                    String postal = rs.getString("postal_code");
+                    String a1 = rs.getString("address1");
+                    String a2 = rs.getString("address2");
+                    String bld = rs.getString("building");
 
+                    StringBuilder addr = new StringBuilder();
+                    if (postal != null && !postal.isBlank()) addr.append("〒").append(postal.trim()).append(' ');
+                    if (a1 != null && !a1.isBlank()) addr.append(a1.trim());
+                    if (a2 != null && !a2.isBlank()) addr.append(a2.startsWith(" ") ? a2 : " " + a2.trim());
+                    if (bld != null && !bld.isBlank()) addr.append(bld.startsWith(" ") ? bld : " " + bld.trim());
+
+                    Map<String, Object> m = new LinkedHashMap<>();
+                    m.put("name", name);
+                    m.put("address", addr.toString().trim());
+                    list.add(m);
+                }
+            }
+        } catch (SQLException e) {
+            throw new DAOException("E:AS-SX 顧客×年月の秘書一覧取得に失敗しました。", e);
+        }
+        return list;
+    }
+
+    public List<Map<String, Object>> selectSecretariesByCustomer(java.util.UUID customerId) {
+        List<Map<String, Object>> list = new ArrayList<>();
+        try (PreparedStatement ps = conn.prepareStatement(SQL_SELECT_SECRETARIES_BY_CUSTOMER)) {
+            ps.setObject(1, customerId);
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    String name   = rs.getString("name");
+                    String postal = rs.getString("postal_code");
+                    String a1     = rs.getString("address1");
+                    String a2     = rs.getString("address2");
+                    String bld    = rs.getString("building");
+
+                    StringBuilder addr = new StringBuilder();
+                    if (postal != null && !postal.isBlank()) addr.append("〒").append(postal.trim()).append(' ');
+                    if (a1 != null && !a1.isBlank())         addr.append(a1.trim());
+                    if (a2 != null && !a2.isBlank())         addr.append(a2.startsWith(" ") ? a2 : " " + a2.trim());
+                    if (bld != null && !bld.isBlank())       addr.append(bld.startsWith(" ") ? bld : " " + bld.trim());
+
+                    Map<String, Object> m = new LinkedHashMap<>();
+                    m.put("name", name);
+                    m.put("address", addr.toString().trim()); // JSP側で（${s.address}）と括弧付き表示
+                    list.add(m);
+                }
+            }
+        } catch (SQLException e) {
+            throw new DAOException("E:AS-SC 顧客IDの秘書一覧（案件ベース）取得に失敗しました。", e);
+        }
+        return list;
+    }
     // ========================
     // Helper
     // ========================

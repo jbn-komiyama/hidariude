@@ -15,6 +15,7 @@ import java.util.Set;
 import java.util.UUID;
 
 import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpSession;
 
 import dao.AssignmentDAO;
 import dao.CustomerDAO;
@@ -24,6 +25,7 @@ import dao.TransactionManager;
 import domain.Assignment;
 import domain.AssignmentGroup;
 import domain.Customer;
+import domain.LoginUser;
 import domain.Secretary;
 import domain.TaskRank;
 import dto.AssignmentDTO;
@@ -99,6 +101,7 @@ public class AssignmentService extends BaseService {
     private static final String A_FORM_INCENT_CUST  = "form_customerBasedIncentiveForCustomer";
     private static final String A_FORM_INCENT_SEC   = "form_customerBasedIncentiveForSecretary";
     private static final String A_FORM_STATUS       = "form_status";
+    private static final String VIEW_OUTSOURCE_LIST = "outsource/customer/list";
 
     // PM確認画面の hidden 受け渡し（h_*）
     private static final String A_H_CUSTOMER_ID     = "h_customerId";
@@ -611,6 +614,37 @@ public class AssignmentService extends BaseService {
         }
     }
 
+    
+    //ここに仮作成
+    //委託先一覧表示
+    public String outsourceList() {
+        // 表示用ラベルだけ（JSPの「対象年月」）
+        String yearMonth = LocalDate.now().format(YM_FMT);
+        req.setAttribute("yearMonth", yearMonth);
+
+        // ---- ログイン確認：セッションから顧客IDを取得 ----
+        UUID customerId = currentCustomerContactId(); // ★ご提示のメソッドを使用
+        if (customerId == null) {
+            req.setAttribute(A_ERROR, java.util.List.of("ログインが必要です。"));
+            return req.getContextPath() + req.getServletPath() + "/error";
+        }
+
+        // ---- 二次（案件＝assignmentsベースで秘書を重複なく取得）----
+        List<Map<String, Object>> secondaries = java.util.Collections.emptyList();
+        try (TransactionManager tm = new TransactionManager()) {
+            AssignmentDAO dao = new AssignmentDAO(tm.getConnection());
+            secondaries = dao.selectSecretariesByCustomer(customerId);
+        } catch (RuntimeException ignore) {
+            // 失敗時は一次だけ表示（ログ出力なしの運用）
+        }
+        req.setAttribute("secondaries", secondaries);
+
+        // 備考（任意）
+        req.setAttribute("note", null);
+
+        return VIEW_OUTSOURCE_LIST; // "outsource/customer/list"
+    }
+    
 
     // ========= Helper =========
 
@@ -934,5 +968,27 @@ public class AssignmentService extends BaseService {
             ym = ym.minusMonths(1);
         }
         return count;
+    }
+    
+    /** ログイン中の担当者が属する会社IDをセッションから取得 */
+    private UUID currentCustomerContactId() { 
+        HttpSession session = req.getSession(false);
+        if (session == null) return null;
+        Object user = session.getAttribute("loginUser");
+        if (user instanceof LoginUser loginUser && loginUser.getCustomerContact() != null) {
+            return loginUser.getCustomerContact().getCustomerId();
+        }
+        return null;
+    }
+    
+    /** セッションからログイン中の担当者IDを取得 */
+    private UUID currentContactId() {
+        var session = req.getSession(false);
+        if (session == null) return null;
+        Object u = session.getAttribute("loginUser");
+        if (u instanceof LoginUser lu && lu.getCustomerContact() != null) {
+            return lu.getCustomerContact().getId();
+        }
+        return null;
     }
 }

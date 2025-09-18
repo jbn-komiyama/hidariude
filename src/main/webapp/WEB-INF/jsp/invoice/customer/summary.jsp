@@ -47,7 +47,7 @@
   <!-- ===== ヘッダ ===== -->
   <div class="d-flex justify-content-between align-items-center mb-3">
     <div>
-      <h1 class="h4 mb-1">請求サマリー</h1>
+      <h1 class="h4 mb-1">支払サマリー</h1>
       <div class="text-muted small">対象年月：<strong>${yearMonth}</strong></div>
     </div>
     <form method="get" action="<%= request.getContextPath() %>/customer/invoice" class="d-flex align-items-center gap-2">

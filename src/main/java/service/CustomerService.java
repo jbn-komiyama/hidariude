@@ -34,6 +34,7 @@ public class CustomerService extends BaseService{
     private static final String VIEW_EDIT_CHECK		= "customer/admin/edit_check"; 
     private static final String VIEW_EDIT_DONE    	= "customer/admin/edit_done";   
 
+
     // ===== 属性名 =====
     private static final String A_CUSTOMERS = "customers";
     private static final String A_CUSTOMER  = "customer";
@@ -404,10 +405,6 @@ public class CustomerService extends BaseService{
         }
     }
     
-
-    
-
-    
     
     // =====================================================
     // Helper
@@ -429,6 +426,9 @@ public class CustomerService extends BaseService{
     private boolean notBlank(String s) {
         return s != null && !s.isBlank();
     }
+
+
+
 
    
 
