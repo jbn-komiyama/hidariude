@@ -420,7 +420,13 @@ public class FrontController extends HttpServlet {
 			    nextPath = new ContactService(req, true).myPageEditDone();
 			}
 
-			
+			/**
+			 * A05 委託先業務
+			 * 
+			 */
+			case "/outsource/list"->{
+				nextPath = new CustomerService(req, false).outsourceList();
+			}
 			
     	}
 	}

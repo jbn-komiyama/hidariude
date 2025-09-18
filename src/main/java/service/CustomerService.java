@@ -1,7 +1,9 @@
 package service;
 
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 import jakarta.servlet.http.HttpServletRequest;
@@ -33,6 +35,7 @@ public class CustomerService extends BaseService{
     private static final String VIEW_EDIT         		= "customer/admin/edit";         
     private static final String VIEW_EDIT_CHECK		= "customer/admin/edit_check"; 
     private static final String VIEW_EDIT_DONE    	= "customer/admin/edit_done";   
+    private static final String VIEW_OUTSOURCE_LIST = "outsource/customer/list";
 
     // ===== 属性名 =====
     private static final String A_CUSTOMERS = "customers";
@@ -405,8 +408,57 @@ public class CustomerService extends BaseService{
     }
     
 
-    
+    //ここに仮作成
+    //委託先一覧表示
+    public String outsourceList() {
+        // 画面用の基本値
+        req.setAttribute("yearMonth", "2025-09");
+        req.setAttribute("companyName", "OurDesk株式会社");
+        req.setAttribute("estimateSubject", "事務・総務業務 代行サポート");
+        req.setAttribute("estimateNo", "Q-202509-001");
+        req.setAttribute("estimateDate", java.sql.Date.valueOf("2025-09-01"));
+        req.setAttribute("submittedAt", java.sql.Date.valueOf("2025-09-05"));
 
+        // 一次委託（貴社）
+        req.setAttribute("primaryCompanyName", "OurDesk株式会社");
+        req.setAttribute("primaryCompanyAddress", "東京都港区南青山1-15-27 YMビル1階");
+
+        // 二次委託（複数対応）— 固定欄はJSPで表示するためセット不要
+        List<Map<String, Object>> secondaries = new ArrayList<>();
+
+        {
+            Map<String, Object> s1 = new LinkedHashMap<>();
+            s1.put("name", "鈴木 秘書子（個人）");
+            s1.put("address", "埼玉県さいたま市さいたま1-1-1");
+            s1.put("responsible", "鈴木 秘書子");
+            s1.put("subResponsible", "");
+            s1.put("note", "メール連絡を主とする");
+            secondaries.add(s1);
+        }
+        {
+            Map<String, Object> s2 = new LinkedHashMap<>();
+            s2.put("name", "ABC事務代行");
+            s2.put("address", "東京都新宿区西新宿2-8-1");
+            s2.put("responsible", "山田 太郎");
+            s2.put("subResponsible", "佐藤 花子");
+            s2.put("note", "繁忙期のみ増員あり");
+            secondaries.add(s2);
+        }
+
+        req.setAttribute("secondaries", secondaries);
+
+        // 後方互換（secondaries未設定でも1行だけ出せるように）
+        req.setAttribute("secondaryPersonName", "鈴木 秘書子");
+        req.setAttribute("secondaryAddress", "埼玉県さいたま市さいたま1-1-1");
+        req.setAttribute("secondaryResponsible", "鈴木 秘書子");
+        req.setAttribute("secondarySubResponsible", null);
+        req.setAttribute("secondaryNote", "メール連絡を主とする");
+
+        // 備考（全体, 任意）
+        req.setAttribute("note", null);
+
+        return VIEW_OUTSOURCE_LIST; 
+    }
     
     
     // =====================================================
@@ -429,6 +481,9 @@ public class CustomerService extends BaseService{
     private boolean notBlank(String s) {
         return s != null && !s.isBlank();
     }
+
+
+
 
    
 
