@@ -39,7 +39,7 @@
 
     </div>
     <div class="card-footer text-end">
-      <a href="<%=request.getContextPath()%>/admin/home" class="btn btn-sm btn-outline-secondary">ホームに戻る</a>
+      <a href="<%=request.getContextPath()%>/customer/home" class="btn btn-sm btn-outline-secondary">ホームに戻る</a>
     </div>
   </div>
 

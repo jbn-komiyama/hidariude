@@ -105,17 +105,24 @@ public class CustomerContactDAO extends BaseDAO {
     }
 
  // ★ ADDED: メールアドレスで 1件取得（なければ空DTOを返す）
+ // ★ 修正：メールアドレスで 1件取得（全カラムを map で詰める）
     public CustomerContactDTO selectByMail(String mail) {
-        try (PreparedStatement ps = conn.prepareStatement(BASE_SELECT + " WHERE cc.deleted_at IS NULL AND cc.mail = ?")) {
+        final String sql = BASE_SELECT + " WHERE cc.deleted_at IS NULL AND cc.mail = ?";
+
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setString(1, mail);
             try (ResultSet rs = ps.executeQuery()) {
-                if (rs.next()) return resultSetToCustomerContactDTO(rs);
+                if (rs.next()) {
+                    // 他の取得系（selectById / selectByCustomerId）と同じマッピング
+                    return map(rs, 1);
+                }
                 return new CustomerContactDTO();
             }
         } catch (SQLException e) {
             throw new DAOException("E:CC14 customer_contacts メールによる単一取得に失敗しました。", e);
         }
     }
+
     
     // ========================
     // INSERT / UPDATE / DELETE
@@ -231,7 +238,7 @@ public class CustomerContactDAO extends BaseDAO {
         CustomerDTO c = new CustomerDTO();
         c.setId(cid);
         dto.setCustomerDTO(c);
-
+        dto.setCustomerId(cid);
         dto.setMail(rs.getString(i++));
         dto.setPassword(rs.getString(i++));
         dto.setName(rs.getString(i++));

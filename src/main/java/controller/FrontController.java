@@ -398,24 +398,28 @@ public class FrontController extends HttpServlet {
 			 * A03 請求サマリー業務
 			 * 
 			 */
+			case "/invoice" -> {
+			    nextPath = new InvoiceService(req, true).customerInvoiceSummary();
+			}
 			
 			/**
 			 * A04 顧客ページ（マイページ）編集業務
 			 * 
 			 */
-			case "/mypage"->{
+			case "/mypage/home"->{
 				nextPath = new ContactService(req, true).myPageList();
 			}
-			
-//			case "/mypage/edit"->{
-//				nextPath = new ContactService(req, true).myPageEdit();
-//			}
-//			case "/mypage/edit_check"->{
-//				nextPath = new ContactService(req, true).myPageEditCheck();
-//			}
-//			case "/mypage/edit_done"->{
-//				nextPath = new ContactService(req, true).myPageEditDone();
-//			}
+
+			case "/mypage/edit"->{
+			    nextPath = new ContactService(req, true).myPageEdit();
+			}
+			case "/mypage/edit_check"->{
+			    nextPath = new ContactService(req, true).myPageEditCheck();
+			}
+			case "/mypage/edit_done"->{
+			    nextPath = new ContactService(req, true).myPageEditDone();
+			}
+
 			
 			
     	}

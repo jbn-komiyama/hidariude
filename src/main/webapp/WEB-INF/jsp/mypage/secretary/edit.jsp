@@ -8,8 +8,6 @@
 <meta charset="UTF-8">
 <title>秘書 マイページ編集</title>
 <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-</head>
-<body class="bg-light">
   <style>
     .avatar {
       width:64px; height:64px; border-radius:50%;
@@ -23,6 +21,8 @@
   </style>
 </head>
 <body class="bg-light">
+<%@ include file="/WEB-INF/jsp/_parts/secretary/navbar.jspf" %>
+
 <div class="container py-4">
     <h1 class="h3 mb-3">秘書 マイページ編集</h1>
   <div class="d-flex align-items-center justify-content-between mb-3">
@@ -94,13 +94,13 @@
 
       <div class="col-md-6">
         <label class="form-label">郵便番号</label>
-        <input type="text" name="postalCode" class="form-control"
+        <input type="text" name="postalCode" class="form-control" id="postalCode" placeholder="100-0001"
                value="${not empty param.postalCode ? param.postalCode : (not empty postalCode ? postalCode : secretary.postalCode)}">
       </div>
 
       <div class="col-md-6">
         <label class="form-label">住所</label>
-        <input type="text" name="address1" class="form-control"
+        <input type="text" name="address1" class="form-control" id="address1"
                value="${not empty param.address1 ? param.address1 : (not empty address1 ? address1 : secretary.address1)}">
       </div>
 
@@ -123,5 +123,50 @@
     </div>
   </form>
 </div>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<<<<<<< HEAD:src/main/webapp/WEB-INF/jsp/mypage/secretary/edit.jsp
+<script>
+(function() {
+  const pcInput = document.getElementById("postalCode");
+  const addrInput = document.getElementById("address1");
+
+  if (!pcInput || !addrInput) return;
+
+  pcInput.addEventListener("blur", async function () {
+    const digits = (pcInput.value || "").replace(/\D/g, ""); 
+    if (digits.length !== 7) return;
+
+    try {
+      pcInput.disabled = true;
+
+      const res = await fetch("https://zipcloud.ibsnet.co.jp/api/search?zipcode=" + digits, {
+        method: "GET",
+        mode: "cors",
+        cache: "no-store"
+      });
+      const data = await res.json();
+
+      if (data && data.status === 200 && Array.isArray(data.results) && data.results.length > 0) {
+        const r = data.results[0];
+        const address = (r.address1 || "") + (r.address2 || "") + (r.address3 || "");
+        addrInput.value = address;
+
+        pcInput.value = digits.slice(0,3) + "-" + digits.slice(3);
+      } else {
+        alert("住所が見つかりませんでした（郵便番号を確認してください）");
+      }
+    } catch (e) {
+      console.error("住所検索エラー:", e);
+      alert("住所検索でエラーが発生しました。時間をおいてお試しください。");
+    } finally {
+      pcInput.disabled = false;
+    }
+  });
+})();
+</script>
+
+
+=======
+>>>>>>> 74fab764cd51c7a43394114c73bac2d966746c14:src/main/webapp/WEB-INF/jsp/secretary/mypage/edit.jsp
 </body>
 </html>

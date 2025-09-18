@@ -195,6 +195,60 @@ public class CustomerDAO extends BaseDAO {
         }
     }
 	
+	/**
+	 * 指定IDの顧客を1件取得し、同一顧客の担当者一覧（未削除）も詰めて返す。
+	 * 主担当は primary フラグを付与する。
+	 * 該当なしは null を返す。
+	 */
+	public CustomerDTO selectWithContactsByUuid(UUID customerId) {
+	    // LEFT JOIN 側で cc.deleted_at を絞る（担当者0件でも顧客が取れる）
+	    final String sql =
+	        "SELECT "
+	      // customers (13)
+	      + "  c.id, c.company_code, c.company_name, c.mail, c.phone, "
+	      + "  c.postal_code, c.address1, c.address2, c.building, "
+	      + "  c.primary_contact_id, c.created_at, c.updated_at, c.deleted_at, "
+	      // customer_contacts (10)
+	      + "  cc.id, cc.mail, cc.name, cc.name_ruby, cc.phone, cc.department, "
+	      + "  cc.created_at, cc.updated_at, cc.deleted_at, cc.last_login_at "
+	      + "FROM customers c "
+	      + "LEFT JOIN customer_contacts cc "
+	      + "  ON cc.customer_id = c.id "
+	      + " AND cc.deleted_at IS NULL "
+	      + "WHERE c.deleted_at IS NULL "
+	      + "  AND c.id = ? "
+	      + "ORDER BY "
+	      + "  CASE WHEN cc.id IS NOT NULL AND c.primary_contact_id = cc.id THEN 0 ELSE 1 END, "
+	      + "  cc.created_at NULLS LAST";
+
+	    try (PreparedStatement ps = conn.prepareStatement(sql)) {
+	        ps.setObject(1, customerId);
+
+	        try (ResultSet rs = ps.executeQuery()) {
+	            CustomerDTO customer = null;
+	            List<CustomerContactDTO> contacts = new ArrayList<>();
+
+	            while (rs.next()) {
+	                if (customer == null) {
+	                    // 先頭13列（customers）を詰める既存ヘルパーを再利用
+	                    customer = resultSetToCustomerDTO(rs);
+	                    customer.setCustomerContacts(contacts); // 空でもセットしておく
+	                }
+	                // 14列目（cc.id）があれば担当者1件を追加
+	                UUID ccId = rs.getObject(14, UUID.class);
+	                if (ccId != null) {
+	                    CustomerContactDTO cc = resultSetToCustomerContactDTO(rs, 14);
+	                    UUID primaryId = customer.getPrimaryContactId();
+	                    cc.setPrimary(primaryId != null && primaryId.equals(cc.getId())); // 主担当フラグ
+	                    contacts.add(cc);
+	                }
+	            }
+	            return customer; // 見つからなければ null
+	        }
+	    } catch (SQLException e) {
+	        throw new DAOException("E:C12 Customers（含:担当者一覧）単一取得中にエラーが発生しました。", e);
+	    }
+	}
 	
     /**
      * 指定の年月（{@code yyyy-MM}）に該当する assignments を

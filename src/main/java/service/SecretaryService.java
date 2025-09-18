@@ -32,10 +32,9 @@ public class SecretaryService extends BaseService{
     private static final String VIEW_EDIT            = "secretary/admin/edit";
     private static final String VIEW_EDIT_CHECK      = "secretary/admin/edit_check";
     private static final String VIEW_EDIT_DONE       = "secretary/admin/edit_done";
-    private static final String VIEW_MYPAGE           = "secretary/mypage/home"; 
-    private static final String VIEW_MYPAGE_EDIT      = "secretary/mypage/edit"; 
-    private static final String VIEW_MYPAGE_EDIT_CHECK= "secretary/mypage/edit_check"; 
-    private static final String VIEW_MYPAGE_EDIT_DONE = "secretary/mypage/edit_done"; 
+    private static final String VIEW_MYPAGE           = "mypage/secretary/home"; 
+    private static final String VIEW_MYPAGE_EDIT      = "mypage/secretary/edit"; 
+    private static final String VIEW_MYPAGE_EDIT_CHECK= "mypage/secretary/edit_check"; 
     
 
     // ==============================

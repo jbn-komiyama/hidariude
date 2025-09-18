@@ -1,15 +1,28 @@
 package service;
 
+//===== 追加 import =====
+import java.io.IOException;
+import java.io.InputStream;
 import java.math.BigDecimal;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.time.LocalDate;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Objects;
 import java.util.UUID;
 
 import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 import jakarta.servlet.http.HttpSession;
+
+import org.apache.poi.ss.usermodel.Cell;
+import org.apache.poi.ss.usermodel.CellType;
+import org.apache.poi.ss.usermodel.Row;
+import org.apache.poi.ss.usermodel.Sheet;
+import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 
 import dao.InvoiceDAO;
 import dao.SecretaryDAO;
@@ -20,18 +33,6 @@ import domain.Task;
 import dto.InvoiceDTO;
 import dto.SecretaryDTO;
 import dto.TaskDTO;
-
-//===== 追加 import =====
-import java.io.IOException;
-import java.io.InputStream;
-import java.net.URLEncoder;
-import java.nio.charset.StandardCharsets;
-import java.util.Comparator;
-import jakarta.servlet.http.HttpServletResponse;
-
-import org.apache.poi.ss.usermodel.*;
-import org.apache.poi.xssf.usermodel.XSSFWorkbook;
-import java.io.ByteArrayOutputStream;
 
 
 
@@ -67,6 +68,7 @@ public class InvoiceService extends BaseService {
 
     // ----- View names -----
     private static final String VIEW_SUMMARY               = "invoice/secretary/summary";
+    private static final String VIEW_SUMMARY_CUSTOMER     = "invoice/customer/summary";
 	
     /*テンプレ初期座標（1始まり） */
     private static final int TAXABLE_DEFAULT_ROWS    = 5;   // テンプレに元々ある明細行数
@@ -142,6 +144,215 @@ public class InvoiceService extends BaseService {
      * - 見出しテキストを検出してテンプレ上詰めに自動追従
      * - PDF出力なし
      */
+    public void issueInvoiceExcel(HttpServletResponse resp) {
+        String targetYM = req.getParameter(P_TARGET_YM);
+        if (targetYM == null || targetYM.isBlank()) {
+            targetYM = LocalDate.now(ZoneId.of("Asia/Tokyo")).format(YM_FMT);
+        }
+
+        // セッション
+        HttpSession session = req.getSession(false);
+        if (session == null) throw new ServiceException("E:INV-ISSUE00 セッションが無効です。");
+        LoginUser loginUser = (LoginUser) session.getAttribute("loginUser");
+        if (loginUser == null || loginUser.getSecretary() == null)
+            throw new ServiceException("E:INV-ISSUE01 ログイン情報が見つかりません。");
+
+        UUID secretaryId = loginUser.getSecretary().getId();
+
+     // 変更後（追加項目あり）
+        String secretaryName = "";
+        String secretaryAddress1 = "";
+        String secretaryAddress2 = "";
+        String secretaryBuilding = "";
+        String secretaryPostal = "";
+        String secretaryTel = "";
+        
+     // ★ 追加：銀行口座情報
+        String bankName = "";
+        String bankBranch = "";
+        String bankType = "";
+        String bankAccount = "";
+        String bankOwner = "";
+
+        List<TaskDTO> taskDtos;
+        List<InvoiceDTO> invoiceDtos;
+
+        TransactionManager tm = new TransactionManager();
+        try {
+            SecretaryDAO sdao = new SecretaryDAO(tm.getConnection());
+            SecretaryDTO sec = sdao.selectByUUIdIncludeAccount(secretaryId);
+         // 変更後
+            if (sec != null) {
+                secretaryName     = nvl(sec.getName());
+                secretaryPostal   = nvl(sec.getPostalCode());
+                secretaryAddress1 = nvl(safe(sec.getAddress1()));
+                secretaryAddress2 = nvl(safe(sec.getAddress2()));
+                secretaryBuilding = nvl(safe(sec.getBuilding()));
+                secretaryTel      = nvl(safe(sec.getPhone()));
+                bankName    = nvl(safe(sec.getBankName()));
+                bankBranch  = nvl(safe(sec.getBankBranch()));
+                bankType    = nvl(safe(sec.getBankType()));
+                bankAccount = nvl(safe(sec.getBankAccount()));
+                bankOwner   = nvl(safe(sec.getBankOwner()));
+            }
+
+            InvoiceDAO dao = new InvoiceDAO(tm.getConnection());
+            taskDtos    = dao.selectTasksByMonthAndSecretary(secretaryId, targetYM);
+            invoiceDtos = dao.selectTotalMinutesByCompanyAndSecretary(secretaryId, targetYM);
+            tm.commit();
+        } catch (Exception e) {
+            tm.rollback();
+            throw new ServiceException("E:INV-ISSUE10 データ取得に失敗しました。", e);
+        } finally {
+            tm.close();
+        }
+
+        if (taskDtos == null || taskDtos.isEmpty()) {
+            sendError(resp, HttpServletResponse.SC_NOT_FOUND, "対象データがありません。");
+            return;
+        }
+        long unapproved = taskDtos.stream().filter(t -> t.getApprovedAt() == null).count();
+        if (unapproved > 0) {
+            sendError(resp, HttpServletResponse.SC_CONFLICT, "未承認タスクが含まれています。承認後に発行してください。");
+            return;
+        }
+
+        // 並び順：会社→ランク
+        invoiceDtos.sort(Comparator
+                .comparing(InvoiceDTO::getCustomerCompanyName, Comparator.nullsLast(String::compareTo))
+                .thenComparing(InvoiceDTO::getTaskRankName, Comparator.nullsLast(String::compareTo)));
+
+        // Excel生成
+        try (InputStream in = req.getServletContext().getResourceAsStream(TEMPLATE_PATH)) {
+            if (in == null) {
+                sendError(resp, HttpServletResponse.SC_NOT_FOUND, "Excelテンプレが見つかりません: " + TEMPLATE_PATH);
+                return;
+            }
+            try (XSSFWorkbook wb = new XSSFWorkbook(in)) {
+                Sheet sh = wb.getSheetAt(0);
+
+	             // ==== ヘッダ書き込み（セル直指定） ====
+	             // A2: 「御　請　求　書（YYYY-MM）」
+	             setCell(sh, 2, 1, "御　請　求　書（" + targetYM + "）");
+	
+	             // H5: {秘書名}
+	             setCell(sh, 5, 8, secretaryName);
+	
+	             // H6: 「〒{郵便番号}」
+	             setCell(sh, 6, 8, secretaryPostal.isEmpty() ? "" : "〒" + secretaryPostal);
+	
+	             // H7: 「{住所1}{住所2}」 ※スペース無しで結合
+	             setCell(sh, 7, 8, secretaryAddress1 + secretaryAddress2);
+	
+	             // H8: 「{建物}」
+	             setCell(sh, 8, 8, secretaryBuilding);
+	
+	             // H9: 「TEL：{電話番号}」 ※全角コロン
+	             setCell(sh, 9, 8, secretaryTel.isEmpty() ? "" : "TEL：" + secretaryTel);
+	
+	             // I1: 「請求日：YYYY年MM月DD日」
+	             LocalDate todayJST = LocalDate.now(ZoneId.of("Asia/Tokyo"));
+	             setCell(sh, 1, 9, "請求日：" + formatJpYmd(todayJST));
+				// ==== A31/A32：口座情報 ====
+				// A31: 「{銀行名} {支店名} ({種別}) {口座番号}」
+				// 空要素はスキップし、適切にスペース/括弧を付加
+				StringBuilder bankLine = new StringBuilder();
+				if (!bankName.isBlank())
+					bankLine.append(bankName);
+				if (!bankBranch.isBlank())
+					bankLine.append(bankLine.length() > 0 ? " " : "").append(bankBranch);
+				if (!bankType.isBlank())
+					bankLine.append(bankLine.length() > 0 ? " " : "").append("(").append(bankType).append(")");
+				if (!bankAccount.isBlank())
+					bankLine.append(bankLine.length() > 0 ? " " : "").append(bankAccount);
+				setCell(sh, 31, 1, bankLine.toString());
+
+				// A32: 「口座名義：{名義人}」※名義が空なら空セル
+				setCell(sh, 32, 1, bankOwner.isBlank() ? "" : "口座名義：" + bankOwner);
+	
+
+                // 見出し検出（テンプレ上詰め自動追従）
+                int taxableHeader = findRowByText(sh, "会社名", 200);
+                int rankHeader    = findRowByText(sh, "ランク",  200);
+                if (taxableHeader <= 0 || (rankHeader > 0 && rankHeader != taxableHeader)) {
+                    taxableHeader = 13; // 旧テンプレフォールバック
+                }
+                final int TAXABLE_DATA_START = taxableHeader + 1;
+
+                int nonTaxHeader = findRowByText(sh, "非課税項目", 200);
+                if (nonTaxHeader <= 0) {
+                    nonTaxHeader = 21; // フォールバック
+                }
+                final int NONTAX_DATA_START = nonTaxHeader + 1;
+
+                // 行確保：下方シフト
+                final int count   = invoiceDtos.size();
+                final int addRows = Math.max(0, count - TAXABLE_DEFAULT_ROWS);
+
+                final int SUBTOTAL_ROW_BASE_DYNAMIC = TAXABLE_DATA_START + TAXABLE_DEFAULT_ROWS;
+                if (addRows > 0) {
+                    sh.shiftRows(SUBTOTAL_ROW_BASE_DYNAMIC, sh.getLastRowNum(), addRows);
+                    Row pattern = getOrCreateRow(sh, TAXABLE_DATA_START + TAXABLE_DEFAULT_ROWS - 1);
+                    for (int i = 0; i < addRows; i++) {
+                        int newRowNum = TAXABLE_DATA_START + TAXABLE_DEFAULT_ROWS + i;
+                        copyRowStyle(pattern, getOrCreateRow(sh, newRowNum));
+                    }
+                }
+
+                // データ書込み（会社×ランク）
+                for (int i = 0; i < count; i++) {
+                    InvoiceDTO d = invoiceDtos.get(i);
+                    int r = TAXABLE_DATA_START + i;
+                    int totalMin = d.getTotalMinute();
+                    int hours = totalMin / 60;
+                    int mins  = totalMin % 60;
+
+                    setCell(sh, r, 1,  nvl(d.getCustomerCompanyName())); // A:会社名
+                    setCell(sh, r, 5,  nvl(d.getTaskRankName()));        // E:ランク
+                    setCell(sh, r, 6,  hours);                           // F:時間
+                    setCell(sh, r, 7,  mins);                            // G:分
+                    if (d.getHourlyPay() != null) {
+                        setCell(sh, r, 8, d.getHourlyPay().doubleValue()); // H:単価
+                    }
+                    setCellFormula(sh, r, 10, "ROUND(H"+r+"*(F"+r+"+G"+r+"/60),0)"); // J:合計
+                }
+
+                // 相対位置で小計/総計/内税
+                final int subRow     = SUBTOTAL_ROW_BASE_DYNAMIC + addRows;                      // 課税小計
+                final int nonTaxSub  = (NONTAX_DATA_START + NONTAX_DEFAULT_ROWS) + addRows;      // 非課税小計
+
+
+                setCellFormula(sh, subRow,    10, "SUM(J" + TAXABLE_DATA_START + ":J" + (TAXABLE_DATA_START + count - 1) + ")");
+                setCell(sh,        nonTaxSub, 10, 0);
+
+                wb.setForceFormulaRecalculation(true);
+
+                // ダウンロード：ファイル名「【御請求書】秘書名_YYYY-MM.xlsx」
+                String fileName = "【御請求書】" + safeFileName(secretaryName) + "_" + targetYM + ".xlsx";
+                String encoded  = URLEncoder.encode(fileName, StandardCharsets.UTF_8).replace("+", "%20");
+                resp.setContentType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+                resp.setHeader("Content-Disposition", "attachment; filename*=UTF-8''" + encoded);
+                wb.write(resp.getOutputStream());
+                resp.flushBuffer();
+            }
+        } catch (IOException e) {
+            throw new ServiceException("E:INV-ISSUE20 Excel生成に失敗しました。", e);
+        }
+    }
+	
+	// ===== ヘルパ（InvoiceService 内に追記） =====
+	private static String nvl(String s){ return s==null ? "" : s; }
+	private static String safe(String s){ return s==null ? "" : s.replaceAll("[\\r\\n]", " "); }
+	private static String safeFileName(String s){
+	    String base = (s==null || s.isBlank()) ? "secretary" : s;
+	    return base.replaceAll("[\\\\/:*?\"<>|]", "_");
+	}
+	private void sendError(HttpServletResponse resp, int code, String msg){
+	    try {
+	        resp.sendError(code, msg);
+	    } catch (IOException ignore) {}
+	}
+
 	public void issueInvoiceExcel(HttpServletResponse resp) {
 	    String targetYM = req.getParameter(P_TARGET_YM);
 	    if (targetYM == null || targetYM.isBlank()) {
@@ -372,17 +583,17 @@ public class InvoiceService extends BaseService {
 
 	
 	// ===== ヘルパ（InvoiceService 内に追記） =====
-	private static String nvl(String s){ return s==null ? "" : s; }
-	private static String safe(String s){ return s==null ? "" : s.replaceAll("[\\r\\n]", " "); }
-	private static String safeFileName(String s){
-	    String base = (s==null || s.isBlank()) ? "secretary" : s;
-	    return base.replaceAll("[\\\\/:*?\"<>|]", "_");
-	}
-	private void sendError(HttpServletResponse resp, int code, String msg){
-	    try {
-	        resp.sendError(code, msg);
-	    } catch (IOException ignore) {}
-	}
+//	private static String nvl(String s){ return s==null ? "" : s; }
+//	private static String safe(String s){ return s==null ? "" : s.replaceAll("[\\r\\n]", " "); }
+//	private static String safeFileName(String s){
+//	    String base = (s==null || s.isBlank()) ? "secretary" : s;
+//	    return base.replaceAll("[\\\\/:*?\"<>|]", "_");
+//	}
+//	private void sendError(HttpServletResponse resp, int code, String msg){
+//	    try {
+//	        resp.sendError(code, msg);
+//	    } catch (IOException ignore) {}
+//	}
 
 
 	private static Row getOrCreateRow(Sheet sh, int row1){  // 1始まり
@@ -451,5 +662,50 @@ public class InvoiceService extends BaseService {
     // InvoiceService の private ヘルパに追加
     private static String formatJpYmd(LocalDate d) {
         return String.format("%d年%02d月%02d日", d.getYear(), d.getMonthValue(), d.getDayOfMonth());
+    }
+    
+    
+    /** 顧客向け：請求サマリー（秘書×ランク集計） */
+    public String customerInvoiceSummary() {
+        // 対象年月
+        String targetYM = req.getParameter(A_TARGET_YM);
+        if (targetYM == null || targetYM.isBlank()) {
+            targetYM = LocalDate.now(ZoneId.of("Asia/Tokyo")).format(YM_FMT);
+        }
+
+        // ログイン中の顧客ID
+        HttpSession session = req.getSession(false);
+        if (session == null) throw new ServiceException("E:INV-C00 セッションが無効です。");
+        LoginUser lu = (LoginUser) session.getAttribute("loginUser");
+        UUID customerId = null;
+        if (lu != null) {
+            if (lu.getCustomer() != null) customerId = lu.getCustomer().getId();
+            if (customerId == null && lu.getCustomerContact() != null) customerId = lu.getCustomerContact().getCustomerId();
+        }
+        if (customerId == null) throw new ServiceException("E:INV-C01 顧客IDが取得できません。");
+
+        try (TransactionManager tm = new TransactionManager()) {
+            InvoiceDAO dao = new InvoiceDAO(tm.getConnection());
+            List<TaskDTO> taskDtos  = dao.selectTasksByMonthAndCustomer(customerId, targetYM);
+            List<InvoiceDTO> invDtos= dao.selectTotalMinutesBySecretaryAndCustomer(customerId, targetYM);
+
+            List<Task> tasks      = conv.toTaskDomainList(taskDtos);
+            List<Invoice> invoices = conv.toInvoiceDomainList(invDtos);
+
+            BigDecimal grandTotal = invoices.stream()
+                    .map(Invoice::getFee)
+                    .filter(Objects::nonNull)
+                    .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+            req.setAttribute("tasks", tasks);
+            req.setAttribute("invoices", invoices);
+            req.setAttribute("grandTotalFee", grandTotal);
+            req.setAttribute(A_TARGET_YM, targetYM);
+
+            tm.commit();
+            return VIEW_SUMMARY_CUSTOMER;
+        } catch (Exception e) {
+            throw new ServiceException("E:INV-C02 顧客向け請求サマリーの取得に失敗しました。", e);
+        }
     }
 }
