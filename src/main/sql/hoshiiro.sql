@@ -369,12 +369,11 @@ ALTER TABLE secretaries
 ALTER TABLE secretaries
   ADD CONSTRAINT chk_secretaries_bank_type
   CHECK (bank_type IN ('普通', '当座'));
-<<<<<<< HEAD
-=======
+
   
 ALTER TABLE secretary_monthly_summaries
   ADD CONSTRAINT uq_sec_month UNIQUE (secretary_id, target_year_month);
->>>>>>> 74fab764cd51c7a43394114c73bac2d966746c14
+
 
 -- 下記は、assignment_idを修正する必要あり
 -- 2025-09-01（10件）

@@ -35,19 +35,11 @@
     </div>
   </div>
 
-  <!-- ===== URL を事前生成（属性：ymPrev3/2/1/Now はサービスで設定） ===== -->
-  <c:url var="urlPrev3" value="/customer/invoice">
-    <c:param name="yearMonth" value="${ymPrev3}"/>
-  </c:url>
-  <c:url var="urlPrev2" value="/customer/invoice">
-    <c:param name="yearMonth" value="${ymPrev2}"/>
-  </c:url>
-  <c:url var="urlPrev1" value="/customer/invoice">
-    <c:param name="yearMonth" value="${ymPrev1}"/>
-  </c:url>
-  <c:url var="urlNow" value="/customer/invoice">
-    <c:param name="yearMonth" value="${ymNow}"/>
-  </c:url>
+  <!-- URL を事前生成（サービスが ym* を設定済み） -->
+  <c:url var="urlPrev3" value="/customer/invoice"><c:param name="yearMonth" value="${ymPrev3}"/></c:url>
+  <c:url var="urlPrev2" value="/customer/invoice"><c:param name="yearMonth" value="${ymPrev2}"/></c:url>
+  <c:url var="urlPrev1" value="/customer/invoice"><c:param name="yearMonth" value="${ymPrev1}"/></c:url>
+  <c:url var="urlNow"   value="/customer/invoice"><c:param name="yearMonth" value="${ymNow}"/></c:url>
 
   <div class="row row-gap">
 
@@ -71,7 +63,9 @@
               </c:choose>
             </div>
             <div class="tile-value">
-              <fmt:formatNumber value="${statPrev3 ne null and statPrev3.total ne null ? statPrev3.total : 0}" type="number" maxFractionDigits="0" groupingUsed="true"/>
+              <fmt:formatNumber
+                value="${statPrev3 ne null and statPrev3.total ne null ? statPrev3.total : 0}"
+                type="number" maxFractionDigits="0" groupingUsed="true"/>
               <span class="fs-6 fw-normal">円</span>
             </div>
           </div>
@@ -99,7 +93,9 @@
               </c:choose>
             </div>
             <div class="tile-value">
-              <fmt:formatNumber value="${statPrev2 ne null and statPrev2.total ne null ? statPrev2.total : 0}" type="number" maxFractionDigits="0" groupingUsed="true"/>
+              <fmt:formatNumber
+                value="${statPrev2 ne null and statPrev2.total ne null ? statPrev2.total : 0}"
+                type="number" maxFractionDigits="0" groupingUsed="true"/>
               <span class="fs-6 fw-normal">円</span>
             </div>
           </div>
@@ -127,7 +123,9 @@
               </c:choose>
             </div>
             <div class="tile-value">
-              <fmt:formatNumber value="${statPrev1 ne null and statPrev1.total ne null ? statPrev1.total : 0}" type="number" maxFractionDigits="0" groupingUsed="true"/>
+              <fmt:formatNumber
+                value="${statPrev1 ne null and statPrev1.total ne null ? statPrev1.total : 0}"
+                type="number" maxFractionDigits="0" groupingUsed="true"/>
               <span class="fs-6 fw-normal">円</span>
             </div>
           </div>
@@ -155,7 +153,9 @@
               </c:choose>
             </div>
             <div class="tile-value">
-              <fmt:formatNumber value="${statNow ne null and statNow.total ne null ? statNow.total : 0}" type="number" maxFractionDigits="0" groupingUsed="true"/>
+              <fmt:formatNumber
+                value="${statNow ne null and statNow.total ne null ? statNow.total : 0}"
+                type="number" maxFractionDigits="0" groupingUsed="true"/>
               <span class="fs-6 fw-normal">円</span>
             </div>
           </div>

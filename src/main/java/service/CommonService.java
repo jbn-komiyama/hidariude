@@ -17,10 +17,13 @@ import jakarta.servlet.http.HttpSession;
 import dao.AssignmentDAO;
 import dao.CustomerContactDAO;
 import dao.CustomerDAO;
+import dao.CustomerMonthlyInvoiceDAO;
 import dao.SecretaryDAO;
 import dao.SystemAdminDAO;
 import dao.TaskDAO;
 import dao.TransactionManager;
+import domain.Customer;
+import domain.CustomerContact;
 import domain.LoginUser;
 import domain.Secretary;
 import domain.SystemAdmin;
@@ -194,7 +197,7 @@ public class CommonService extends BaseService {
 
 	        // 今月
 	        TaskDTO tdThis = tdao.selectCountsForAdminMonth(yearMonth);
-	        domain.Task tThis = new domain.Task();
+	        Task tThis = new Task();
 	        tThis.setUnapproved(tdThis.getUnapproved());
 	        tThis.setApproved(tdThis.getApproved());
 	        tThis.setRemanded(tdThis.getRemanded());
@@ -203,7 +206,7 @@ public class CommonService extends BaseService {
 
 	        // 先月
 	        TaskDTO tdPrev = tdao.selectCountsForAdminMonth(prevYearMonth);
-	        domain.Task tPrev = new domain.Task();
+	        Task tPrev = new Task();
 	        tPrev.setUnapproved(tdPrev.getUnapproved());
 	        tPrev.setApproved(tdPrev.getApproved());
 	        tPrev.setRemanded(tdPrev.getRemanded());
@@ -332,10 +335,10 @@ public class CommonService extends BaseService {
 	        if (ccDto != null && safeEquals(ccDto.getPassword(), password)) {
 
 	            // 担当者Domain
-	            domain.CustomerContact cc = conv.toDomain(ccDto);
+	            CustomerContact cc = conv.toDomain(ccDto);
 
 	            // 顧客IDを確実に取得（DTO直下 or FKフィールド）
-	            java.util.UUID customerId =
+	            UUID customerId =
 	                (ccDto.getCustomerDTO() != null && ccDto.getCustomerDTO().getId() != null)
 	                    ? ccDto.getCustomerDTO().getId()
 	                    : cc.getCustomerId();
@@ -347,7 +350,7 @@ public class CommonService extends BaseService {
 
 	            // 会社Domain（会社名をJSPに出すため必須）
 	            CustomerDTO cDto = cDao.selectByUUId(customerId);
-	            domain.Customer customer = conv.toDomain(cDto);
+	            Customer customer = conv.toDomain(cDto);
 
 	            // セッションへ格納（JSPは sessionScope.loginUser.customer / customerContact を参照）
 	            LoginUser loginUser = new LoginUser();
@@ -372,25 +375,67 @@ public class CommonService extends BaseService {
 	/** 顧客ホーム（会社単位で同一の画面を表示） */
 	public String customerHome() {
 
-	    // Asia/Tokyo で「今月」と過去3か月の YearMonth を算出
+	    // ログイン確認
+	    HttpSession session = req.getSession(false);
+	    if (session == null) return req.getContextPath() + PATH_CUSTOMER_LOGIN;
+	    LoginUser lu = (LoginUser) session.getAttribute(ATTR_LOGIN_USER);
+	    if (lu == null || lu.getCustomer() == null || lu.getCustomer().getId() == null)
+	        return req.getContextPath() + PATH_CUSTOMER_LOGIN;
+
+	    UUID customerId = lu.getCustomer().getId();
+
+	    // 今月と過去3か月
 	    YearMonth ymNow   = YearMonth.now(Z_TOKYO);
 	    YearMonth ymPrev1 = ymNow.minusMonths(1);
 	    YearMonth ymPrev2 = ymNow.minusMonths(2);
 	    YearMonth ymPrev3 = ymNow.minusMonths(3);
 
-	    // JSP で使う「表示用の月（数値1〜12）」と「YYYY-MM」をリクエスト属性に格納
+	    // JSP 用（月数値/文字列）
 	    req.setAttribute("m0", ymNow.getMonthValue());
 	    req.setAttribute("m1", ymPrev1.getMonthValue());
 	    req.setAttribute("m2", ymPrev2.getMonthValue());
 	    req.setAttribute("m3", ymPrev3.getMonthValue());
+	    req.setAttribute("ymNow",   ymNow.format(YM_FMT));
+	    req.setAttribute("ymPrev1", ymPrev1.format(YM_FMT));
+	    req.setAttribute("ymPrev2", ymPrev2.format(YM_FMT));
+	    req.setAttribute("ymPrev3", ymPrev3.format(YM_FMT));
 
-	    req.setAttribute("ymNow",   ymNow.format(YM_FMT));   // 例: 2025-09
-	    req.setAttribute("ymPrev1", ymPrev1.format(YM_FMT)); // 例: 2025-08
-	    req.setAttribute("ymPrev2", ymPrev2.format(YM_FMT)); // 例: 2025-07
-	    req.setAttribute("ymPrev3", ymPrev3.format(YM_FMT)); // 例: 2025-06
+	    try (TransactionManager tm = new TransactionManager()) {
+	        TaskDAO tdao = new TaskDAO(tm.getConnection());
+	        CustomerMonthlyInvoiceDAO cmiDao = new CustomerMonthlyInvoiceDAO(tm.getConnection());
 
-	    return "common/customer/home";
+	        // 未承認件数（全月）— Task集計（件数）
+	        MonthStat statNow   = loadCustomerMonthStat(customerId, ymNow,   tdao);
+	        MonthStat statPrev1 = loadCustomerMonthStat(customerId, ymPrev1, tdao);
+	        MonthStat statPrev2 = loadCustomerMonthStat(customerId, ymPrev2, tdao);
+	        MonthStat statPrev3 = loadCustomerMonthStat(customerId, ymPrev3, tdao);
+
+	        // ★ 今月：tasks×assignments（承認済みだけ合算）
+	        TaskDTO td = tdao.selectCountsForCustomerMonth(customerId, ymNow.format(YM_FMT));
+	        statNow.setTotal(td != null && td.getTotalAmountAll() != null ? td.getTotalAmountAll() : BigDecimal.ZERO);
+
+	        // ★ 先月/2ヶ月前/3ヶ月前：customer_monthly_invoices.total_amount を採用
+	        BigDecimal amt1 = cmiDao.selectTotalAmountByCustomerAndMonth(customerId, ymPrev1.format(YM_FMT));
+	        BigDecimal amt2 = cmiDao.selectTotalAmountByCustomerAndMonth(customerId, ymPrev2.format(YM_FMT));
+	        BigDecimal amt3 = cmiDao.selectTotalAmountByCustomerAndMonth(customerId, ymPrev3.format(YM_FMT));
+	        statPrev1.setTotal(amt1 != null ? amt1 : BigDecimal.ZERO);
+	        statPrev2.setTotal(amt2 != null ? amt2 : BigDecimal.ZERO);
+	        statPrev3.setTotal(amt3 != null ? amt3 : BigDecimal.ZERO);
+
+	        // JSP へ
+	        req.setAttribute("statNow",   statNow);
+	        req.setAttribute("statPrev1", statPrev1);
+	        req.setAttribute("statPrev2", statPrev2);
+	        req.setAttribute("statPrev3", statPrev3);
+
+	        return "common/customer/home";
+	    } catch (RuntimeException e) {
+	        e.printStackTrace();
+	        return req.getContextPath() + req.getServletPath() + "/error";
+	    }
 	}
+
+
 
 	// =========================================================
 	// Small helpers
@@ -408,4 +453,34 @@ public class CommonService extends BaseService {
 	}
 	
 	private static BigDecimal nz(BigDecimal v) { return v == null ? BigDecimal.ZERO : v; }
+
+	// 表示用の小さなDTO（クラス内の重複を排除して1つに）
+	public static class MonthStat {
+	    private String ym;
+	    private Integer unapproved;
+	    private BigDecimal total;
+	    public String getYm(){return ym;} public void setYm(String ym){this.ym=ym;}
+	    public Integer getUnapproved(){return unapproved;} public void setUnapproved(Integer u){this.unapproved=u;}
+	    public BigDecimal getTotal(){return total;} public void setTotal(BigDecimal t){this.total=t;}
+	}
+
+	// 未承認件数だけ Task から取る（金額は呼び出し側で設定）
+	private MonthStat loadCustomerMonthStat(UUID customerId, YearMonth ym, TaskDAO tdao) {
+	    final String ymStr = ym.format(YM_FMT);
+	    MonthStat s = new MonthStat();
+	    s.setYm(ymStr);
+
+	    TaskDTO dto = tdao.selectCountsForCustomerMonth(customerId, ymStr);
+	    s.setUnapproved(dto != null ? dto.getUnapproved() : 0);
+	    s.setTotal(null);
+	    return s;
+	}
+
+
+
+	
+	
+	
 }
+
+

@@ -175,6 +175,7 @@ public class AssignmentDAO extends BaseDAO {
             "  AND a.secretary_id = ? " +
             "  AND a.target_year_month = ? " +
             "ORDER BY c.company_name, tr.rank_name NULLS LAST, a.created_at";
+    
 	
 	public AssignmentDAO(Connection conn) {
 		super(conn);
@@ -263,6 +264,7 @@ public class AssignmentDAO extends BaseDAO {
             throw new DAOException("E:AS11 指定月の assignments 取得に失敗しました。", e);
         }
     }
+    
     
     /**
      * 指定した秘書ID・年月（yyyy-MM）のアサイン情報を顧客単位で取得します。

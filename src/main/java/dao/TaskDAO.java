@@ -1,6 +1,7 @@
 // TaskDAO.java
 package dao;
 
+import java.math.BigDecimal;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -287,6 +288,41 @@ public class TaskDAO extends BaseDAO {
 	    "JOIN assignments a ON a.id = t.assignment_id AND a.deleted_at IS NULL " +
 	    "WHERE t.deleted_at IS NULL " +
 	    "  AND a.target_year_month = ?";
+
+	// 顧客×月の集計SQL（未承認/承認/差戻し件数＋金額：顧客単価×時間）
+	private static final String SQL_COUNT_BY_STATUS_CUSTOMER =
+	    "SELECT " +
+	    "  SUM(CASE WHEN t.approved_at IS NULL AND t.remanded_at IS NULL THEN 1 ELSE 0 END) AS unapproved_count, " +
+	    "  SUM(CASE WHEN t.approved_at IS NOT NULL THEN 1 ELSE 0 END)                       AS approved_count, " +
+	    "  SUM(CASE WHEN t.remanded_at IS NOT NULL THEN 1 ELSE 0 END)                       AS remanded_count, " +
+	    "  COUNT(*)                                                                          AS total_count, " +
+	    "  COALESCE(SUM( " +
+	    "    (COALESCE(a.base_pay_customer,0) + COALESCE(a.increase_base_pay_customer,0) + COALESCE(a.customer_based_incentive_for_customer,0)) " +
+	    "    * (COALESCE(t.work_minute,0)::numeric / 60) " +
+	    "  ),0) AS total_amount_all, " +
+	    "  COALESCE(SUM(CASE WHEN t.approved_at IS NOT NULL THEN " +
+	    "    (COALESCE(a.base_pay_customer,0) + COALESCE(a.increase_base_pay_customer,0) + COALESCE(a.customer_based_incentive_for_customer,0)) " +
+	    "    * (COALESCE(t.work_minute,0)::numeric / 60) " +
+	    "  ELSE 0 END),0) AS total_amount_approved " +
+	    "FROM tasks t " +
+	    "JOIN assignments a ON a.id = t.assignment_id AND a.deleted_at IS NULL " +
+	    "WHERE t.deleted_at IS NULL " +
+	    "  AND a.customer_id = ? " +
+	    "  AND a.target_year_month = ?";
+	
+	// 今月
+	static final String SQL_APPROVED_AMOUNT_BY_CUSTOMER_MONTH =
+	    "SELECT COALESCE(SUM( " +
+	    "  (COALESCE(a.base_pay_customer,0) + COALESCE(a.increase_base_pay_customer,0) + COALESCE(a.customer_based_incentive_for_customer,0)) " +
+	    "  * (COALESCE(t.work_minute,0)::numeric / 60) " +
+	    "),0) AS amount " +
+	    "FROM tasks t " +
+	    "JOIN assignments a ON a.id = t.assignment_id AND a.deleted_at IS NULL " +
+	    "WHERE t.deleted_at IS NULL " +
+	    "  AND a.customer_id = ? " +
+	    "  AND a.target_year_month = ? " +
+	    "  AND t.approved_at IS NOT NULL";
+	
 
 	public TaskDAO(Connection conn) {
 		super(conn);
@@ -1052,4 +1088,43 @@ public class TaskDAO extends BaseDAO {
 	    }
 	    return r;
 	}
+	
+	// ▼ 顧客×年月の件数＋金額（承認済み金額含む）— 今月の金額や未承認件数に利用
+	public TaskDTO selectCountsForCustomerMonth(UUID customerId, String yearMonth) {
+	    TaskDTO r = new TaskDTO();
+	    try (PreparedStatement ps = conn.prepareStatement(SQL_COUNT_BY_STATUS_CUSTOMER)) {
+	        ps.setObject(1, customerId);
+	        ps.setString(2, yearMonth);
+	        try (ResultSet rs = ps.executeQuery()) {
+	            if (rs.next()) {
+	                r.setUnapproved(rs.getInt("unapproved_count"));
+	                r.setApproved(rs.getInt("approved_count"));
+	                r.setRemanded(rs.getInt("remanded_count"));
+	                r.setTotal(rs.getInt("total_count"));
+	                r.setTotalAmountAll(rs.getBigDecimal("total_amount_all"));
+	                r.setTotalAmountApproved(rs.getBigDecimal("total_amount_approved"));
+	            }
+	        }
+	    } catch (SQLException e) {
+	        throw new DAOException("E:TS23 顧客×月タスク集計に失敗しました。", e);
+	    }
+	    return r;
+	}
+
+	public BigDecimal selectApprovedAmountForCustomerMonth(UUID customerId, String yearMonth) {
+	    try (PreparedStatement ps = conn.prepareStatement(SQL_APPROVED_AMOUNT_BY_CUSTOMER_MONTH)) {
+	        ps.setObject(1, customerId);
+	        ps.setString(2, yearMonth);
+	        try (ResultSet rs = ps.executeQuery()) {
+	            if (rs.next()) return rs.getBigDecimal("amount");
+	        }
+	    } catch (SQLException e) {
+	        throw new DAOException("E:TS25 顧客×月の承認済み金額集計に失敗しました。", e);
+	    }
+	    return BigDecimal.ZERO; // 行なしでも0を返す
+	}
+
+
+
+	
 }

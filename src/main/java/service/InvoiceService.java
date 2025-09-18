@@ -353,7 +353,8 @@ public class InvoiceService extends BaseService {
 	    } catch (IOException ignore) {}
 	}
 
-	public void issueInvoiceExcel(HttpServletResponse resp) {
+	//pull時に名前重複してるのでメソッド名に2を入れてる。後で必要なら直す
+	public void issueInvoiceExcel2(HttpServletResponse resp) {
 	    String targetYM = req.getParameter(P_TARGET_YM);
 	    if (targetYM == null || targetYM.isBlank()) {
 	        targetYM = LocalDate.now(ZoneId.of("Asia/Tokyo")).format(YM_FMT);
