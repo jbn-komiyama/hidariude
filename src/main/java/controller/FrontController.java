@@ -262,6 +262,12 @@ public class FrontController extends HttpServlet {
 		case "/summary/sales"->{
 			nextPath = new SalesCostSummaryService(req, true).salesSummary();
 		}
+		
+		
+		
+		case "/invoice"->{
+			nextPath = new InvoiceService(req, true).adminInvoiceSummary();
+		}
 	}
     }
     

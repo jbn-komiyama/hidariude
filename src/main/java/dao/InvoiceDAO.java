@@ -1,10 +1,13 @@
 package dao;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.Timestamp;
+import java.sql.Types;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
@@ -98,6 +101,20 @@ public class InvoiceDAO extends BaseDAO {
 		    "  finalized_at          = EXCLUDED.finalized_at, " +
 		    "  status                = EXCLUDED.status, " +
 		    "  updated_at            = CURRENT_TIMESTAMP";
+	
+	// InvoiceDAO に追記
+	private static final String SQL_ADMIN_LINES =
+		    "SELECT c.id AS customer_id, c.company_name, s.name AS secretary_name, tr.rank_name, " +
+		    "       SUM(t.work_minute) AS total_minute, " +
+		    "       (a.base_pay_secretary + a.increase_base_pay_secretary + a.customer_based_incentive_for_secretary) AS hourly_pay " +
+		    "  FROM tasks t " +
+		    "  JOIN assignments a ON t.assignment_id = a.id " +
+		    "  JOIN customers   c ON a.customer_id   = c.id " +
+		    "  JOIN secretaries s ON a.secretary_id  = s.id " +
+		    "  JOIN task_rank  tr ON a.task_rank_id  = tr.id " +
+		    " WHERE a.target_year_month = ? AND t.deleted_at IS NULL " +
+		    " GROUP BY c.id, c.company_name, s.name, hourly_pay, tr.rank_name, tr.rank_no " +
+		    " ORDER BY c.company_name, s.name, tr.rank_no";
 	
 	
 	public InvoiceDAO(Connection conn) {
@@ -266,10 +283,10 @@ public class InvoiceDAO extends BaseDAO {
 	public int upsertSecretaryMonthlySummary(
 	        UUID secretaryId,
 	        String targetYM,
-	        java.math.BigDecimal totalAmount,
+	        BigDecimal totalAmount,
 	        int totalTasks,
 	        int totalMinutes,
-	        java.sql.Timestamp finalizedAt,
+	        Timestamp finalizedAt,
 	        String status
 	) {
 	    try (PreparedStatement ps = conn.prepareStatement(SQL_UPSERT_MONTHLY_SUMMARY)) {
@@ -277,19 +294,19 @@ public class InvoiceDAO extends BaseDAO {
 	        ps.setObject(i++, secretaryId);
 	        ps.setString(i++, targetYM);
 	        if (totalAmount == null) {
-	            ps.setNull(i++, java.sql.Types.NUMERIC);
+	            ps.setNull(i++, Types.NUMERIC);
 	        } else {
 	            ps.setBigDecimal(i++, totalAmount);
 	        }
 	        ps.setInt(i++, totalTasks);
 	        ps.setInt(i++, totalMinutes);
 	        if (finalizedAt == null) {
-	            ps.setNull(i++, java.sql.Types.TIMESTAMP);
+	            ps.setNull(i++, Types.TIMESTAMP);
 	        } else {
 	            ps.setTimestamp(i++, finalizedAt);
 	        }
 	        if (status == null || status.isBlank()) {
-	            ps.setNull(i++, java.sql.Types.VARCHAR);
+	            ps.setNull(i++, Types.VARCHAR);
 	        } else {
 	            ps.setString(i++, status);
 	        }
@@ -298,5 +315,33 @@ public class InvoiceDAO extends BaseDAO {
 	        throw new DAOException("E:INV99 月次サマリUPSERTに失敗しました。", e);
 	    }
 
+	}
+
+	
+	public List<InvoiceDTO> selectAdminLines(String targetYM){
+	    final List<InvoiceDTO> list = new ArrayList<>();
+	    try (PreparedStatement ps = conn.prepareStatement(SQL_ADMIN_LINES)) {
+	        ps.setString(1, targetYM);
+	        try (ResultSet rs = ps.executeQuery()) {
+	            while (rs.next()) {
+	                InvoiceDTO d = new InvoiceDTO();
+	                d.setCustomerId((UUID) rs.getObject("customer_id"));
+	                d.setCustomerCompanyName(rs.getString("company_name"));
+	                d.setSecretaryName(rs.getString("secretary_name"));   // ★ 追加
+	                d.setTaskRankName(rs.getString("rank_name"));
+	                int mins = rs.getInt("total_minute");
+	                d.setTotalMinute(mins);
+	                var hourly = rs.getBigDecimal("hourly_pay");
+	                d.setHourlyPay(hourly);
+	                var fee = hourly.multiply(BigDecimal.valueOf(mins))
+	                                .divide(BigDecimal.valueOf(60), 0,RoundingMode.HALF_UP);
+	                d.setFee(fee);
+	                list.add(d);
+	            }
+	        }
+	    } catch (SQLException e) {
+	        throw new DAOException("E:INV-ADM01 管理者向け明細取得に失敗しました。", e);
+	    }
+	    return list;
 	}
 }

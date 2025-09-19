@@ -25,6 +25,33 @@ public class CustomerMonthlyInvoiceDAO extends BaseDAO {
 			" GROUP BY c.id, c.company_name, i.target_year_month " +
 			" ORDER BY c.company_name, i.target_year_month";
 
+	// ① 当月の「顧客ごと合計」を tasks/assignments から集計
+	//    - 顧客単価ベース（customer向け単価）で金額を算出
+	private static final String SQL_AGG_BY_CUSTOMER_MONTH = ""
+			+ "SELECT a.customer_id, "
+			+ "       SUM(t.work_minute)                AS total_minutes, "
+			+ "       COUNT(*)                           AS task_count, "
+			+ "       SUM( (a.base_pay_customer + a.increase_base_pay_customer "
+			+ "           + a.customer_based_incentive_for_customer) * (t.work_minute / 60.0) )::numeric(12,2) AS total_amount "
+			+ "  FROM tasks t "
+			+ "  JOIN assignments a ON t.assignment_id = a.id "
+			+ " WHERE a.target_year_month = ? "
+			+ "   AND t.deleted_at IS NULL "
+			+ " GROUP BY a.customer_id ";
+
+	// ② UPSERT
+	private static final String SQL_UPSERT_CMI = ""
+			+ "INSERT INTO customer_monthly_invoices ("
+			+ "  customer_id, target_year_month, total_amount, "
+			+ "  total_tasks_count, total_work_time, status"
+			+ ") VALUES (?,?,?,?,?, 'DRAFT') "
+			+ "ON CONFLICT (customer_id, target_year_month) DO UPDATE SET "
+			+ "  total_amount      = EXCLUDED.total_amount, "
+			+ "  total_tasks_count = EXCLUDED.total_tasks_count, "
+			+ "  total_work_time   = EXCLUDED.total_work_time, "
+			+ "  status            = 'DRAFT', "
+			+ "  updated_at        = CURRENT_TIMESTAMP";
+
 	/** 顧客ごと×月の売上をピボット行のリストで返す（12か月分） */
 	public List<PivotRowDTO> selectSalesByCustomerMonth(String fromYm, String toYm, List<String> months) {
 		try (PreparedStatement ps = conn.prepareStatement(SQL_SALES_BY_CUSTOMER_MONTH)) {
@@ -95,5 +122,38 @@ public class CustomerMonthlyInvoiceDAO extends BaseDAO {
 			throw new DAOException("E:CMI01 月次請求（CMI）の取得に失敗しました。", e);
 		}
 		return null; // 該当なし
+	}
+
+	/** 指定YYYY-MMの顧客月次請求を tasks から集計し、CMI に DRAFT で upsert */
+	public int upsertByMonthFromTasks(String yearMonth) {
+		try (
+				PreparedStatement psSel = conn.prepareStatement(SQL_AGG_BY_CUSTOMER_MONTH);
+				PreparedStatement psIns = conn.prepareStatement(SQL_UPSERT_CMI)) {
+			psSel.setString(1, yearMonth);
+
+			int totalAffected = 0;
+			try (ResultSet rs = psSel.executeQuery()) {
+				while (rs.next()) {
+					UUID customerId = rs.getObject("customer_id", UUID.class);
+					int totalMinutes = rs.getInt("total_minutes");
+					int taskCount = rs.getInt("task_count");
+					BigDecimal amount = rs.getBigDecimal("total_amount");
+					if (amount == null)
+						amount = BigDecimal.ZERO;
+
+					int i = 1;
+					psIns.setObject(i++, customerId);
+					psIns.setString(i++, yearMonth);
+					psIns.setBigDecimal(i++, amount);
+					psIns.setInt(i++, taskCount);
+					psIns.setInt(i++, totalMinutes);
+
+					totalAffected += psIns.executeUpdate();
+				}
+			}
+			return totalAffected;
+		} catch (SQLException e) {
+			throw new DAOException("E:CMI-UP01 顧客月次請求のUPSERTに失敗しました。", e);
+		}
 	}
 }

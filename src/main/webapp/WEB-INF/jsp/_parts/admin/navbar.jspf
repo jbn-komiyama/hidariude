@@ -19,6 +19,8 @@
         <li class="nav-item"><a class="nav-link" href="<c:url value='/admin/assignment'/>">アサイン管理</a></li>
         <li class="nav-item"><a class="nav-link" href="<c:url value='/admin/task/list_all'/>">タスク管理</a></li>
         <li class="nav-item"><a class="nav-link" href="<c:url value='/admin/invoice'/>">請求管理</a></li>
+        <li class="nav-item"><a class="nav-link" href="<c:url value='/admin/summary/sales'/>">売上サマリー</a></li>
+        <li class="nav-item"><a class="nav-link" href="<c:url value='/admin/summary/costs'/>">費用サマリー</a></li>
       </ul>
 
       <div class="d-flex">

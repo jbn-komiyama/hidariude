@@ -1,30 +1,33 @@
 package dto;
+
 import java.io.Serializable;
 import java.math.BigDecimal;
 import java.util.UUID;
 
 public class InvoiceDTO implements Serializable {
 	private static final long serialVersionUID = 1L;
-	
-	// customers
-    private UUID customerId;                 // c.id
-    private String customerCompanyName;      // c.company_name
 
-    // tasks
-    private int totalMinute;
-    
-    // assignments
-    private BigDecimal hourlyPay;                  
-    private String targetYM;
-    
-    // task_rank
-    private String taskRankName;
-    
-    private BigDecimal fee;
+	// customers
+	private UUID customerId; // c.id
+	private String customerCompanyName; // c.company_name
+
+	// secretaries
+	private String secretaryName; // s.name
+
+	// tasks
+	private int totalMinute;
+
+	// assignments
+	private BigDecimal hourlyPay;
+	private String targetYM;
+
+	// task_rank
+	private String taskRankName;
+
+	private BigDecimal fee;
 
 	private BigDecimal totalFee = BigDecimal.ZERO;
-	
-	
+
 	public UUID getCustomerId() {
 		return customerId;
 	}
@@ -89,6 +92,13 @@ public class InvoiceDTO implements Serializable {
 	public void setTotalFee(BigDecimal totalFee) {
 		this.totalFee = totalFee;
 	}
-	
-}
 
+	public String getSecretaryName() {
+		return secretaryName;
+	}
+
+	public void setSecretaryName(String secretaryName) {
+		this.secretaryName = secretaryName;
+	}
+
+}

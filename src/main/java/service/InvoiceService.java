@@ -11,8 +11,11 @@ import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
+import java.util.TreeMap;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -24,6 +27,7 @@ import org.apache.poi.ss.usermodel.Row;
 import org.apache.poi.ss.usermodel.Sheet;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 
+import dao.CustomerMonthlyInvoiceDAO;
 import dao.InvoiceDAO;
 import dao.SecretaryDAO;
 import dao.TransactionManager;
@@ -62,6 +66,11 @@ public class InvoiceService extends BaseService {
     private static final String A_INVOICES     = "invoices";
     private static final String A_GRAND_TOTAL  = "grandTotalFee";
     private static final String A_TARGET_YM    = "yearMonth";
+    private static final String A_LINES = "adminLines";
+    private static final String A_GROUP = "adminGrouped"; // Map<String, List<AdminInvoiceLineDTO>>
+    private static final String A_TOT   = "adminTotals";
+    private static final String A_DIFF  = "diffFromPrev"; // BigDecimal (当月 - 前月)
+    private static final String A_PREV  = "prevYearMonth";
     
     // ----- Request params -----
     private static final String P_TARGET_YM     = "yearMonth";
@@ -117,6 +126,25 @@ public class InvoiceService extends BaseService {
                     .map(Invoice::getFee)
                     .filter(Objects::nonNull)
                     .reduce(BigDecimal.ZERO, BigDecimal::add);
+            
+            int totalMinutes = tasks.stream()
+                    .map(Task::getWorkMinute)
+                    .filter(Objects::nonNull)
+                    .mapToInt(Integer::intValue)
+                    .sum();
+
+            int totalTasks = (tasks != null) ? tasks.size() : 0;
+
+            // === ★ 追加：月次サマリを DRAFT で UPSERT ===
+            dao.upsertSecretaryMonthlySummary(
+                    secretaryId,
+                    targetYM,
+                    grandTotal,      // total_secretary_amount
+                    totalTasks,      // total_tasks_count
+                    totalMinutes,    // total_work_time
+                    null,            // finalized_at は null
+                    "DRAFT"          // status
+            );
 
             // --- リクエストに格納 ---
             req.setAttribute(A_TASKS, tasks);
@@ -695,6 +723,70 @@ public class InvoiceService extends BaseService {
             return VIEW_SUMMARY_CUSTOMER;
         } catch (Exception e) {
             throw new ServiceException("E:INV-C02 顧客向け請求サマリーの取得に失敗しました。", e);
+        }
+    }
+    
+    public String adminInvoiceSummary() {
+        String ym = req.getParameter("yearMonth");
+        if (ym == null || ym.isBlank()) {
+            ym = LocalDate.now(ZoneId.of("Asia/Tokyo"))
+                    .format(DateTimeFormatter.ofPattern("yyyy-MM"));
+        }
+
+        // 前月
+        LocalDate cur = LocalDate.parse(ym + "-01", DateTimeFormatter.ofPattern("yyyy-MM-dd"));
+        String prevYm = cur.minusMonths(1).format(DateTimeFormatter.ofPattern("yyyy-MM"));
+
+        try (TransactionManager tm = new TransactionManager()) {
+            InvoiceDAO dao = new InvoiceDAO(tm.getConnection());
+            
+         // ★ ここで当月分を DRAFT でUPSERT（顧客単価ベース）
+            new CustomerMonthlyInvoiceDAO(tm.getConnection()).upsertByMonthFromTasks(ym);
+
+            // 当月明細（顧客×秘書×ランク）
+            List<InvoiceDTO> rows = dao.selectAdminLines(ym);
+
+            // 顧客名でグルーピング（顧客名順）
+            Map<String, List<InvoiceDTO>> grouped = rows.stream().collect(
+                Collectors.groupingBy(
+                    InvoiceDTO::getCustomerCompanyName,
+                    TreeMap::new,
+                    Collectors.toList()
+                )
+            );
+
+            // KPI（当月）
+            BigDecimal totalAmount = rows.stream()
+                    .map(InvoiceDTO::getFee).filter(Objects::nonNull)
+                    .reduce(BigDecimal.ZERO, BigDecimal::add);
+            int totalMinutes = rows.stream().mapToInt(InvoiceDTO::getTotalMinute).sum();
+            int totalTasks   = rows.size(); // 1行=1支払い件 とみなす
+
+            // 前月合計（比較用）
+            List<InvoiceDTO> prevRows = dao.selectAdminLines(prevYm);
+            BigDecimal prevTotalAmount = prevRows.stream()
+                    .map(InvoiceDTO::getFee).filter(Objects::nonNull)
+                    .reduce(BigDecimal.ZERO, BigDecimal::add);
+            BigDecimal diffFromPrev = totalAmount.subtract(prevTotalAmount);
+
+            // ===== JSP で使う属性をセット =====
+            req.setAttribute("yearMonth", ym);
+            req.setAttribute("prevYearMonth", prevYm);
+
+            // JSP が adminTotals.* を参照しているのでまとめて渡す（MapでOK）
+            Map<String, Object> adminTotals = new java.util.HashMap<>();
+            adminTotals.put("totalAmount", totalAmount);
+            adminTotals.put("totalTasksCount", totalTasks);
+            adminTotals.put("totalWorkMinutes", totalMinutes);
+            req.setAttribute("adminTotals", adminTotals);
+
+            req.setAttribute("adminGrouped", grouped);
+            req.setAttribute("diffFromPrev", diffFromPrev);
+
+            tm.commit();
+            return "invoice/admin/summary";
+        } catch (Exception e) {
+            throw new ServiceException("E:INV-ADM-SUM 管理者サマリー作成に失敗しました。", e);
         }
     }
 }
