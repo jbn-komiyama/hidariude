@@ -65,29 +65,34 @@ public class InvoiceDAO extends BaseDAO {
 		+ " ORDER BY c.id, tr.rank_no";
 	
 	private static final String SQL_SELECT_TASKS_BY_MONTH_AND_CUSTOMER =
-		    "SELECT s.name AS secretary_name," +
-		    "       t.work_date, t.start_time, t.end_time, t.work_minute, t.work_content, t.approved_at," +
-		    "       (a.base_pay_customer + a.increase_base_pay_customer + a.customer_based_incentive_for_customer) AS hourly_pay_customer," +
-		    "       tr.rank_name " +
-		    "  FROM tasks t " +
-		    "  JOIN assignments a ON t.assignment_id = a.id " +
-		    "  JOIN secretaries s  ON a.secretary_id  = s.id " +
-		    "  JOIN task_rank tr   ON a.task_rank_id  = tr.id " +
-		    " WHERE a.target_year_month = ? AND a.customer_id = ? AND t.deleted_at IS NULL " +
-		    " ORDER BY t.start_time";
+	    "SELECT s.name AS secretary_name," +
+	    "       t.work_date, t.start_time, t.end_time, t.work_minute, t.work_content, t.approved_at," +
+	    "       (a.base_pay_customer + a.increase_base_pay_customer + a.customer_based_incentive_for_customer) AS hourly_pay_customer," +
+	    "       tr.rank_name " +
+	    "  FROM tasks t " +
+	    "  JOIN assignments a ON t.assignment_id = a.id " +
+	    "  JOIN secretaries s  ON a.secretary_id  = s.id " +
+	    "  JOIN task_rank tr   ON a.task_rank_id  = tr.id " +
+	    " WHERE a.customer_id = ? AND t.deleted_at IS NULL " +
+	    "   AND t.work_date >= to_date(? || '-01','YYYY-MM-DD') " +
+	    "   AND t.work_date <  (to_date(? || '-01','YYYY-MM-DD') + INTERVAL '1 month') " +
+	    " ORDER BY t.start_time";
 
-		private static final String SQL_SELECT_TOTAL_MINUTES_BY_SECRETARY_AND_CUSTOMER =
-		    "SELECT s.id, s.name AS secretary_name," +
-		    "       SUM(t.work_minute) AS total_minute," +
-		    "       (a.base_pay_customer + a.increase_base_pay_customer + a.customer_based_incentive_for_customer) AS hourly_pay," +
-		    "       tr.rank_name, tr.rank_no " +
-		    "  FROM tasks t " +
-		    "  JOIN assignments a ON t.assignment_id = a.id " +
-		    "  JOIN secretaries s  ON a.secretary_id  = s.id " +
-		    "  JOIN task_rank tr   ON a.task_rank_id  = tr.id " +
-		    " WHERE a.target_year_month = ? AND a.customer_id = ? AND t.deleted_at IS NULL " +
-		    " GROUP BY s.id, s.name, a.base_pay_customer, a.increase_base_pay_customer, a.customer_based_incentive_for_customer, tr.rank_name, tr.rank_no " +
-		    " ORDER BY s.name, tr.rank_no";
+	private static final String SQL_SELECT_TOTAL_MINUTES_BY_SECRETARY_AND_CUSTOMER =
+	    "SELECT s.id, s.name AS secretary_name," +
+	    "       SUM(t.work_minute) AS total_minute," +
+	    "       (a.base_pay_customer + a.increase_base_pay_customer + a.customer_based_incentive_for_customer) AS hourly_pay," +
+	    "       tr.rank_name, tr.rank_no " +
+	    "  FROM tasks t " +
+	    "  JOIN assignments a ON t.assignment_id = a.id " +
+	    "  JOIN secretaries s  ON a.secretary_id  = s.id " +
+	    "  JOIN task_rank tr   ON a.task_rank_id  = tr.id " +
+	    " WHERE a.customer_id = ? AND t.deleted_at IS NULL " +
+	    "   AND t.work_date >= to_date(? || '-01','YYYY-MM-DD') " +
+	    "   AND t.work_date <  (to_date(? || '-01','YYYY-MM-DD') + INTERVAL '1 month') " +
+	    " GROUP BY s.id, s.name, a.base_pay_customer, a.increase_base_pay_customer, a.customer_based_incentive_for_customer, tr.rank_name, tr.rank_no " +
+	    " ORDER BY s.name, tr.rank_no";
+
 		
 	private static final String SQL_UPSERT_MONTHLY_SUMMARY =
 		    "INSERT INTO secretary_monthly_summaries (" +
@@ -206,11 +211,15 @@ public class InvoiceDAO extends BaseDAO {
 	    }
 	}
 	
+	// 顧客用：タスク明細（work_date を対象月で絞り込み）
 	public List<TaskDTO> selectTasksByMonthAndCustomer(UUID customerId, String targetYM) {
 	    final List<TaskDTO> list = new ArrayList<>();
 	    try (PreparedStatement ps = conn.prepareStatement(SQL_SELECT_TASKS_BY_MONTH_AND_CUSTOMER)) {
-	        ps.setString(1, targetYM);
-	        ps.setObject(2, customerId);
+	        int p = 1;
+	        ps.setObject(p++, customerId); // 1) a.customer_id = ?
+	        ps.setString(p++, targetYM);   // 2) t.work_date >= to_date(?||'-01',...)
+	        ps.setString(p++, targetYM);   // 3) t.work_date <  (to_date(?||'-01',...)+1 month)
+
 	        try (ResultSet rs = ps.executeQuery()) {
 	            while (rs.next()) {
 	                TaskDTO dto = new TaskDTO();
@@ -233,22 +242,26 @@ public class InvoiceDAO extends BaseDAO {
 	            }
 	        }
 	    } catch (SQLException e) {
-	        throw new RuntimeException("E:INV-C01 顧客用タスク明細取得に失敗しました", e);
+	        throw new RuntimeException("E:INV-C01 顧客用タスク明細取得に失敗しました（work_date基準）", e);
 	    }
 	    return list;
 	}
 
+
+	// 顧客用：秘書×ランク集計（work_date を対象月で絞り込み）
 	public List<InvoiceDTO> selectTotalMinutesBySecretaryAndCustomer(UUID customerId, String targetYM) {
 	    final List<InvoiceDTO> list = new ArrayList<>();
 	    try (PreparedStatement ps = conn.prepareStatement(SQL_SELECT_TOTAL_MINUTES_BY_SECRETARY_AND_CUSTOMER)) {
-	        ps.setString(1, targetYM);
-	        ps.setObject(2, customerId);
+	        int p = 1;
+	        ps.setObject(p++, customerId); // 1) a.customer_id = ?
+	        ps.setString(p++, targetYM);   // 2) t.work_date >= ...
+	        ps.setString(p++, targetYM);   // 3) t.work_date <  ...
+
 	        try (ResultSet rs = ps.executeQuery()) {
 	            while (rs.next()) {
 	                InvoiceDTO dto = new InvoiceDTO();
-	                // 顧客向けでは「最左列=秘書名」で表示したいので流用
-	                dto.setCustomerId((UUID) rs.getObject("id"));                // ← secretary_id を格納
-	                dto.setCustomerCompanyName(rs.getString("secretary_name"));  // ← 表示用に秘書名を入れる
+	                dto.setCustomerId((UUID) rs.getObject("id"));               // secretary_id を格納
+	                dto.setCustomerCompanyName(rs.getString("secretary_name")); // 表示用に秘書名
 	                int totalMin = rs.getInt("total_minute");
 	                dto.setTotalMinute(totalMin);
 	                var hourlyPay = rs.getBigDecimal("hourly_pay");
@@ -256,17 +269,20 @@ public class InvoiceDAO extends BaseDAO {
 	                dto.setTaskRankName(rs.getString("rank_name"));
 	                dto.setTargetYM(targetYM);
 
-	                var fee = hourlyPay.multiply(java.math.BigDecimal.valueOf(totalMin))
-	                                   .divide(java.math.BigDecimal.valueOf(60), 0, java.math.RoundingMode.HALF_UP);
+	                var fee = hourlyPay
+	                        .multiply(java.math.BigDecimal.valueOf(totalMin))
+	                        .divide(java.math.BigDecimal.valueOf(60), 0, java.math.RoundingMode.HALF_UP);
 	                dto.setFee(fee);
+
 	                list.add(dto);
 	            }
 	        }
 	    } catch (SQLException e) {
-	        throw new RuntimeException("E:INV-C02 顧客用集計取得に失敗しました", e);
+	        throw new RuntimeException("E:INV-C02 顧客用集計取得に失敗しました（work_date基準）", e);
 	    }
 	    return list;
 	}
+
 
 	/**
 	 * 秘書×年月の月次サマリをUPSERT（存在しなければINSERT、あればUPDATE）します。

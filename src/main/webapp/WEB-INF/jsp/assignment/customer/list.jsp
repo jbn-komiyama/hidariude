@@ -23,7 +23,7 @@
 <div class="container py-4">
   <div class="mb-3">
     <h1 class="h4 mb-1">連絡体制図 兼 第三者委託先一覧</h1>
-    <div class="text-muted small">対象年月：<strong>${yearMonth}</strong></div>
+    <div class="text-muted small"><strong>${yearMonth}</strong> 現在</div>
   </div>
 
   <!-- ===== 第三者委託先一覧（行＝一次/二次） ===== -->

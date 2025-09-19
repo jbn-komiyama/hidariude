@@ -445,7 +445,7 @@ public class FrontController extends HttpServlet {
 			 * A05 委託先業務
 			 * 
 			 */
-			case "/outsource/list"->{
+			case "/assignment/list"->{
 				nextPath = new AssignmentService(req, true).outsourceList();
 			}
 			

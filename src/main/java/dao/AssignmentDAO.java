@@ -702,7 +702,13 @@ public class AssignmentDAO extends BaseDAO {
     	    "   AND a.customer_id = ? " +
     	    " ORDER BY s.name";
     
-	
+    private static final String SQL_SELECT_SECRETARY_BY_ASSIGNMENT =
+    	    "SELECT s.id, s.name, s.postal_code, s.address1, s.address2, s.building " +
+    	    "  FROM assignments a " +
+    	    "  JOIN secretaries s ON s.id = a.secretary_id AND s.deleted_at IS NULL " +
+    	    " WHERE a.deleted_at IS NULL " +
+    	    "   AND a.id = ?";
+    
 	public AssignmentDAO(Connection conn) {
 		super(conn);
 	}
@@ -1687,11 +1693,13 @@ public class AssignmentDAO extends BaseDAO {
                 }
             }
         } catch (SQLException e) {
+        	
             throw new DAOException("E:AS-SX 顧客×年月の秘書一覧取得に失敗しました。", e);
         }
         return list;
     }
 
+    //アサインIDで
     public List<Map<String, Object>> selectSecretariesByCustomer(java.util.UUID customerId) {
         List<Map<String, Object>> list = new ArrayList<>();
         try (PreparedStatement ps = conn.prepareStatement(SQL_SELECT_SECRETARIES_BY_CUSTOMER)) {
@@ -1721,6 +1729,39 @@ public class AssignmentDAO extends BaseDAO {
         }
         return list;
     }
+    
+    
+    public List<Map<String, Object>> selectSecretariesByAssignment(UUID assignmentId) {
+        List<Map<String, Object>> list = new ArrayList<>();
+        try (PreparedStatement ps = conn.prepareStatement(SQL_SELECT_SECRETARY_BY_ASSIGNMENT)) {
+            ps.setObject(1, assignmentId);
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    String name   = rs.getString("name");
+                    String postal = rs.getString("postal_code");
+                    String a1     = rs.getString("address1");
+                    String a2     = rs.getString("address2");
+                    String bld    = rs.getString("building");
+
+                    StringBuilder addr = new StringBuilder();
+                    if (postal != null && !postal.isBlank()) addr.append("〒").append(postal.trim()).append(' ');
+                    if (a1 != null && !a1.isBlank())         addr.append(a1.trim());
+                    if (a2 != null && !a2.isBlank())         addr.append(a2.startsWith(" ") ? a2 : " " + a2.trim());
+                    if (bld != null && !bld.isBlank())       addr.append(bld.startsWith(" ") ? bld : " " + bld.trim());
+
+                    Map<String, Object> m = new LinkedHashMap<>();
+                    m.put("name", name);
+                    m.put("address", addr.toString().trim());
+                    // 必要なら m.put("note", ...); を追加
+                    list.add(m);
+                }
+            }
+        } catch (SQLException e) {
+            throw new DAOException("E:AS-SA アサインIDの秘書情報取得に失敗しました。", e);
+        }
+        return list;
+    }
+    
     // ========================
     // Helper
     // ========================
