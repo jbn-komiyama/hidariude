@@ -84,12 +84,13 @@
                value="${not empty param.companyPhone ? param.companyPhone : (not empty companyPhone ? companyPhone : customer.phone)}"/>
       </div>
 
-      <div class="col-md-4">
+      <div class="col-md-6">
         <label class="form-label">郵便番号</label>
         <input id="postalCode" name="postalCode" class="form-control" placeholder="100-0001"
                value="${not empty param.postalCode ? param.postalCode : (not empty postalCode ? postalCode : customer.postalCode)}"/>
       </div>
-      <div class="col-md-8">
+      
+      <div class="col-md-6">
         <label class="form-label">住所</label>
         <input id="address1" name="address1" class="form-control"
                value="${not empty param.address1 ? param.address1 : (not empty address1 ? address1 : customer.address1)}"/>

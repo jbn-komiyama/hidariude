@@ -68,7 +68,7 @@
           <input type="hidden" name="secretaryRankId" value="${currentRankId}"/>
         </div>
    
-        <div class="col-md-4">
+        <div class="col-md-6">
           <label class="form-label">PM対応</label><br/>
           <c:set var="pmVal" value="${empty pmSecretary ? secretary.pmSecretary : (pmSecretary == 'true')}"/>
           <span class="badge ${pmVal ? 'bg-primary' : 'bg-secondary'}">
@@ -92,16 +92,15 @@
                value="${not empty param.phone ? param.phone : (not empty phone ? phone : secretary.phone)}">
       </div>
 
-      <div class="col-md-6">
+       <div class="col-md-6">
         <label class="form-label">郵便番号</label>
-        <input type="text" name="postalCode" class="form-control" id="postalCode" placeholder="100-0001"
-               value="${not empty param.postalCode ? param.postalCode : (not empty postalCode ? postalCode : secretary.postalCode)}">
+        <input id="postalCode" name="postalCode" class="form-control" placeholder="100-0001"
+               value="${not empty param.postalCode ? param.postalCode : (not empty postalCode ? postalCode : customer.postalCode)}"/>
       </div>
-
       <div class="col-md-6">
         <label class="form-label">住所</label>
-        <input type="text" name="address1" class="form-control" id="address1"
-               value="${not empty param.address1 ? param.address1 : (not empty address1 ? address1 : secretary.address1)}">
+        <input id="address1" name="address1" class="form-control"
+               value="${not empty param.address1 ? param.address1 : (not empty address1 ? address1 : customer.address1)}"/>
       </div>
 
       <div class="col-md-6">
