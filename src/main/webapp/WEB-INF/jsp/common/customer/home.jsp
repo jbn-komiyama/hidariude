@@ -43,7 +43,8 @@
   <c:url var="urlPrev1" value="/customer/invoice"><c:param name="yearMonth" value="${ymPrev1}"/></c:url>
   <c:url var="urlNow"   value="/customer/invoice"><c:param name="yearMonth" value="${ymNow}"/></c:url>
 
-  <div class="row row-gap">
+  <!-- 1段目：カード4枚（下余白を追加） -->
+  <div class="row row-gap mb-4">
 
     <!-- 3か月前 -->
     <div class="col-12 col-sm-6 col-lg-3">
@@ -176,7 +177,42 @@
         </div>
       </a>
     </div>
+  </div><!-- /.row (1段目) -->
 
+  <!-- 2段目：直近2か月のアサイン（上余白を追加） -->
+  <div class="card shadow-sm mb-4 mt-2">
+    <div class="card-header bg-primary text-white">直近2か月のアサイン</div>
+    <div class="card-body">
+      <c:choose>
+        <c:when test="${empty recentAssignments}">
+          <p class="text-muted mb-0">直近2か月のアサインはありません。</p>
+        </c:when>
+        <c:otherwise>
+          <div class="table-responsive">
+            <table class="table table-sm align-middle mb-0">
+              <thead class="text-muted">
+                <tr>
+                  <th>対象月</th>
+                  <th>秘書名</th>
+                  <th>タスクランク</th>
+                </tr>
+              </thead>
+              <tbody>
+                <c:forEach var="a" items="${recentAssignments}">
+                  <tr>
+                    <td><c:out value="${a.targetYearMonth}"/></td>
+                    <td><c:out value="${a.secretaryName}"/></td>
+                    <td>
+                      <c:out value="${empty a.taskRankName ? '—' : a.taskRankName}"/>
+                    </td>
+                  </tr>
+                </c:forEach>
+              </tbody>
+            </table>
+          </div>
+        </c:otherwise>
+      </c:choose>
+    </div>
   </div>
 </div>
 

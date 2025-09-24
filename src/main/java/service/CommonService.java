@@ -134,7 +134,7 @@ public class CommonService extends BaseService {
 	 * 管理者ログイン。
 	 * @return 遷移先
 	 */
-	public String adminLogin() { // ★ REVERT: Role/共通ハンドラを廃止し、個別実装に戻す
+	public String adminLogin() { 
 		final String loginId = req.getParameter(P_LOGIN_ID);
 		final String password = req.getParameter(P_PASSWORD);
 
@@ -499,81 +499,85 @@ public class CommonService extends BaseService {
 	/** 顧客ホーム（会社単位で同一の画面を表示） */
 	public String customerHome() {
 
-	    // ログイン確認
-	    HttpSession session = req.getSession(false);
-	    if (session == null) return req.getContextPath() + PATH_CUSTOMER_LOGIN;
-	    LoginUser lu = (LoginUser) session.getAttribute(ATTR_LOGIN_USER);
-	    if (lu == null || lu.getCustomer() == null || lu.getCustomer().getId() == null)
-	        return req.getContextPath() + PATH_CUSTOMER_LOGIN;
+		    // ログイン確認
+		    HttpSession session = req.getSession(false);
+		    if (session == null) return req.getContextPath() + PATH_CUSTOMER_LOGIN;
+		    LoginUser lu = (LoginUser) session.getAttribute(ATTR_LOGIN_USER);
+		    if (lu == null || lu.getCustomer() == null || lu.getCustomer().getId() == null)
+		        return req.getContextPath() + PATH_CUSTOMER_LOGIN;
 
-	    UUID customerId = lu.getCustomer().getId();
+		    UUID customerId = lu.getCustomer().getId();
 
-	    // 今月と過去3か月
-	    YearMonth ymNow   = YearMonth.now(Z_TOKYO);
-	    YearMonth ymPrev1 = ymNow.minusMonths(1);
-	    YearMonth ymPrev2 = ymNow.minusMonths(2);
-	    YearMonth ymPrev3 = ymNow.minusMonths(3);
+		    // 今月と過去3か月
+		    YearMonth ymNow   = YearMonth.now(Z_TOKYO);
+		    YearMonth ymPrev1 = ymNow.minusMonths(1);
+		    YearMonth ymPrev2 = ymNow.minusMonths(2);
+		    YearMonth ymPrev3 = ymNow.minusMonths(3);
 
-	    // JSP 用（月数値/文字列）
-	    req.setAttribute("m0", ymNow.getMonthValue());
-	    req.setAttribute("m1", ymPrev1.getMonthValue());
-	    req.setAttribute("m2", ymPrev2.getMonthValue());
-	    req.setAttribute("m3", ymPrev3.getMonthValue());
-	    req.setAttribute("ymNow",   ymNow.format(YM_FMT));
-	    req.setAttribute("ymPrev1", ymPrev1.format(YM_FMT));
-	    req.setAttribute("ymPrev2", ymPrev2.format(YM_FMT));
-	    req.setAttribute("ymPrev3", ymPrev3.format(YM_FMT));
+		    // 文字列（yyyy-MM）
+		    String ymNowStr   = ymNow.format(YM_FMT);
+		    String ymPrev1Str = ymPrev1.format(YM_FMT);
 
-	    try (TransactionManager tm = new TransactionManager()) {
-	        CustomerMonthlyInvoiceDAO cmiDao = new CustomerMonthlyInvoiceDAO(tm.getConnection());
-	        InvoiceDAO invDao = new InvoiceDAO(tm.getConnection());
+		    // JSP 用（月数値/文字列）
+		    req.setAttribute("m0", ymNow.getMonthValue());
+		    req.setAttribute("m1", ymPrev1.getMonthValue());
+		    req.setAttribute("m2", ymPrev2.getMonthValue());
+		    req.setAttribute("m3", ymPrev3.getMonthValue());
+		    req.setAttribute("ymNow",   ymNowStr);
+		    req.setAttribute("ymPrev1", ymPrev1Str);
+		    req.setAttribute("ymPrev2", ymPrev2.format(YM_FMT));
+		    req.setAttribute("ymPrev3", ymPrev3.format(YM_FMT));
 
-	        // ★ 未承認件数は work_date 基準で毎月タスクを読み、approvedAt==null をカウント
-	        MonthStat statNow   = loadCustomerMonthStatByWorkDate(customerId, ymNow,   invDao);
-	        MonthStat statPrev1 = loadCustomerMonthStatByWorkDate(customerId, ymPrev1, invDao);
-	        MonthStat statPrev2 = loadCustomerMonthStatByWorkDate(customerId, ymPrev2, invDao);
-	        MonthStat statPrev3 = loadCustomerMonthStatByWorkDate(customerId, ymPrev3, invDao);
+		    try (TransactionManager tm = new TransactionManager()) {
+		        CustomerMonthlyInvoiceDAO cmiDao = new CustomerMonthlyInvoiceDAO(tm.getConnection());
+		        InvoiceDAO invDao = new InvoiceDAO(tm.getConnection());
 
-	        // ★ 金額合計：今月/先月は InvoiceDAO の fee を合算（work_date基準）
-	        statNow.setTotal(sumFee(invDao, customerId, ymNow));
-	        statPrev1.setTotal(sumFee(invDao, customerId, ymPrev1));
+		        // ★ 未承認件数は work_date 基準で毎月タスクを読み、approvedAt==null をカウント
+		        MonthStat statNow = loadCustomerMonthStatByWorkDate(customerId, ymNow, invDao); 
+		        MonthStat statPrev1 = loadCustomerMonthStatByWorkDate(customerId, ymPrev1, invDao); 
+		        MonthStat statPrev2 = loadCustomerMonthStatByWorkDate(customerId, ymPrev2, invDao); 
+		        MonthStat statPrev3 = loadCustomerMonthStatByWorkDate(customerId, ymPrev3, invDao);
 
-	        // ★ 2か月前/3か月前は確定テーブル（必要あれば同様に差し替え可）
-	        BigDecimal amt2 = cmiDao.selectTotalAmountByCustomerAndMonth(customerId, ymPrev2.format(YM_FMT));
-	        BigDecimal amt3 = cmiDao.selectTotalAmountByCustomerAndMonth(customerId, ymPrev3.format(YM_FMT));
-	        statPrev2.setTotal(amt2 != null ? amt2 : BigDecimal.ZERO);
-	        statPrev3.setTotal(amt3 != null ? amt3 : BigDecimal.ZERO);
+		        // ★ 金額合計：今月/先月は InvoiceDAO の fee を合算（work_date基準）
+		        statNow.setTotal(sumFee(invDao, customerId, ymNow));
+		        statPrev1.setTotal(sumFee(invDao, customerId, ymPrev1));
 
-	        // JSP へ
-	        req.setAttribute("statNow",   statNow);
-	        req.setAttribute("statPrev1", statPrev1);
-	        req.setAttribute("statPrev2", statPrev2);
-	        req.setAttribute("statPrev3", statPrev3);
+		        // ★ 2か月前/3か月前は確定テーブル
+		        BigDecimal amt2 = cmiDao.selectTotalAmountByCustomerAndMonth(customerId, ymPrev2.format(YM_FMT));
+		        BigDecimal amt3 = cmiDao.selectTotalAmountByCustomerAndMonth(customerId, ymPrev3.format(YM_FMT));
+		        statPrev2.setTotal(amt2 != null ? amt2 : BigDecimal.ZERO);
+		        statPrev3.setTotal(amt3 != null ? amt3 : BigDecimal.ZERO);
 
-	        return "common/customer/home";
-	    } catch (RuntimeException e) {
-	        e.printStackTrace();
-	        return req.getContextPath() + req.getServletPath() + "/error";
-	    }
-	}
+		        // === ここから追加：直近2か月のアサイン一覧 ===
+		        AssignmentDAO adao = new AssignmentDAO(tm.getConnection());
+		        List<AssignmentDTO> recentAssignments = new ArrayList<>();
+		        // 履歴を「今月まで」で取得し、今月/先月だけを抽出（DAOに専用APIが無い前提の安全策）
+		        List<AssignmentDTO> history = adao.selectByCustomerUpToYearMonthDesc(customerId, ymNowStr);
+		        if (history != null) {
+		            for (AssignmentDTO d : history) {
+		                String ym = d.getTargetYearMonth();
+		                if (ym != null && (ym.equals(ymNowStr) || ym.equals(ymPrev1Str))) {
+		                    recentAssignments.add(d);
+		                }
+		            }
+		        }
+		        // JSP で表示（例：recentAssignments.* で EL アクセス）
+		        req.setAttribute("recentAssignments", recentAssignments);
+		        // === 追加ここまで ===
 
-	/** work_date 基準でその月の未承認件数を数える（approvedAt==null） */
-	private MonthStat loadCustomerMonthStatByWorkDate(UUID customerId, YearMonth ym, InvoiceDAO invDao) {
-	    final String ymStr = ym.format(YM_FMT);
-	    MonthStat s = new MonthStat();
-	    s.setYm(ymStr);
+		        // JSP へ
+		        req.setAttribute("statNow",   statNow);
+		        req.setAttribute("statPrev1", statPrev1);
+		        req.setAttribute("statPrev2", statPrev2);
+		        req.setAttribute("statPrev3", statPrev3);
 
-	    List<TaskDTO> tasks = invDao.selectTasksByMonthAndCustomer(customerId, ymStr);
-	    int unapproved = 0;
-	    if (tasks != null) {
-	        for (TaskDTO t : tasks) {
-	            if (t.getApprovedAt() == null) unapproved++;
-	        }
-	    }
-	    s.setUnapproved(unapproved);
-	    s.setTotal(null); // 金額は呼び出し側で設定
-	    return s;
-	}
+		        return "common/customer/home";
+		    } catch (RuntimeException e) {
+		        e.printStackTrace();
+		        return req.getContextPath() + req.getServletPath() + "/error";
+		    }
+		}
+
 
 	/** work_date 基準でその月の fee を合算 */
 	private BigDecimal sumFee(InvoiceDAO invDao, UUID customerId, YearMonth ym) {
@@ -620,19 +624,28 @@ public class CommonService extends BaseService {
 	    public BigDecimal getTotal(){return total;} public void setTotal(BigDecimal t){this.total=t;}
 	}
 
-	// 未承認件数だけ Task から取る（金額は呼び出し側で設定）
-	private MonthStat loadCustomerMonthStat(UUID customerId, YearMonth ym, TaskDAO tdao) {
+
+	/** work_date 基準でその月の未承認件数を数える（approved_at == null） */
+	private MonthStat loadCustomerMonthStatByWorkDate(UUID customerId, YearMonth ym, InvoiceDAO invDao) {
 	    final String ymStr = ym.format(YM_FMT);
+
 	    MonthStat s = new MonthStat();
 	    s.setYm(ymStr);
 
-	    TaskDTO dto = tdao.selectCountsForCustomerMonth(customerId, ymStr);
-	    s.setUnapproved(dto != null ? dto.getUnapproved() : 0);
-	    s.setTotal(null);
+	    // tasks を work_date の月で拾って未承認のみカウント
+	    java.util.List<dto.TaskDTO> tasks = invDao.selectTasksByMonthAndCustomer(customerId, ymStr);
+
+	    int unapproved = 0;
+	    if (tasks != null) {
+	        for (dto.TaskDTO t : tasks) {
+	            if (t.getApprovedAt() == null) unapproved++;
+	        }
+	    }
+
+	    s.setUnapproved(unapproved);
+	    s.setTotal(null); // 金額は呼び出し側（sumFee など）で設定
 	    return s;
 	}
-
-
 
 	
 	

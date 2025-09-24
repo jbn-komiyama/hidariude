@@ -343,7 +343,7 @@ public class FrontController extends HttpServlet {
 			 * A04 マイページ編集業務
 			 * 
 			 */
-			case "/mypage"->{
+			case "/mypage/home"->{
 				nextPath = new SecretaryService(req, true).myPageList();
 			}
 			
