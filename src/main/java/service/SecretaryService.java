@@ -1,8 +1,8 @@
 package service;
 
+import java.time.LocalDate;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
-import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -19,9 +19,9 @@ import dao.TransactionManager;
 import domain.LoginUser;
 import domain.Profile;
 import domain.Secretary;
+import domain.SecretaryMonthlySummary;
 import domain.SecretaryRank;
 import domain.SecretaryTotals;
-import domain.SecretaryMonthlySummary;
 import dto.AssignmentDTO;
 import dto.SecretaryDTO;
 import dto.SecretaryMonthlySummaryDTO;
@@ -706,10 +706,9 @@ public class SecretaryService extends BaseService{
             // 更新DTO組み立て：非編集は現行維持、編集可のみ上書き
             SecretaryDTO dto = new SecretaryDTO();
             dto.setId(cur.getId());
-            dto.setSecretaryCode(cur.getSecretaryCode());       // 非編集
-            dto.setPmSecretary(cur.isPmSecretary());            // 非編集
-            dto.setSecretaryRankId(cur.getSecretaryRankId());   // 非編集
-
+            dto.setSecretaryCode(cur.getSecretaryCode());      // 非編集
+            dto.setPmSecretary(cur.isPmSecretary());           // 非編集
+            dto.setSecretaryRankId(cur.getSecretaryRankId());  // 非編集
             dto.setName(name);
             dto.setNameRuby(nameRuby);
             dto.setMail(mail);
@@ -728,7 +727,7 @@ public class SecretaryService extends BaseService{
             int num = dao.updateWithBank(dto);
             tm.commit();
 
-            // セッションの loginUser も最新化（表示ブレ防止）
+            // セッションの loginUser も最新化（次画面表示ブレ防止）
             HttpSession session = req.getSession(false);
             if (session != null) {
                 Object u = session.getAttribute("loginUser");
@@ -739,8 +738,8 @@ public class SecretaryService extends BaseService{
                 }
             }
 
-            // 完了後はマイページへリダイレクト（再読込して最新値を表示）
-            return req.getContextPath() + "/secretary/mypage";
+            // 完了後はマイページへリダイレクト（最新値で再描画）
+            return req.getContextPath() + "/secretary/mypage/home";
 
         } catch (RuntimeException e) {
             validation.addErrorMsg("データベースに不正な操作が行われました");
@@ -748,6 +747,7 @@ public class SecretaryService extends BaseService{
             return req.getContextPath() + req.getServletPath() + "/error";
         }
     }
+
 	
 	// =========================================================
     // Private helpers
