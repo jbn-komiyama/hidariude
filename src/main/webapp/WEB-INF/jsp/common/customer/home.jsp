@@ -43,7 +43,7 @@
   <c:url var="urlPrev1" value="/customer/invoice"><c:param name="yearMonth" value="${ymPrev1}"/></c:url>
   <c:url var="urlNow"   value="/customer/invoice"><c:param name="yearMonth" value="${ymNow}"/></c:url>
 
-  <!-- 1段目：カード4枚（下余白を追加） -->
+  <!-- カード4枚-->
   <div class="row row-gap mb-4">
 
     <!-- 3か月前 -->
@@ -177,9 +177,9 @@
         </div>
       </a>
     </div>
-  </div><!-- /.row (1段目) -->
+  </div>
 
-  <!-- 2段目：直近2か月のアサイン（上余白を追加） -->
+  <!-- 直近2か月のアサイン（上余白を追加） -->
   <div class="card shadow-sm mb-4 mt-2">
     <div class="card-header bg-primary text-white">直近2か月のアサイン</div>
     <div class="card-body">
@@ -199,9 +199,16 @@
               </thead>
               <tbody>
                 <c:forEach var="a" items="${recentAssignments}">
+                  <c:url var="profUrl" value="/customer/assignment/profile">
+                    <c:param name="secretaryName" value="${a.secretaryName}" />
+                  </c:url>
                   <tr>
                     <td><c:out value="${a.targetYearMonth}"/></td>
-                    <td><c:out value="${a.secretaryName}"/></td>
+                    <td>
+                      <a href="${profUrl}">
+                        <c:out value="${a.secretaryName}"/>
+                      </a>
+                    </td>
                     <td>
                       <c:out value="${empty a.taskRankName ? '—' : a.taskRankName}"/>
                     </td>

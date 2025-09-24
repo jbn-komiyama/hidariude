@@ -471,6 +471,10 @@ public class FrontController extends HttpServlet {
 				nextPath = new AssignmentService(req, true).outsourceList();
 			}
 			
+			case "/assignment/profile"->{
+				nextPath = new AssignmentService(req, true).secretaryProfile();
+			}
+			
     	}
 	}
     

@@ -68,6 +68,7 @@ public class AssignmentService extends BaseService {
     private static final String P_COMPANY_NAME  = "companyName";
     private static final String P_ID            = "id";
     private static final String P_ASSIGNMENT_ID = "assignmentId";
+    private static final String P_SECRETARY_NAME = "secretaryName";
 
     // ----- View names -----
     private static final String VIEW_HOME                = "assignment/admin/home";
@@ -80,6 +81,7 @@ public class AssignmentService extends BaseService {
     private static final String VIEW_CARRY_OVER_PREVIEW = "assignment/admin/carry_over_preview";
     private static final String VIEW_EDIT_INCENTIVE = "assignment/admin/edit_incentive";
     private static final String VIEW_OUTSOURCE_LIST = "assignment/customer/list";
+    private static final String VIEW_SECRETARY_PROFILE = "assignment/customer/profile";
 
     // ----- Attribute keys -----
     private static final String A_CUSTOMERS    = "customers";
@@ -663,7 +665,6 @@ public class AssignmentService extends BaseService {
     
     //ここに仮作成
     //委託先一覧表示
- // AssignmentService 内：outsourceList を置き換え
     public String outsourceList() {
         // 1) ログイン中の顧客ID（会社ID）をセッションから取得
         UUID customerId = currentCustomerId();
@@ -692,6 +693,47 @@ public class AssignmentService extends BaseService {
         return VIEW_OUTSOURCE_LIST;
     }
 
+    // 秘書プロフィール表示
+ // 秘書プロフィール表示（秘書名を受け取り、IDに解決してから取得）
+    public String secretaryProfile() {
+        final String name = req.getParameter(P_SECRETARY_NAME);
+        if (name == null || name.isBlank()) {
+            req.setAttribute(A_ERROR, java.util.List.of("秘書名が指定されていません。"));
+            return req.getContextPath() + req.getServletPath() + "/error";
+        }
+
+        try (TransactionManager tm = new TransactionManager()) {
+            AssignmentDAO assignmentDao = new AssignmentDAO(tm.getConnection());
+
+            // ① 氏名 → 秘書ID を解決
+            var optId = assignmentDao.selectSecretaryIdByName(name);
+            if (optId.isEmpty()) {
+                req.setAttribute(A_ERROR, java.util.List.of("指定された氏名の秘書が見つかりません。"));
+                return req.getContextPath() + req.getServletPath() + "/error";
+            }
+            java.util.UUID secId = optId.get();
+
+            // ② 氏名/フリガナ（DBの正規値）を取得（なければ受け取った name を表示名に採用）
+            var namePairOpt = assignmentDao.selectSecretaryNameById(secId);
+            namePairOpt.ifPresentOrElse(pair -> {
+                req.setAttribute("secretaryName", pair.getKey());
+                req.setAttribute("secretaryNameRuby", pair.getValue());
+            }, () -> {
+                req.setAttribute("secretaryName", name);
+                req.setAttribute("secretaryNameRuby", null);
+            });
+
+            // ③ プロフィール本体
+            dto.ProfileDTO profile = assignmentDao.selectProfileBySecretaryId(secId);
+            req.setAttribute("profile", profile);
+
+            return VIEW_SECRETARY_PROFILE;
+        } catch (RuntimeException e) {
+            e.printStackTrace();
+            req.setAttribute(A_ERROR, java.util.List.of("秘書プロフィール取得時にエラーが発生しました。"));
+            return req.getContextPath() + req.getServletPath() + "/error";
+        }
+    }
     
 
     // ========= Helper =========

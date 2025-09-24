@@ -13,7 +13,7 @@
     .label-col { width: 160px; color:#6c757d; }
     .value-col { word-break: break-word; }
     .th-wrap { line-height:1.1; }
-    .th-sub { font-size:.8em; color:#0d6efd; opacity:.9; }
+    .th-sub { font-size:.8em; color:#0d6efd; opacity:.9;}
     .cell-addr { white-space:normal; }
   </style>
 </head>
@@ -54,42 +54,46 @@
               <td>オンサイト</td>
               <td class="text-end">1</td>
               <td>委託契約</td>
-              <td>
-                井上 万菜子
-              </td>
+              <td>井上 万菜子</td>
               <td></td>
             </tr>
 
             <!-- 二次行（複数可）。一次列は空にする -->
             <c:set var="secCount" value="${empty secondaries ? 0 : fn:length(secondaries)}" />
             <c:choose>
-            <c:when test="${secCount gt 0}">
-  		    <c:forEach var="s" items="${secondaries}">
-    		  <tr>
-    			 <td></td>
-    			 <td class="cell-addr">
-      			    <c:if test="${not empty s.name}">
-        			 ${fn:escapeXml(s.name)}<br/>
-        		    </c:if>
-                    <c:if test="${not empty s.address}">
-                     （${fn:escapeXml(s.address)}）
-                    </c:if>
-                 </td>
-                 <td>オンサイト</td>
-                 <td class="text-end">1</td>
-                 <td>委託契約</td>
-                 <td><c:out value="${s.name}" /></td>
-                 <td><c:out value="${s.note}" /></td>
-                </tr>
-            </c:forEach>
-            </c:when>
-            <c:otherwise>
-            <c:set var="secCount" value="0" />
-            </c:otherwise>
+              <c:when test="${secCount gt 0}">
+                <c:forEach var="s" items="${secondaries}">
+                  <c:url var="profileUrl" value="/customer/assignment/profile">
+                    <c:param name="secretaryName" value="${s.name}" />
+                  </c:url>
+                  <tr>
+                    <td></td>
+                    <td class="cell-addr">
+                      <a href="${profileUrl}">
+                        <c:if test="${not empty s.name}">
+                          ${fn:escapeXml(s.name)}<br/>
+                        </c:if>
+                      </a>
+                      <c:if test="${not empty s.address}">
+                        （${fn:escapeXml(s.address)}）
+                      </c:if>
+                    </td>
+                    <td>オンサイト</td>
+                    <td class="text-end">1</td>
+                    <td>委託契約</td>
+                    <td>
+                      <a href="${profileUrl}"><c:out value="${s.name}" /></a>
+                    </td>
+                    <td><c:out value="${s.note}" /></td>
+                  </tr>
+                </c:forEach>
+              </c:when>
+              <c:otherwise>
+                <c:set var="secCount" value="0" />
+              </c:otherwise>
             </c:choose>
           </tbody>
         </table>
-        
       </div>
     </div>
   </div>

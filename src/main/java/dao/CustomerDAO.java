@@ -126,6 +126,7 @@ public class CustomerDAO extends BaseDAO {
             "  AND a.target_year_month IN (?, ?) " +
             "ORDER BY a.target_year_month DESC, s.name ASC";
 
+ 
     
 	public CustomerDAO(Connection conn) {
 		super(conn);
@@ -412,7 +413,8 @@ public class CustomerDAO extends BaseDAO {
 
         return list;
     }
-
+    
+  
 
     
     // =======================

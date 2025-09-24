@@ -33,7 +33,7 @@ public class CustomerService extends BaseService{
     private static final String VIEW_EDIT         		= "customer/admin/edit";         
     private static final String VIEW_EDIT_CHECK		= "customer/admin/edit_check"; 
     private static final String VIEW_EDIT_DONE    	= "customer/admin/edit_done";   
-
+   
 
     // ===== 属性名 =====
     private static final String A_CUSTOMERS = "customers";
@@ -51,6 +51,7 @@ public class CustomerService extends BaseService{
     private static final String P_ADDRESS1     = "address1";
     private static final String P_ADDRESS2     = "address2";
     private static final String P_BUILDING     = "building";
+
 
     /** DTO→ドメイン変換器（都度 new せず再利用） */
     private final Converter conv = new Converter();
@@ -168,6 +169,7 @@ public class CustomerService extends BaseService{
         }
     }
     
+
     
     // =======================
     // 新規登録（画面／確定）
