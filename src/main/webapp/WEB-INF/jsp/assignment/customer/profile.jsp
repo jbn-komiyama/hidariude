@@ -9,60 +9,83 @@
   <title>秘書プロフィール</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet"/>
   <style>
-    .label-col { width: 160px; color:#6c757d; }
     pre { white-space: pre-wrap; word-break: break-word; }
   </style>
 </head>
-<body class="bg-primary bg-opacity-10">
+<body class="bg-primary bg-opacity-10"><!-- 青系背景で統一 -->
 <%@ include file="/WEB-INF/jsp/_parts/customer/navbar.jspf" %>
 
 <div class="container py-4">
-  <div class="mb-3">
-    <h1 class="h4 mb-1">秘書プロフィール</h1>
-    <div class="text-muted small">資格・職歴・学歴</div>
+
+  <!-- タイトル -->
+  <div class="d-flex align-items-center justify-content-between mb-3">
+    <h1 class="h4 mb-0">秘書プロフィール</h1>
   </div>
 
-  <c:choose>
-    <c:when test="${empty profile}">
-      <div class="alert alert-warning">該当の秘書プロフィールが見つかりませんでした。</div>
-    </c:when>
-    <c:otherwise>
-      <div class="card shadow-sm">
-  <div class="card-body">
-    <div class="mb-3">
-      <div class="h5 mb-0">
-        <c:out value="${secretaryName}"/>
-        <span class="text-muted small ms-2"><c:out value="${secretaryNameRuby}"/></span>
-      </div>
-    </div>
+  <!-- プロフィールカード -->
+  <div class="card shadow-sm mb-4">
+    <div class="card-header bg-primary text-white">プロフィール</div>
+    <div class="card-body">
 
-    <c:choose>
-      <c:when test="${profile == null}">
-        <div class="alert alert-warning mb-0">
-          該当の秘書プロフィールが見つかりませんでした。
+      <!-- 氏名 -->
+      <div class="mb-3">
+        <div class="h5 mb-1">
+          <c:out value="${empty secretaryName ? '—' : secretaryName}"/>
+          <c:if test="${not empty secretaryNameRuby}">
+            <span class="text-muted small ms-2">（<c:out value="${secretaryNameRuby}"/>）</span>
+          </c:if>
         </div>
-      </c:when>
-      <c:otherwise>
-        <dl class="row">
-          <dt class="col-sm-3 label-col">資格保有状況</dt>
-          <dd class="col-sm-9"><pre class="mb-0"><c:out value="${profile.qualification}"/></pre></dd>
+      </div>
+      <div class="mb-4"></div>
+      <!-- 明細テーブル：プロフィール未登録でも空ページを表示（—を出す） -->
+      <div class="table-responsive">
+        <table class="table table-sm align-middle mb-0">
+          <tbody>
+            <tr>
+              <th class="text-secondary w-25">氏名（ふりがな）</th>
+              <td>
+                <c:out value="${empty secretaryName ? '—' : secretaryName}"/>
+                <c:if test="${not empty secretaryNameRuby}">（<c:out value="${secretaryNameRuby}"/>）</c:if>
+              </td>
+            </tr>
+            <tr>
+              <th class="text-secondary w-25">資格保有状況</th>
+              <td><pre class="mb-0"><c:out value="${empty profile.qualification ? '—' : profile.qualification}"/></pre></td>
+            </tr>
+            <tr>
+              <th class="text-secondary w-25">職歴</th>
+              <td><pre class="mb-0"><c:out value="${empty profile.workHistory ? '—' : profile.workHistory}"/></pre></td>
+            </tr>
+            <tr>
+              <th class="text-secondary w-25">最終学歴</th>
+              <td><pre class="mb-0"><c:out value="${empty profile.academicBackground ? '—' : profile.academicBackground}"/></pre></td>
+            </tr>
+            <tr>
+              <th class="text-secondary w-25">自己紹介</th>
+              <td><pre class="mb-0"><c:out value="${empty profile.selfIntroduction ? '—' : profile.selfIntroduction}"/></pre></td>
+            </tr>
+            <tr>
+              <th class="text-secondary w-25">備考</th>
+              <td><pre class="mb-0"><c:out value="${empty profile.remark ? '—' : profile.remark}"/></pre></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
 
-          <dt class="col-sm-3 label-col">職歴</dt>
-          <dd class="col-sm-9"><pre class="mb-0"><c:out value="${profile.workHistory}"/></pre></dd>
+      <!-- プロフィール未登録の補足メッセージ（任意表示） -->
+      <c:if test="${empty profile}">
+        <div class="text-muted small mt-2">
+          プロフィールは未登録です。未登録内容は “—” と表示されています。
+        </div>
+      </c:if>
 
-          <dt class="col-sm-3 label-col">最終学歴</dt>
-          <dd class="col-sm-9"><pre class="mb-0"><c:out value="${profile.academicBackground}"/></pre></dd>
-        </dl>
-      </c:otherwise>
-    </c:choose>
+    </div>
   </div>
-</div>
-    </c:otherwise>
-  </c:choose>
 
-  <div class="mt-3">
-    <a href="javascript:history.back()" class="btn btn-outline-secondary btn-sm">戻る</a>
+  <div class="mt-3 text-end">
+    <a href="javascript:history.back()" class="btn btn-outline-secondary">戻る</a>
   </div>
+
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
