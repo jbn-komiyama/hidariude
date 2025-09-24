@@ -16,10 +16,9 @@
 
   <div class="d-flex justify-content-between align-items-center mb-3">
     <div>
-      <h1 class="h4 mb-1">業務一覧（差戻）</h1>
+      <h1 class="h3 mb-0">業務一覧（差戻）</h1>
       <div class="text-muted small">年月：<strong>${yearMonth}</strong></div>
     </div>
-    <a href="<%=request.getContextPath()%>/admin/home" class="btn btn-sm btn-outline-secondary">戻る</a>
   </div>
 
   <!-- タブ -->
@@ -70,7 +69,7 @@
                 <tr>
                   <th>秘書</th>
                   <th>顧客</th>
-                  <th style="width:140px;">日付</th>
+                  <th style="width:70px;">日付</th>
                   <th style="width:130px;">時間</th>
                   <th style="width:70px;">稼働</th>
                   <th style="width:70px;">ランク</th>
@@ -86,7 +85,7 @@
                   <tr>
                     <td>${t.assignment.secretaryName}</td>
                     <td>${t.assignment.companyName}</td>
-                    <td><fmt:formatDate value="${t.workDate}" pattern="yyyy-MM-dd (E)" timeZone="Asia/Tokyo"/></td>
+                    <td><fmt:formatDate value="${t.workDate}" pattern="dd (E)" timeZone="Asia/Tokyo"/></td>
                     <td>
                       <fmt:formatDate value="${t.startTime}" pattern="HH:mm" timeZone="Asia/Tokyo"/> ～
                       <fmt:formatDate value="${t.endTime}" pattern="HH:mm" timeZone="Asia/Tokyo"/>

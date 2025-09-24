@@ -362,7 +362,7 @@ ALTER TABLE secretaries
   ADD COLUMN IF NOT EXISTS bank_name    VARCHAR(255),
   ADD COLUMN IF NOT EXISTS bank_branch  VARCHAR(255),
   ADD COLUMN IF NOT EXISTS bank_type    VARCHAR(255),
-  ADD COLUMN IF NOT EXISTS bank_account CHAR(64),
+  ADD COLUMN IF NOT EXISTS bank_account VARCHAR(255),
   ADD COLUMN IF NOT EXISTS bank_owner   VARCHAR(255);
   
 -- （任意）bank_type の値を制限したい場合（例：普通/当座）
@@ -381,6 +381,76 @@ CREATE UNIQUE INDEX IF NOT EXISTS ux_cmi_customer_month
 ALTER TABLE customer_monthly_invoices
   ADD CONSTRAINT uq_cmi_customer_month
   UNIQUE (customer_id, target_year_month);
+  
+
+
+-- 依存: UUID生成
+CREATE EXTENSION IF NOT EXISTS pgcrypto;
+
+-- 0:不可 / 1:相談 / 2:可 を表す共通ドメイン
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_type WHERE typname = 'availability_flag'
+  ) THEN
+    CREATE DOMAIN availability_flag AS SMALLINT
+      CHECK (VALUE IN (0, 1, 2));
+  END IF;
+END$$;
+
+-- profiles テーブル
+CREATE TABLE IF NOT EXISTS profiles (
+  id                   UUID PRIMARY KEY DEFAULT gen_random_uuid(),  -- ID
+  secretary_id         UUID NOT NULL,                                -- 秘書ID（FK, 1:1 想定）
+
+  -- 稼働可否フラグ（0:不可 1:相談 2:可）
+  weekday_morning      availability_flag NOT NULL DEFAULT 0,
+  weekday_daytime      availability_flag NOT NULL DEFAULT 0,
+  weekday_night        availability_flag NOT NULL DEFAULT 0,
+
+  saturday_morning     availability_flag NOT NULL DEFAULT 0,
+  saturday_daytime     availability_flag NOT NULL DEFAULT 0,
+  saturday_night       availability_flag NOT NULL DEFAULT 0,
+
+  sunday_morning       availability_flag NOT NULL DEFAULT 0,
+  sunday_daytime       availability_flag NOT NULL DEFAULT 0,
+  sunday_night         availability_flag NOT NULL DEFAULT 0,
+
+  -- 日単位の就業可能時間（0〜24.00 時間）
+  weekday_work_hours   NUMERIC(4,2),
+  saturday_work_hours  NUMERIC(4,2),
+  sunday_work_hours    NUMERIC(4,2),
+
+  -- 月の就業希望時間（0〜744 時間 = 31日×24h 上限想定）
+  monthly_work_hours   NUMERIC(5,1),
+
+  -- 自由記述
+  remark               TEXT,                 -- 備考（改行可）
+  qualification        TEXT,                 -- 資格保持状況
+  work_history         TEXT,                 -- 職歴
+  academic_background  TEXT,                 -- 最終学歴
+  self_introduction    TEXT,                 -- 自己紹介
+
+  -- 監査系
+  created_at           TIMESTAMP WITHOUT TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at           TIMESTAMP WITHOUT TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  deleted_at           TIMESTAMP WITHOUT TIME ZONE,
+
+  -- 制約
+  CONSTRAINT fk_profiles_secretary
+    FOREIGN KEY (secretary_id) REFERENCES secretaries(id),
+
+  CONSTRAINT uq_profiles_secretary UNIQUE (secretary_id),
+
+  CONSTRAINT ck_weekday_hours
+    CHECK (weekday_work_hours  IS NULL OR (weekday_work_hours  >= 0 AND weekday_work_hours  <= 24)),
+  CONSTRAINT ck_saturday_hours
+    CHECK (saturday_work_hours IS NULL OR (saturday_work_hours >= 0 AND saturday_work_hours <= 24)),
+  CONSTRAINT ck_sunday_hours
+    CHECK (sunday_work_hours   IS NULL OR (sunday_work_hours   >= 0 AND sunday_work_hours   <= 24)),
+  CONSTRAINT ck_monthly_hours
+    CHECK (monthly_work_hours  IS NULL OR (monthly_work_hours  >= 0 AND monthly_work_hours  <= 744))
+);
 
 
 -- 下記は、assignment_idを修正する必要あり

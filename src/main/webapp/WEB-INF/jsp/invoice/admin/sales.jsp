@@ -14,7 +14,7 @@
 
 <div class="container py-4">
   <div class="d-flex align-items-center justify-content-between mb-3">
-    <h1 class="h4 mb-0">請求サマリー（管理）</h1>
+    <h1 class="h3 mb-0">請求サマリー（管理）</h1>
     <form method="get" class="d-flex gap-2">
       <input type="month" class="form-control" name="yearMonth" value="${yearMonth}">
       <button type="submit" class="btn btn-primary">表示</button>

@@ -709,6 +709,77 @@ public class AssignmentDAO extends BaseDAO {
     	    " WHERE a.deleted_at IS NULL " +
     	    "   AND a.id = ?";
     
+    private static final String SQL_SELECT_THIS_MONTH_BY_CUSTOMER_WITH_CONT_RANK =
+    	    "WITH eff AS ( " +
+    	    "  SELECT CASE " +
+    	    "    WHEN ? > to_char(date_trunc('month', current_date) + interval '1 month','YYYY-MM') " +
+    	    "    THEN to_char(date_trunc('month', current_date) + interval '1 month','YYYY-MM') " +
+    	    "    ELSE ? END AS ym " +
+    	    "), " +
+    	    "a_target AS ( " +
+    	    "  SELECT a.* FROM assignments a, eff " +
+    	    "   WHERE a.deleted_at IS NULL AND a.target_year_month = eff.ym AND a.customer_id = ? " +
+    	    "), " +
+    	    "streak AS ( " +
+    	    "  SELECT a.customer_id, a.secretary_id, a.task_rank_id, a.target_year_month, " +
+    	    "         ( (extract(YEAR FROM to_date(a.target_year_month||'-01','YYYY-MM-DD'))::int * 12) + " +
+    	    "           extract(MONTH FROM to_date(a.target_year_month||'-01','YYYY-MM-DD'))::int " +
+    	    "         ) - row_number() OVER ( " +
+    	    "               PARTITION BY a.customer_id, a.secretary_id, a.task_rank_id " +
+    	    "               ORDER BY a.target_year_month " +
+    	    "         ) AS grp " +
+    	    "    FROM assignments a, eff " +
+    	    "   WHERE a.deleted_at IS NULL AND a.customer_id = ? AND a.target_year_month <= eff.ym " +
+    	    "), " +
+    	    "streak_count AS ( " +
+    	    "  SELECT s.customer_id, s.secretary_id, s.task_rank_id, count(*) AS cont_months " +
+    	    "    FROM streak s " +
+    	    "    JOIN a_target t ON t.customer_id = s.customer_id " +
+    	    "                   AND t.secretary_id = s.secretary_id " +
+    	    "                   AND t.task_rank_id = s.task_rank_id " +
+    	    "   GROUP BY s.customer_id, s.secretary_id, s.task_rank_id, s.grp " +
+    	    "  HAVING max(s.target_year_month) = (SELECT ym FROM eff) " +
+    	    ") " +
+    	    "SELECT " +
+    	    "  a.id, a.customer_id, a.secretary_id, a.task_rank_id, a.target_year_month, " +
+    	    "  a.base_pay_customer, a.base_pay_secretary, a.increase_base_pay_customer, a.increase_base_pay_secretary, " +
+    	    "  a.customer_based_incentive_for_customer, a.customer_based_incentive_for_secretary, a.status, " +
+    	    "  a.created_at, a.updated_at, a.deleted_at, " +
+    	    "  tr.rank_name, tr.rank_no, " +
+    	    "  s.id AS s_id, s.name AS s_name, s.secretary_rank_id, " +
+    	    "  sr.rank_name AS sr_rank_name, " +
+    	    "  sc.cont_months " +
+    	    "FROM a_target a " +
+    	    "LEFT JOIN task_rank tr      ON tr.id = a.task_rank_id " +
+    	    "LEFT JOIN secretaries s     ON s.id = a.secretary_id AND s.deleted_at IS NULL " +
+    	    "LEFT JOIN secretary_rank sr ON sr.id = s.secretary_rank_id " +
+    	    "LEFT JOIN streak_count sc   ON sc.customer_id = a.customer_id " +
+    	    "                            AND sc.secretary_id = a.secretary_id " +
+    	    "                            AND sc.task_rank_id = a.task_rank_id " +
+    	    "ORDER BY s.name NULLS LAST, tr.rank_no NULLS LAST, a.created_at";
+
+    	/** 顧客×今月まで（<=YM）の assignments 履歴（最新月→） */
+    	private static final String SQL_SELECT_BY_CUSTOMER_UPTO_YM_DESC =
+    	    "WITH eff AS ( " +
+    	    "  SELECT CASE " +
+    	    "    WHEN ? > to_char(date_trunc('month', current_date) + interval '1 month','YYYY-MM') " +
+    	    "    THEN to_char(date_trunc('month', current_date) + interval '1 month','YYYY-MM') " +
+    	    "    ELSE ? END AS ym " +
+    	    ") " +
+    	    "SELECT a.id, a.customer_id, a.secretary_id, a.task_rank_id, a.target_year_month, " +
+    	    "       a.base_pay_customer, a.base_pay_secretary, a.increase_base_pay_customer, a.increase_base_pay_secretary, " +
+    	    "       a.customer_based_incentive_for_customer, a.customer_based_incentive_for_secretary, a.status, " +
+    	    "       a.created_at, a.updated_at, a.deleted_at, " +
+    	    "       tr.rank_name, tr.rank_no, " +
+    	    "       s.id AS s_id, s.name AS s_name, s.secretary_rank_id, sr.rank_name AS sr_rank_name " +
+    	    "  FROM assignments a " +
+    	    "  LEFT JOIN task_rank tr      ON tr.id = a.task_rank_id " +
+    	    "  LEFT JOIN secretaries s     ON s.id = a.secretary_id AND s.deleted_at IS NULL " +
+    	    "  LEFT JOIN secretary_rank sr ON sr.id = s.secretary_rank_id " +
+    	    " WHERE a.deleted_at IS NULL AND a.customer_id = ? " +
+    	    "   AND a.target_year_month <= (SELECT ym FROM eff) " +
+    	    " ORDER BY a.target_year_month DESC, tr.rank_no NULLS LAST, s.name NULLS LAST, a.created_at";
+    
 	public AssignmentDAO(Connection conn) {
 		super(conn);
 	}
@@ -1445,6 +1516,99 @@ public class AssignmentDAO extends BaseDAO {
         } catch (SQLException e) {
             throw new DAOException("E:AS61 アサイン1件(最小)取得に失敗しました。", e);
         }
+    }
+    
+    public List<AssignmentDTO> selectThisMonthByCustomerWithContRank(UUID customerId, String yearMonth) {
+        List<AssignmentDTO> list = new ArrayList<>();
+        try (PreparedStatement ps = conn.prepareStatement(SQL_SELECT_THIS_MONTH_BY_CUSTOMER_WITH_CONT_RANK)) {
+            int p = 1;
+            ps.setString(p++, yearMonth);
+            ps.setString(p++, yearMonth);
+            ps.setObject(p++, customerId);
+            ps.setObject(p++, customerId);
+
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    int i = 1;
+                    AssignmentDTO ad = new AssignmentDTO();
+                    ad.setAssignmentId(rs.getObject(i++, UUID.class));
+                    ad.setAssignmentCustomerId(rs.getObject(i++, UUID.class));
+                    ad.setAssignmentSecretaryId(rs.getObject(i++, UUID.class));
+                    ad.setTaskRankId(rs.getObject(i++, UUID.class));
+                    ad.setTargetYearMonth(rs.getString(i++));
+                    ad.setBasePayCustomer(rs.getBigDecimal(i++));
+                    ad.setBasePaySecretary(rs.getBigDecimal(i++));
+                    ad.setIncreaseBasePayCustomer(rs.getBigDecimal(i++));
+                    ad.setIncreaseBasePaySecretary(rs.getBigDecimal(i++));
+                    ad.setCustomerBasedIncentiveForCustomer(rs.getBigDecimal(i++));
+                    ad.setCustomerBasedIncentiveForSecretary(rs.getBigDecimal(i++));
+                    ad.setAssignmentStatus(rs.getString(i++));
+                    ad.setAssignmentCreatedAt(rs.getTimestamp(i++));
+                    ad.setAssignmentUpdatedAt(rs.getTimestamp(i++));
+                    ad.setAssignmentDeletedAt(rs.getTimestamp(i++));
+
+                    ad.setTaskRankName(rs.getString(i++)); // tr.rank_name
+                    rs.getInt(i++);                        // tr.rank_no（未使用）
+
+                    rs.getObject(i++, UUID.class);         // s_id（未使用）
+                    ad.setSecretaryName(rs.getString(i++));
+                    ad.setSecretaryRankId(rs.getObject(i++, UUID.class));
+                    ad.setSecretaryRankName(rs.getString(i++));
+
+                    Number cont = (Number) rs.getObject(i++);
+                    ad.setConsecutiveMonths(cont == null ? null : cont.intValue());
+
+                    list.add(ad);
+                }
+            }
+        } catch (SQLException e) {
+            throw new DAOException("E:AS-D1 顧客×今月（継続月数/ランク別）取得に失敗しました。", e);
+        }
+        return list;
+    }
+
+    public List<AssignmentDTO> selectByCustomerUpToYearMonthDesc(UUID customerId, String upToYm) {
+        List<AssignmentDTO> list = new ArrayList<>();
+        try (PreparedStatement ps = conn.prepareStatement(SQL_SELECT_BY_CUSTOMER_UPTO_YM_DESC)) {
+            int p = 1;
+            ps.setString(p++, upToYm);
+            ps.setString(p++, upToYm);
+            ps.setObject(p++, customerId);
+
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    int i = 1;
+                    AssignmentDTO ad = new AssignmentDTO();
+                    ad.setAssignmentId(rs.getObject(i++, UUID.class));
+                    ad.setAssignmentCustomerId(rs.getObject(i++, UUID.class));
+                    ad.setAssignmentSecretaryId(rs.getObject(i++, UUID.class));
+                    ad.setTaskRankId(rs.getObject(i++, UUID.class));
+                    ad.setTargetYearMonth(rs.getString(i++));
+                    ad.setBasePayCustomer(rs.getBigDecimal(i++));
+                    ad.setBasePaySecretary(rs.getBigDecimal(i++));
+                    ad.setIncreaseBasePayCustomer(rs.getBigDecimal(i++));
+                    ad.setIncreaseBasePaySecretary(rs.getBigDecimal(i++));
+                    ad.setCustomerBasedIncentiveForCustomer(rs.getBigDecimal(i++));
+                    ad.setCustomerBasedIncentiveForSecretary(rs.getBigDecimal(i++));
+                    ad.setAssignmentStatus(rs.getString(i++));
+                    ad.setAssignmentCreatedAt(rs.getTimestamp(i++));
+                    ad.setAssignmentUpdatedAt(rs.getTimestamp(i++));
+                    ad.setAssignmentDeletedAt(rs.getTimestamp(i++));
+
+                    ad.setTaskRankName(rs.getString(i++));
+                    rs.getInt(i++); // tr.rank_no
+                    rs.getObject(i++, UUID.class); // s_id
+                    ad.setSecretaryName(rs.getString(i++));
+                    ad.setSecretaryRankId(rs.getObject(i++, UUID.class));
+                    ad.setSecretaryRankName(rs.getString(i++));
+
+                    list.add(ad);
+                }
+            }
+        } catch (SQLException e) {
+            throw new DAOException("E:AS-D2 顧客×今月までの履歴取得に失敗しました。", e);
+        }
+        return list;
     }
 
 

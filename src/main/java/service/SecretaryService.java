@@ -17,6 +17,7 @@ import dao.SecretaryDAO;
 import dao.SecretaryMonthlySummaryDAO;
 import dao.TransactionManager;
 import domain.LoginUser;
+import domain.Profile;
 import domain.Secretary;
 import domain.SecretaryRank;
 import domain.SecretaryTotals;
@@ -26,6 +27,10 @@ import dto.SecretaryDTO;
 import dto.SecretaryMonthlySummaryDTO;
 import dto.SecretaryRankDTO;
 import dto.SecretaryTotalsDTO;
+//追加のimport
+import dao.ProfileDAO;
+import dto.ProfileDTO;
+
 
 
 /**
@@ -65,6 +70,11 @@ public class SecretaryService extends BaseService{
     private static final String P_BUILDING        = "building";
     private static final String P_PM_SECRETARY    = "pmSecretary";
     private static final String P_SECRETARY_RANK  = "secretaryRankId";
+    private static final String P_BANK_NAME    = "bankName";
+    private static final String P_BANK_BRANCH  = "bankBranch";
+    private static final String P_BANK_TYPE    = "bankType";
+    private static final String P_BANK_ACCOUNT = "bankAccount";
+    private static final String P_BANK_OWNER   = "bankOwner";
 
     // ==============================
     // 属性名
@@ -255,6 +265,12 @@ public class SecretaryService extends BaseService{
             Secretary secretary = conv.toDomain(sDto);
             req.setAttribute("secretary", secretary);
             req.setAttribute("yearMonth", ym);
+            
+            // ★ ①-2 プロフィール情報の取得（admin表示用）
+            ProfileDAO pdao = new ProfileDAO(tm.getConnection());
+            ProfileDTO pDto = pdao.selectBySecretaryId(secId);   // 見つからなければ null
+            Profile profile = conv.toDomain(pDto);
+            req.setAttribute("profile", profile);                   // そのままJSPへ（null可）
 
             // ② 今月のアサイン（継続月数付き / 秘書IDでフィルタ）
             AssignmentDAO adao = new AssignmentDAO(tm.getConnection());
@@ -327,7 +343,7 @@ public class SecretaryService extends BaseService{
         try (TransactionManager tm = new TransactionManager()) {
             UUID id = UUID.fromString(uuidStr);
             SecretaryDAO dao = new SecretaryDAO(tm.getConnection());
-            SecretaryDTO dto = dao.selectByUUId(id);
+            SecretaryDTO dto = dao.selectByUUIdWithBank(id);
             Secretary secretary = conv.toDomain(dto);
 
             List<SecretaryRankDTO> rankDtos = dao.selectRankAll();
@@ -518,7 +534,7 @@ public class SecretaryService extends BaseService{
         }
         try (TransactionManager tm = new TransactionManager()) {
             SecretaryDAO dao = new SecretaryDAO(tm.getConnection());
-            SecretaryDTO dto = dao.selectByUUId(myId);         
+            SecretaryDTO dto = dao.selectByUUIdWithBank(myId);         
             if (dto == null) {
                 validation.addErrorMsg("アカウント情報が取得できませんでした。");
                 req.setAttribute(A_ERROR_MSG, validation.getErrorMsg());
@@ -546,7 +562,7 @@ public class SecretaryService extends BaseService{
     	    }
     	    try (TransactionManager tm = new TransactionManager()) {
     	        SecretaryDAO dao = new SecretaryDAO(tm.getConnection());
-    	        SecretaryDTO dto = dao.selectByUUId(myId);
+    	        SecretaryDTO dto = dao.selectByUUIdWithBank(myId);
     	        if (dto == null) {
     	            validation.addErrorMsg("アカウント情報が取得できませんでした。");
     	            req.setAttribute(A_ERROR_MSG, validation.getErrorMsg());
@@ -584,6 +600,12 @@ public class SecretaryService extends BaseService{
     	    final String address1   = req.getParameter(P_ADDRESS1);
     	    final String address2   = req.getParameter(P_ADDRESS2);
     	    final String building   = req.getParameter(P_BUILDING);
+    	    
+    	    final String bankName    = req.getParameter(P_BANK_NAME);
+    	    final String bankBranch  = req.getParameter(P_BANK_BRANCH);
+    	    final String bankType    = req.getParameter(P_BANK_TYPE);
+    	    final String bankAccount = req.getParameter(P_BANK_ACCOUNT);
+    	    final String bankOwner   = req.getParameter(P_BANK_OWNER);
 
     	    // 必須＆形式（本人が編集できる範囲のみ）
     	    validation.isNull("氏名", name);
@@ -640,6 +662,12 @@ public class SecretaryService extends BaseService{
         final String address1   = req.getParameter(P_ADDRESS1);
         final String address2   = req.getParameter(P_ADDRESS2);
         final String building   = req.getParameter(P_BUILDING);
+        // ★ 口座
+        final String bankName    = req.getParameter(P_BANK_NAME);
+        final String bankBranch  = req.getParameter(P_BANK_BRANCH);
+        final String bankType    = req.getParameter(P_BANK_TYPE);
+        final String bankAccount = req.getParameter(P_BANK_ACCOUNT);
+        final String bankOwner   = req.getParameter(P_BANK_OWNER);
 
         // 再検証
         validation.isNull("氏名", name);
@@ -691,8 +719,13 @@ public class SecretaryService extends BaseService{
             dto.setAddress2(address2);
             dto.setBuilding(building);
             dto.setPassword(notBlank(password) ? password : cur.getPassword()); // 入力時だけ更新
+            dto.setBankName(bankName);
+            dto.setBankBranch(bankBranch);
+            dto.setBankType(bankType);
+            dto.setBankAccount(bankAccount);
+            dto.setBankOwner(bankOwner);
 
-            int num = dao.update(dto);
+            int num = dao.updateWithBank(dto);
             tm.commit();
 
             // セッションの loginUser も最新化（表示ブレ防止）
@@ -755,6 +788,12 @@ public class SecretaryService extends BaseService{
         req.setAttribute(P_ADDRESS1,    req.getParameter(P_ADDRESS1));
         req.setAttribute(P_ADDRESS2,    req.getParameter(P_ADDRESS2));
         req.setAttribute(P_BUILDING,    req.getParameter(P_BUILDING));
+        
+        req.setAttribute(P_BANK_NAME,    req.getParameter(P_BANK_NAME));
+        req.setAttribute(P_BANK_BRANCH,  req.getParameter(P_BANK_BRANCH));
+        req.setAttribute(P_BANK_TYPE,    req.getParameter(P_BANK_TYPE));
+        req.setAttribute(P_BANK_ACCOUNT, req.getParameter(P_BANK_ACCOUNT));
+        req.setAttribute(P_BANK_OWNER,   req.getParameter(P_BANK_OWNER));
     }
     
     /**

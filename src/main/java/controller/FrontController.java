@@ -17,6 +17,7 @@ import service.CommonService;
 import service.ContactService;
 import service.CustomerService;
 import service.InvoiceService;
+import service.ProfileService;
 import service.SalesCostSummaryService;
 import service.SecretaryService;
 import service.SystemAdminService;
@@ -125,8 +126,9 @@ public class FrontController extends HttpServlet {
 		case "/customer/delete"->{
 			nextPath = new CustomerService(req, true).customerDelete();
 		}
-		
-		
+		case "/customer/detail"->{
+			nextPath = new CustomerService(req, true).customerDetail();
+		}
 		
 		/**
 		 * A0X 顧客担当者関連業務
@@ -265,8 +267,11 @@ public class FrontController extends HttpServlet {
 		
 		
 		
-		case "/invoice"->{
+		case "/invoice/sales"->{
 			nextPath = new InvoiceService(req, true).adminInvoiceSummary();
+		}
+		case "/invoice/costs"->{
+			nextPath = new InvoiceService(req, true).secretaryInvoiceSummary();
 		}
 	}
     }
@@ -362,6 +367,23 @@ public class FrontController extends HttpServlet {
 			case "/invoice/issue"->{
 				new InvoiceService(req, true).issueInvoiceExcel(res);
 				return;
+			}
+			
+			
+			case "/profile" -> {
+			    nextPath = new ProfileService(req, true).view();          // 表示
+			}
+			case "/profile/register" -> {
+			    nextPath = new ProfileService(req, true).register();      // 登録フォーム
+			}
+			case "/profile/register_done" -> {
+			    nextPath = new ProfileService(req, true).registerDone();  // 登録実行
+			}
+			case "/profile/edit" -> {
+			    nextPath = new ProfileService(req, true).edit();          // 変更フォーム
+			}
+			case "/profile/edit_done" -> {
+			    nextPath = new ProfileService(req, true).editDone();      // 変更実行
 			}
     	}
 	}

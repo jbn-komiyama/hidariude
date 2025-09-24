@@ -14,7 +14,7 @@
 
   <div class="container py-4">
     <div class="d-flex justify-content-between align-items-center mb-3">
-      <h1 class="h4 text-primary mb-0">売上サマリー（顧客×月）</h1>
+      <h1 class="h3 mb-0">売上サマリー（顧客×月）</h1>
       <form class="d-flex gap-2" method="get" action="<%= request.getContextPath() %>/admin/summary/sales">
         <div class="input-group">
           <span class="input-group-text bg-primary text-white border-primary">年度</span>

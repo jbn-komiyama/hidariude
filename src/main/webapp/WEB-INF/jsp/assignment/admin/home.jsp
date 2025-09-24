@@ -191,7 +191,7 @@
 																	<c:set var="hasPm" value="true" />
 																</c:if>
 															</c:forEach> <c:if test="${hasPm}">
-																<form method="post"
+																<form method="get"
 																	action="${pageContext.request.contextPath}/admin/assignment/register"
 																	class="d-inline ms-2">
 																	<input type="hidden" name="id" value="${c.id}">

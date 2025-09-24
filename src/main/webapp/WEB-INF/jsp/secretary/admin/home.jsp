@@ -55,10 +55,7 @@
                   <c:if test="${not empty sec.mail}">
                     <a href="mailto:${sec.mail}">${sec.mail}</a><br/>
                   </c:if>
-                  ${sec.phone}<br/>
-                  <c:if test="${not empty sec.postalCode}">〒${sec.postalCode}<br/></c:if>
-                  ${sec.address1} <c:out value="${sec.address2}"/><br/>
-                  <c:out value="${sec.building}"/>
+                  ${sec.phone}
                 </td>
                 <td class="text-center">
                   <div class="d-flex flex-wrap gap-1 justify-content-center">

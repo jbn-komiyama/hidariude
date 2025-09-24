@@ -9,6 +9,7 @@ import domain.Assignment;
 import domain.Customer;
 import domain.CustomerContact;
 import domain.Invoice;
+import domain.Profile;
 import domain.Secretary;
 import domain.SecretaryMonthlySummary;
 import domain.SecretaryRank;
@@ -19,6 +20,7 @@ import dto.AssignmentDTO;
 import dto.CustomerContactDTO;
 import dto.CustomerDTO;
 import dto.InvoiceDTO;
+import dto.ProfileDTO;
 import dto.SecretaryDTO;
 import dto.SecretaryMonthlySummaryDTO;
 import dto.SecretaryRankDTO;
@@ -162,6 +164,7 @@ public class Converter {
         assignment.setTaskRankName(dto.getTaskRankName());
         assignment.setCompanyName(dto.getCustomerCompanyName());
         assignment.setSecretaryName(dto.getSecretaryName());
+        assignment.setConsecutiveMonths(dto.getConsecutiveMonths());
 
         // Customer (summary)
         Customer customer = new Customer();
@@ -276,6 +279,35 @@ public class Converter {
 	        tasks.add(t);
         }
         return tasks;
+    }
+    
+    public Profile toDomain(ProfileDTO d) {
+        if (d == null) return null;
+        Profile p = new Profile();
+        p.setId(d.getId());
+        p.setSecretaryId(d.getSecretaryId());
+        p.setWeekdayMorning(d.getWeekdayMorning());
+        p.setWeekdayDaytime(d.getWeekdayDaytime());
+        p.setWeekdayNight(d.getWeekdayNight());
+        p.setSaturdayMorning(d.getSaturdayMorning());
+        p.setSaturdayDaytime(d.getSaturdayDaytime());
+        p.setSaturdayNight(d.getSaturdayNight());
+        p.setSundayMorning(d.getSundayMorning());
+        p.setSundayDaytime(d.getSundayDaytime());
+        p.setSundayNight(d.getSundayNight());
+        p.setWeekdayWorkHours(d.getWeekdayWorkHours());
+        p.setSaturdayWorkHours(d.getSaturdayWorkHours());
+        p.setSundayWorkHours(d.getSundayWorkHours());
+        p.setMonthlyWorkHours(d.getMonthlyWorkHours());
+        p.setRemark(d.getRemark());
+        p.setQualification(d.getQualification());
+        p.setWorkHistory(d.getWorkHistory());
+        p.setAcademicBackground(d.getAcademicBackground());
+        p.setSelfIntroduction(d.getSelfIntroduction());
+        p.setCreatedAt(ts2date(d.getCreatedAt()));
+        p.setUpdatedAt(ts2date(d.getUpdatedAt()));
+        p.setDeletedAt(ts2date(d.getDeletedAt()));
+        return p;
     }
     
     public List<Invoice> toInvoiceDomainList(List<InvoiceDTO> dtos) {

@@ -1,0 +1,19 @@
+<%@ taglib prefix="c" uri="jakarta.tags.core" %>
+<%@ page language="java" contentType="text/html; charset=UTF-8"
+	pageEncoding="UTF-8"%>
+<c:set var="__name" value="${nameParam}"/>
+<c:set var="__cur"  value="${currentValue}"/>
+
+<div class="btn-group" role="group" aria-label="${__name}">
+  <input class="btn-check" type="radio" name="${__name}" id="${__name}_0" value="0"
+         <c:if test="${__cur == '0' || __cur == 0}">checked</c:if> />
+  <label class="btn btn-outline-secondary" for="${__name}_0">×</label>
+
+  <input class="btn-check" type="radio" name="${__name}" id="${__name}_1" value="1"
+         <c:if test="${__cur == '1' || __cur == 1}">checked</c:if> />
+  <label class="btn btn-outline-warning" for="${__name}_1">△</label>
+
+  <input class="btn-check" type="radio" name="${__name}" id="${__name}_2" value="2"
+         <c:if test="${__cur == '2' || __cur == 2}">checked</c:if> />
+  <label class="btn btn-outline-primary" for="${__name}_2">〇</label>
+</div>

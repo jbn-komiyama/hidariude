@@ -35,6 +35,7 @@ public class Assignment implements Serializable{
     // --- relations (domain objects) ---
     private Customer customer;
     private Secretary secretary;
+    private Integer consecutiveMonths;
     
     
 	public UUID getId() {
@@ -175,5 +176,11 @@ public class Assignment implements Serializable{
 	public void setSecretaryName(String secretaryName) {
 		this.secretaryName = secretaryName;
 	}
-    
+	public Integer getConsecutiveMonths() {
+		return consecutiveMonths;
+	}
+
+	public void setConsecutiveMonths(Integer consecutiveMonths) {
+		this.consecutiveMonths = consecutiveMonths;
+	}
 }

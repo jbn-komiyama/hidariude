@@ -16,10 +16,9 @@
 
   <div class="d-flex justify-content-between align-items-center mb-3">
     <div>
-      <h1 class="h4 mb-1">業務一覧（未承認）</h1>
+      <h1 class="h3 mb-0">業務一覧（未承認）</h1>
       <div class="text-muted small">年月：<strong>${yearMonth}</strong></div>
     </div>
-    <a href="<%=request.getContextPath()%>/admin/home" class="btn btn-sm btn-outline-secondary">戻る</a>
   </div>
 
   <!-- タブ -->
@@ -86,7 +85,7 @@
                     <th style="width: 32px;">#</th>
                     <th>秘書</th>
                     <th>顧客</th>
-                    <th style="width:140px;">日付</th>
+                    <th style="width:70px;">日付</th>
                     <th style="width:130px;">時間</th>
                     <th style="width:70px;">稼働</th>
                     <th style="width:70px;">ランク</th>
@@ -94,6 +93,7 @@
                     <th style="width:100px;">単価</th>
                     <th style="width:100px;">報酬</th>
                     <th style="width:80px;">状態</th>
+                    <th style="width:80px;">操作</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -108,7 +108,7 @@
                       <td>${st.count}</td>
                       <td>${t.assignment.secretaryName}</td>
                       <td>${t.assignment.companyName}</td>
-                      <td><fmt:formatDate value="${t.workDate}" pattern="yyyy-MM-dd (E)" timeZone="Asia/Tokyo"/></td>
+                      <td><fmt:formatDate value="${t.workDate}" pattern="dd (E)" timeZone="Asia/Tokyo"/></td>
                       <td>
                         <fmt:formatDate value="${t.startTime}" pattern="HH:mm" timeZone="Asia/Tokyo"/> ～
                         <fmt:formatDate value="${t.endTime}" pattern="HH:mm" timeZone="Asia/Tokyo"/>
@@ -147,7 +147,11 @@
                         </c:otherwise>
                       </c:choose>
                     </td>
-									
+									<td>
+                      <button type="button" class="btn btn-sm btn-outline-danger"
+                              data-bs-toggle="modal" data-bs-target="#remandModal"
+                              data-task-id="${t.id}">差戻</button>
+                    </td>
                       
                     </tr>
                   </c:forEach>
@@ -165,7 +169,67 @@
     </div>
   </div>
 </div>
-
+<!-- 差戻モーダル -->
+	<div class="modal fade" id="remandModal" tabindex="-1"
+		aria-hidden="true">
+		<div class="modal-dialog">
+			<form method="post"
+				action="<%=request.getContextPath()%>/admin/task/remand_done"
+				class="modal-content">
+				<input type="hidden" name="taskId" id="remandTaskId"> <input
+					type="hidden" name="yearMonth" value="${yearMonth}"> <input
+					type="hidden" name="sec" value="${sec}"> <input
+					type="hidden" name="cust" value="${cust}">
+				<div class="modal-header">
+					<h5 class="modal-title">差戻コメント</h5>
+					<button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+				</div>
+				<div class="modal-body">
+					<textarea class="form-control" name="remandComment" rows="5"
+						placeholder="差戻理由を記入してください（相手に通知されます）" required></textarea>
+				</div>
+				<div class="modal-footer">
+					<button type="submit" class="btn btn-danger">差戻する</button>
+					<button type="button" class="btn btn-secondary"
+						data-bs-dismiss="modal">キャンセル</button>
+				</div>
+			</form>
+		</div>
+	</div>
+	<script>
+document.getElementById('remandModal')?.addEventListener('show.bs.modal', function (event) {
+  const btn = event.relatedTarget;
+  const taskId = btn?.getAttribute('data-task-id');
+  document.getElementById('remandTaskId').value = taskId || '';
+});
+</script>
+	<script>
+(() => {
+  const form = document.getElementById('unapproveForm');
+  if (!form) return;
+  const checkAll = document.getElementById('checkAll');
+  const selCount = document.getElementById('selCount');
+  const checks = () => Array.from(form.querySelectorAll('.row-check'));
+  function update() {
+    const cs = checks();
+    const enabled = cs.filter(c => !c.disabled);
+    const checked = enabled.filter(c => c.checked);
+    selCount.textContent = checked.length;
+    if (enabled.length === 0) { checkAll.disabled = true; checkAll.checked = false; checkAll.indeterminate = false; return; }
+    checkAll.disabled = false;
+    checkAll.checked = checked.length === enabled.length;
+    checkAll.indeterminate = checked.length > 0 && checked.length < enabled.length;
+  }
+  checkAll?.addEventListener('change', () => { checks().forEach(c => { if (!c.disabled) c.checked = checkAll.checked; }); update(); });
+  form.addEventListener('change', e => { if (e.target.classList.contains('row-check')) update(); });
+  update();
+  form.addEventListener('submit', (e) => {
+    const n = checks().filter(c => c.checked && !c.disabled).length;
+    if (n === 0) { e.preventDefault(); alert('対象が選択されていません。'); return; }
+    if (!confirm(n + '件を承認前に戻します。よろしいですか？')) e.preventDefault();
+  });
+})();
+</script>
 <script>
 (() => {
   const form = document.getElementById('approveForm');

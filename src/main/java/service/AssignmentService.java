@@ -19,6 +19,7 @@ import jakarta.servlet.http.HttpSession;
 
 import dao.AssignmentDAO;
 import dao.CustomerDAO;
+import dao.ProfileDAO;
 import dao.SecretaryDAO;
 import dao.TaskRankDAO;
 import dao.TransactionManager;
@@ -243,38 +244,81 @@ public class AssignmentService extends BaseService {
 
 	/** 通常のアサイン登録画面表示（従来どおり） */
 	public String assignmentRegister() {
-		String ym = req.getParameter(P_TARGET_YM);
-        if (ym == null || ym.isBlank()) {
-            ym = LocalDate.now().format(YM_FMT);
-        }
-        req.setAttribute(A_TARGET_YM, ym);
+	    String ym = req.getParameter(P_TARGET_YM);
+	    if (ym == null || ym.isBlank()) ym = LocalDate.now().format(YM_FMT);
+	    req.setAttribute(A_TARGET_YM, ym);
 
-        final String idStr       = req.getParameter(P_ID);
-        final String companyName = req.getParameter(P_COMPANY_NAME);
+	    final String idStr       = req.getParameter(P_ID);
+	    final String companyName = req.getParameter(P_COMPANY_NAME);
+	    if (validation.isNull("会社名", companyName) | validation.isNull("会社ID", idStr)) {
+	        req.setAttribute(A_ERROR, validation.getErrorMsg());
+	        return req.getContextPath() + "/admin/assignment";
+	    }
 
-        if (validation.isNull("会社名", companyName) | validation.isNull("会社ID", idStr)) {
-            req.setAttribute(A_ERROR, validation.getErrorMsg());
-            System.out.println("test");
-            return req.getContextPath() + "/admin/assignment";
-        }
+	    // チェックボックス受け取り（JSPのnameと一致）
+	    java.util.function.Predicate<String> truthy = v ->
+	            v != null && (v.equalsIgnoreCase("1") || v.equalsIgnoreCase("on")
+	                       || v.equalsIgnoreCase("true") || v.equalsIgnoreCase("yes"));
 
-        try (TransactionManager tm = new TransactionManager()) {
-            // 顧客（固定表示）
-            Customer customer = new Customer();
-            customer.setId(UUID.fromString(idStr));
-            customer.setCompanyName(companyName);
-            req.setAttribute(A_CUSTOMER, customer);
+	    boolean wdAm    = truthy.test(req.getParameter("wdAm"));
+	    boolean wdDay   = truthy.test(req.getParameter("wdDay"));
+	    boolean wdNight = truthy.test(req.getParameter("wdNight"));
+	    boolean saAm    = truthy.test(req.getParameter("saAm"));
+	    boolean saDay   = truthy.test(req.getParameter("saDay"));
+	    boolean saNight = truthy.test(req.getParameter("saNight"));
+	    boolean suAm    = truthy.test(req.getParameter("suAm"));
+	    boolean suDay   = truthy.test(req.getParameter("suDay"));
+	    boolean suNight = truthy.test(req.getParameter("suNight"));
 
-            // ★ ヘルパー使用：秘書（全件）とタスクランク（全件）
-            loadSecretariesToRequest(tm, false);
-            loadTaskRanksToRequest(tm);
+	    String sortKey = req.getParameter("sortKey");
+	    String sortDir = req.getParameter("sortDir"); // asc/desc
+	    boolean desc = !"asc".equalsIgnoreCase(sortDir); // 未指定は降順扱い
 
-            return VIEW_REGISTER;
-        } catch (RuntimeException e) {
-        	e.printStackTrace();
-        	return req.getContextPath() + req.getServletPath() + "/error";
-        }
+	    try (TransactionManager tm = new TransactionManager()) {
+	        // 顧客（固定表示）
+	        Customer customer = new Customer();
+	        customer.setId(java.util.UUID.fromString(idStr));
+	        customer.setCompanyName(companyName);
+	        req.setAttribute(A_CUSTOMER, customer);
+
+	        // 既存のプルダウン
+	        loadSecretariesToRequest(tm, false);
+	        loadTaskRanksToRequest(tm);
+
+	        // ★ DAOで候補生成（プロフィール登録済みのみ）
+	        ProfileDAO pdao = new ProfileDAO(tm.getConnection());
+	        java.util.List<java.util.Map<String,Object>> candidates =
+	            pdao.selectSecretaryCandidatesForRegister(
+	                ym,
+	                wdAm, wdDay, wdNight,
+	                saAm, saDay, saNight,
+	                suAm, suDay, suNight,
+	                sortKey, desc
+	            );
+
+	        req.setAttribute("secretaryCandidates", candidates);
+
+	        // 画面の状態戻し
+	        req.setAttribute("wdAm", wdAm);
+	        req.setAttribute("wdDay", wdDay);
+	        req.setAttribute("wdNight", wdNight);
+	        req.setAttribute("saAm", saAm);
+	        req.setAttribute("saDay", saDay);
+	        req.setAttribute("saNight", saNight);
+	        req.setAttribute("suAm", suAm);
+	        req.setAttribute("suDay", suDay);
+	        req.setAttribute("suNight", suNight);
+	        req.setAttribute("sortKey", sortKey);
+	        req.setAttribute("sortDir", (desc ? "desc" : "asc"));
+
+	        return VIEW_REGISTER;
+	    } catch (RuntimeException e) {
+	        e.printStackTrace();
+	        return req.getContextPath() + req.getServletPath() + "/error";
+	    }
 	}
+
+
 	
 	/** PM（is_pm_secretary = TRUE）向けのアサイン登録画面表示 */
 	public String assignmentPMRegister() {

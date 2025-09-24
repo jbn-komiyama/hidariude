@@ -99,6 +99,75 @@ public class CustomerService extends BaseService{
         }
     }
     
+    /** 顧客詳細（①〜⑥） */
+    public String customerDetail() {
+        final String idStr = req.getParameter("id"); // 顧客ID
+        if (!validation.isUuid(idStr)) {
+            req.setAttribute("errorMsg", java.util.List.of("不正な顧客IDです。"));
+            return req.getContextPath() + req.getServletPath() + "/error";
+        }
+
+        java.time.ZoneId Z_JST = java.time.ZoneId.of("Asia/Tokyo");
+        String ymNow = java.time.LocalDate.now(Z_JST)
+            .format(java.time.format.DateTimeFormatter.ofPattern("yyyy-MM"));
+
+        try (TransactionManager tm = new TransactionManager()) {
+            java.util.UUID customerId = java.util.UUID.fromString(idStr);
+
+            // ①② 顧客＋担当者一覧
+            CustomerDAO cdao = new CustomerDAO(tm.getConnection());
+            CustomerDTO cDto = cdao.selectWithContactsByUuid(customerId);
+            if (cDto == null) {
+                req.setAttribute("errorMsg", java.util.List.of("顧客が見つかりません。"));
+                return req.getContextPath() + req.getServletPath() + "/error";
+            }
+            domain.Customer customer = conv.toDomain(cDto);
+            req.setAttribute("customer", customer);
+
+            // ③ 今月のアサイン（継続はランク別）
+            dao.AssignmentDAO adao = new dao.AssignmentDAO(tm.getConnection());
+            java.util.List<dto.AssignmentDTO> thisMonthDtos =
+                adao.selectThisMonthByCustomerWithContRank(customerId, ymNow);
+
+            java.util.List<domain.Assignment> thisMonth = new java.util.ArrayList<>();
+            java.util.Map<java.util.UUID,Integer> contMap = new java.util.HashMap<>();
+            for (dto.AssignmentDTO d : thisMonthDtos) {
+                thisMonth.add(conv.toDomain(d));
+                if (d.getAssignmentId() != null) {
+                    contMap.put(d.getAssignmentId(),
+                            d.getConsecutiveMonths() == null ? 0 : d.getConsecutiveMonths());
+                }
+            }
+            req.setAttribute("assignmentsThisMonth", thisMonth);
+            req.setAttribute("contMonths", contMap);
+
+            // ④ 今までの請求合計（Summary）
+            dao.CustomerMonthlyInvoiceDAO idao = new dao.CustomerMonthlyInvoiceDAO(tm.getConnection());
+            var summary = idao.selectSummaryUpToYm(customerId, ymNow);
+            req.setAttribute("invoiceTotalAmount", summary.totalAmount);
+            req.setAttribute("invoiceTotalCount",  summary.count);
+            req.setAttribute("invoiceTotalWork",   summary.totalWorkMinutes);
+
+            // ⑥ 直近1年の請求（DTO をそのまま渡す）
+            java.util.List<dto.CustomerMonthlyInvoiceDTO> inv12 =
+                idao.selectLast12UpToYm(customerId, ymNow);
+            req.setAttribute("invoicesLast12", inv12);
+
+            // ⑤ 今月までのアサイン履歴（最新→）
+            java.util.List<dto.AssignmentDTO> historyDtos =
+                adao.selectByCustomerUpToYearMonthDesc(customerId, ymNow);
+            java.util.List<domain.Assignment> history = new java.util.ArrayList<>();
+            for (dto.AssignmentDTO d : historyDtos) history.add(conv.toDomain(d));
+            req.setAttribute("assignmentsHistory", history);
+
+            req.setAttribute("targetYM", ymNow);
+            return "customer/admin/detail";
+        } catch (RuntimeException e) {
+            e.printStackTrace();
+            return req.getContextPath() + req.getServletPath() + "/error";
+        }
+    }
+    
     
     // =======================
     // 新規登録（画面／確定）
