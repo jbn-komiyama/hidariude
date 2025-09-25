@@ -181,21 +181,18 @@ public class SecretaryDAO extends BaseDAO {
 	 * @throws DAOException DBアクセスに失敗した場合
 	 */
 	public SecretaryDTO selectByUUId(UUID id) {
-		final String sql = SQL_SELECT_BASIC
-				+ " WHERE s.deleted_at IS NULL AND s.id = ?";
-
-		try (PreparedStatement ps = conn.prepareStatement(sql)) {
-			ps.setObject(1, id);
-
-			try (ResultSet rs = ps.executeQuery()) {
-				if (rs.next())
-					return resultSetToSecretaryDTO(rs);
-				return new SecretaryDTO();
-			}
-		} catch (SQLException e) {
-			throw new DAOException("E:S13 秘書IDによる単一取得に失敗しました。", e);
-		}
+	    final String sql = SQL_SELECT_BASIC + " WHERE s.deleted_at IS NULL AND s.id = ?";
+	    try (PreparedStatement ps = conn.prepareStatement(sql)) {
+	        ps.setObject(1, id);
+	        try (ResultSet rs = ps.executeQuery()) {
+	            if (rs.next()) return resultSetToSecretaryDTO(rs);
+	            return null; // ← 空DTOでなくnullを返す
+	        }
+	    } catch (SQLException e) {
+	        throw new DAOException("E:S13 秘書IDによる単一取得に失敗しました。", e);
+	    }
 	}
+
 
 	public SecretaryDTO selectByUUIdWithBank(UUID id) {
 		final String sql = SQL_SELECT_BASIC_WITH_BANK

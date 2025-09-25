@@ -143,7 +143,7 @@
   <!-- 同一会社の他担当者 -->
   <c:if test="${not empty customer.customerContacts}">
     <div class="card shadow-sm mb-4">
-      <div class="card-header bg-primary text-white">この会社の他の担当者</div>
+      <div class="card-header bg-primary text-white">会社担当者一覧</div>
       <div class="card-body">
         <div class="table-responsive">
           <table class="table table-sm align-middle mb-0">

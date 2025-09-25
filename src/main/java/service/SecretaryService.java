@@ -13,6 +13,9 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpSession;
 
 import dao.AssignmentDAO;
+import dao.DAOException;
+//追加のimport
+import dao.ProfileDAO;
 import dao.SecretaryDAO;
 import dao.SecretaryMonthlySummaryDAO;
 import dao.TransactionManager;
@@ -23,13 +26,11 @@ import domain.SecretaryMonthlySummary;
 import domain.SecretaryRank;
 import domain.SecretaryTotals;
 import dto.AssignmentDTO;
+import dto.ProfileDTO;
 import dto.SecretaryDTO;
 import dto.SecretaryMonthlySummaryDTO;
 import dto.SecretaryRankDTO;
 import dto.SecretaryTotalsDTO;
-//追加のimport
-import dao.ProfileDAO;
-import dto.ProfileDTO;
 
 
 
@@ -652,7 +653,6 @@ public class SecretaryService extends BaseService{
             return req.getContextPath() + req.getServletPath() + "/error";
         }
 
-        // 入力取得
         final String password   = req.getParameter(P_PASSWORD);
         final String name       = req.getParameter(P_NAME);
         final String nameRuby   = req.getParameter(P_NAME_RUBY);
@@ -662,14 +662,13 @@ public class SecretaryService extends BaseService{
         final String address1   = req.getParameter(P_ADDRESS1);
         final String address2   = req.getParameter(P_ADDRESS2);
         final String building   = req.getParameter(P_BUILDING);
-        // ★ 口座
         final String bankName    = req.getParameter(P_BANK_NAME);
         final String bankBranch  = req.getParameter(P_BANK_BRANCH);
         final String bankType    = req.getParameter(P_BANK_TYPE);
         final String bankAccount = req.getParameter(P_BANK_ACCOUNT);
         final String bankOwner   = req.getParameter(P_BANK_OWNER);
 
-        // 再検証
+        // 入力検証
         validation.isNull("氏名", name);
         validation.isNull("メールアドレス", mail);
         if (notBlank(mail))       validation.isEmail(mail);
@@ -687,28 +686,30 @@ public class SecretaryService extends BaseService{
         try (TransactionManager tm = new TransactionManager()) {
             SecretaryDAO dao = new SecretaryDAO(tm.getConnection());
 
-            // 現行データ取得（存在確認＆非編集項目保持）
+            // 現行データ
             SecretaryDTO cur = dao.selectByUUId(myId);
-            if (cur == null) {
+            if (cur == null || cur.getId() == null) { // ← 空DTO対策
+            	System.out.println("アカウント情報が取得できませんでした。");
                 validation.addErrorMsg("アカウント情報が取得できませんでした。");
                 req.setAttribute(A_ERROR_MSG, validation.getErrorMsg());
                 return req.getContextPath() + req.getServletPath() + "/error";
             }
 
-            // 自ID除外のメール重複チェック
+            // メール重複（論理削除含め全件を対象）
             if (notBlank(mail) && dao.mailCheckExceptId(mail, cur.getId())) {
-                validation.addErrorMsg("登録いただいたメールアドレスはすでに使われています。");
+            	System.out.println("登録いただいたメールアドレスはすでに使われています。");
+            	validation.addErrorMsg("登録いただいたメールアドレスはすでに使われています。");
                 req.setAttribute(A_ERROR_MSG, validation.getErrorMsg());
                 pushMyPageFormBackToRequest();
                 return VIEW_MYPAGE_EDIT;
             }
 
-            // 更新DTO組み立て：非編集は現行維持、編集可のみ上書き
+            // 更新 DTO
             SecretaryDTO dto = new SecretaryDTO();
             dto.setId(cur.getId());
-            dto.setSecretaryCode(cur.getSecretaryCode());      // 非編集
-            dto.setPmSecretary(cur.isPmSecretary());           // 非編集
-            dto.setSecretaryRankId(cur.getSecretaryRankId());  // 非編集
+            dto.setSecretaryCode(cur.getSecretaryCode());
+            dto.setPmSecretary(cur.isPmSecretary());
+            dto.setSecretaryRankId(cur.getSecretaryRankId());
             dto.setName(name);
             dto.setNameRuby(nameRuby);
             dto.setMail(mail);
@@ -717,17 +718,31 @@ public class SecretaryService extends BaseService{
             dto.setAddress1(address1);
             dto.setAddress2(address2);
             dto.setBuilding(building);
-            dto.setPassword(notBlank(password) ? password : cur.getPassword()); // 入力時だけ更新
+            dto.setPassword(notBlank(password) ? password : cur.getPassword());
             dto.setBankName(bankName);
             dto.setBankBranch(bankBranch);
             dto.setBankType(bankType);
             dto.setBankAccount(bankAccount);
             dto.setBankOwner(bankOwner);
 
-            int num = dao.updateWithBank(dto);
+            try {
+                dao.updateWithBank(dto);
+            } catch (DAOException ex) {
+                // 23505 = unique_violation (PostgreSQL)
+                Throwable cause = ex.getCause();
+                if (cause instanceof java.sql.SQLException sqlEx && "23505".equals(sqlEx.getSQLState())) {
+                    System.out.println("登録いただいたメールアドレスはすでに使われています。");
+                    validation.addErrorMsg("登録いただいたメールアドレスはすでに使われています。");
+                    req.setAttribute(A_ERROR_MSG, validation.getErrorMsg());
+                    pushMyPageFormBackToRequest();
+                    return VIEW_MYPAGE_EDIT;
+                }
+                throw ex; 
+            }
+
             tm.commit();
 
-            // セッションの loginUser も最新化（次画面表示ブレ防止）
+            // セッションの loginUser を更新
             HttpSession session = req.getSession(false);
             if (session != null) {
                 Object u = session.getAttribute("loginUser");
@@ -738,15 +753,17 @@ public class SecretaryService extends BaseService{
                 }
             }
 
-            // 完了後はマイページへリダイレクト（最新値で再描画）
             return req.getContextPath() + "/secretary/mypage/home";
 
         } catch (RuntimeException e) {
-            validation.addErrorMsg("データベースに不正な操作が行われました");
+            // ここに来るのは主に DB/DAO のその他例外
+            validation.addErrorMsg("処理中にエラーが発生しました。再度お試しください。");
             req.setAttribute(A_ERROR_MSG, validation.getErrorMsg());
+            System.out.println("処理中にエラーが発生しました。再度お試しください。");
             return req.getContextPath() + req.getServletPath() + "/error";
         }
     }
+
 
 	
 	// =========================================================

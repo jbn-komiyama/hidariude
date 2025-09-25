@@ -619,9 +619,6 @@ public class ContactService extends BaseService {
             return req.getContextPath() + req.getServletPath() + "/error";
         }
 
-        // 再検証（略：上と同じバリデーション）
-        // ...（同じチェックを実施）
-        // 失敗時は EDIT に戻す処理も同様
 
         try (TransactionManager tm = new TransactionManager()) {
             var cDao  = new CustomerDAO(tm.getConnection());

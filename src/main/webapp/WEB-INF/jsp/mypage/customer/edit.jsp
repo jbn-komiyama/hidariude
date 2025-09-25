@@ -84,27 +84,54 @@
                value="${not empty param.companyPhone ? param.companyPhone : (not empty companyPhone ? companyPhone : customer.phone)}"/>
       </div>
 
+      <!-- ▼ 郵便番号 + 住所検索（秘書側と同仕様） -->
       <div class="col-md-6">
         <label class="form-label">郵便番号</label>
-        <input id="postalCode" name="postalCode" class="form-control" placeholder="100-0001"
-               value="${not empty param.postalCode ? param.postalCode : (not empty postalCode ? postalCode : customer.postalCode)}"/>
+        <div class="input-group">
+          <input type="text" id="postalCode" name="postalCode"
+                 class="form-control" inputmode="numeric"
+                 placeholder="1000001（ハイフン不要）"
+                 value="${not empty param.postalCode ? param.postalCode : (not empty postalCode ? postalCode : customer.postalCode)}">
+          <button class="btn btn-outline-primary" type="button" id="btnLookup">住所検索</button>
+        </div>
+        <div class="form-text">数字7桁を入力して「住所検索」を押すと、都道府県・市区町村・町域を自動入力します。</div>
+        <div id="zipError" class="invalid-feedback d-none"></div>
       </div>
-      
-      <div class="col-md-6">
-        <label class="form-label">住所</label>
-        <input id="address1" name="address1" class="form-control"
-               value="${not empty param.address1 ? param.address1 : (not empty address1 ? address1 : customer.address1)}"/>
+
+      <!-- 住所（表示＋hidden送信） -->
+      <div class="col-12">
+        <label class="form-label mb-1">住所</label>
+
+        <!-- 住所1（自動）：都道府県・市区町村・町域 -->
+        <div id="addr1View" class="border rounded p-2 bg-white text-body"
+             tabindex="0" aria-live="polite">
+          <c:out value="${not empty param.address1 ? param.address1 : (not empty address1 ? address1 : customer.address1)}"/>
+        </div>
+        <div class="form-text mb-2">（自動入力）</div>
+
+        <!-- 住所2（直書き）：番地・丁目など -->
+        <label class="form-label mb-1">住所2（番地・丁目など）</label>
+        <div id="addr2View" class="border rounded p-2 bg-white text-body"
+             contenteditable="true" tabindex="0" aria-label="番地等を入力">
+          <c:out value="${not empty param.address2 ? param.address2 : (not empty address2 ? address2 : customer.address2)}"/>
+        </div>
+
+        <!-- 建物名（直書き） -->
+        <label class="form-label mt-2 mb-1">建物名・部屋番号</label>
+        <div id="bldgView" class="border rounded p-2 bg-white text-body"
+             contenteditable="true" tabindex="0" aria-label="建物名・部屋番号を入力">
+          <c:out value="${not empty param.building ? param.building : (not empty building ? building : customer.building)}"/>
+        </div>
+
+        <!-- 送信用 hidden -->
+        <input type="hidden" name="address1" id="address1Hidden"
+               value="${fn:escapeXml(not empty param.address1 ? param.address1 : (not empty address1 ? address1 : customer.address1))}">
+        <input type="hidden" name="address2" id="address2Hidden"
+               value="${fn:escapeXml(not empty param.address2 ? param.address2 : (not empty address2 ? address2 : customer.address2))}">
+        <input type="hidden" name="building" id="buildingHidden"
+               value="${fn:escapeXml(not empty param.building ? param.building : (not empty building ? building : customer.building))}">
       </div>
-      <div class="col-md-6">
-        <label class="form-label">住所2</label>
-        <input name="address2" class="form-control"
-               value="${not empty param.address2 ? param.address2 : (not empty address2 ? address2 : customer.address2)}"/>
-      </div>
-      <div class="col-md-6">
-        <label class="form-label">建物名</label>
-        <input name="building" class="form-control"
-               value="${not empty param.building ? param.building : (not empty building ? building : customer.building)}"/>
-      </div>
+      <!-- ▲ 郵便番号/住所ブロック -->
     </div>
 
     <div class="mt-3 text-end">
@@ -114,41 +141,91 @@
   </form>
 </div>
 
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 <script>
-(function() {
-  const pcInput = document.getElementById("postalCode");
-  const addrInput = document.getElementById("address1");
-  if (!pcInput || !addrInput) return;
+(() => {
+  const $ = (q) => document.querySelector(q);
 
-  pcInput.addEventListener("blur", async function () {
-    const digits = (pcInput.value || "").replace(/\D/g, "");
-    if (digits.length !== 7) return;
+  const postal = $('#postalCode');
+  const btn = $('#btnLookup');
+  const err = $('#zipError');
+
+  const addr1View = $('#addr1View');
+  const addr2View = $('#addr2View');
+  const bldgView  = $('#bldgView');
+
+  const address1Hidden = $('#address1Hidden');
+  const address2Hidden = $('#address2Hidden');
+  const buildingHidden = $('#buildingHidden');
+
+  // 表示領域 → hidden 同期
+  function syncHidden() {
+    address1Hidden.value = (addr1View.textContent || '').trim();
+    address2Hidden.value = (addr2View.textContent || '').trim();
+    buildingHidden.value = (bldgView.textContent  || '').trim();
+  }
+  ['input','blur','keyup','paste'].forEach(ev=>{
+    addr2View.addEventListener(ev, syncHidden);
+    bldgView.addEventListener(ev,  syncHidden);
+  });
+  document.addEventListener('DOMContentLoaded', syncHidden);
+
+  // 郵便番号検索
+  async function lookup() {
+    err.classList.add('d-none');
+    err.textContent = '';
+
+    const raw = (postal.value || '').replace(/[^0-9]/g, '');
+    postal.value = raw; // 数字のみ保持
+    if (raw.length !== 7) {
+      err.textContent = '郵便番号は数字7桁で入力してください。';
+      err.classList.remove('d-none');
+      return;
+    }
+
+    btn.disabled = true;
+    btn.classList.add('disabled');
 
     try {
-      pcInput.disabled = true;
-      const res = await fetch("https://zipcloud.ibsnet.co.jp/api/search?zipcode=" + digits, {
-        method: "GET",
-        mode: "cors",
-        cache: "no-store"
-      });
+      const res = await fetch('https://zipcloud.ibsnet.co.jp/api/search?zipcode=' + raw);
+      if (!res.ok) throw new Error('HTTP ' + res.status);
       const data = await res.json();
 
-      if (data && data.status === 200 && Array.isArray(data.results) && data.results.length > 0) {
-        const r = data.results[0];
-        addrInput.value = (r.address1 || "") + (r.address2 || "") + (r.address3 || "");
-        pcInput.value = digits.slice(0,3) + "-" + digits.slice(3);
-      } else {
-        alert("住所が見つかりませんでした（郵便番号を確認してください）");
+      if (data.status !== 200 || !data.results || !data.results.length) {
+        err.textContent = '該当する住所が見つかりませんでした。';
+        err.classList.remove('d-none');
+        return;
       }
+
+      const r = data.results[0];
+      const addr1 = (r.address1 || '') + (r.address2 || '') + (r.address3 || '');
+      addr1View.textContent = addr1;
+
+      syncHidden();
     } catch (e) {
-      console.error("住所検索エラー:", e);
-      alert("住所検索でエラーが発生しました。時間をおいてお試しください。");
+      err.textContent = '住所検索に失敗しました。ネットワークをご確認ください。';
+      err.classList.remove('d-none');
+      console.error(e);
     } finally {
-      pcInput.disabled = false;
+      btn.disabled = false;
+      btn.classList.remove('disabled');
     }
+  }
+
+  btn.addEventListener('click', lookup);
+  postal.addEventListener('blur', () => {
+    if ((postal.value || '').replace(/[^0-9]/g,'').length === 7) lookup();
   });
+
+  // 初期オート検索（住所未入力かつ郵便番号が7桁）
+  document.addEventListener('DOMContentLoaded', () => {
+    const raw = (postal.value || '').replace(/[^0-9]/g,'');
+    if (!addr1View.textContent.trim() && raw.length === 7) lookup();
+  });
+
+  // 送信直前に同期（念のため）
+  document.querySelector('form').addEventListener('submit', syncHidden);
 })();
 </script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>
