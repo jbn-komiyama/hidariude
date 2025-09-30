@@ -10,7 +10,6 @@ out/
 .settings/
 .idea/
 *.iml
-.vscode/
 
 # OS
 Thumbs.db

@@ -6,17 +6,6 @@
   <packaging>war</packaging>
   <build>
     <plugins>
-      <plugin>
-        <artifactId>maven-compiler-plugin</artifactId>
-        <version>3.13.0</version>
-        <configuration>
-          <release>17</release>
-        </configuration>
-      </plugin>
-      <plugin>
-        <artifactId>maven-war-plugin</artifactId>
-        <version>3.2.3</version>
-      </plugin>
       <!-- Maven Compiler Plugin -->
       <plugin>
           <groupId>org.apache.maven.plugins</groupId>
@@ -35,25 +24,42 @@
           <artifactId>maven-war-plugin</artifactId>
           <version>3.4.0</version>
           <configuration>
-              <webXml>src\main\webapp\WEB-INF\web.xml</webXml>
+              <webXml>src/main/webapp/WEB-INF/web.xml</webXml>
           </configuration>
       </plugin>
      
-      <!-- Tomcat Maven Plugin (開発用) -->
+      <!-- Cargo Maven Plugin (開発用) -->
       <plugin>
-          <groupId>org.apache.tomcat.maven</groupId>
-          <artifactId>tomcat7-maven-plugin</artifactId>
-          <version>2.2</version>
+          <groupId>org.codehaus.cargo</groupId>
+          <artifactId>cargo-maven3-plugin</artifactId>
+          <version>1.10.14</version>
           <configuration>
-              <port>8080</port>
-              <path>/hidariude</path>
+              <container>
+                  <containerId>tomcat10x</containerId>
+                  <type>embedded</type>
+              </container>
+              <configuration>
+                  <properties>
+                      <cargo.servlet.port>8080</cargo.servlet.port>
+                  </properties>
+              </configuration>
+              <deployables>
+                  <deployable>
+                      <groupId>${project.groupId}</groupId>
+                      <artifactId>${project.artifactId}</artifactId>
+                      <type>war</type>
+                      <properties>
+                          <context>/hidariude</context>
+                      </properties>
+                  </deployable>
+              </deployables>
           </configuration>
       </plugin>
     </plugins>
   </build>
   <properties>
-      <maven.compiler.source>17</maven.compiler.source>
-      <maven.compiler.target>17</maven.compiler.target>
+      <maven.compiler.source>24</maven.compiler.source>
+      <maven.compiler.target>24</maven.compiler.target>
       <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
       <jakarta.servlet.version>6.1.0</jakarta.servlet.version>
       <jakarta.jsp.version>4.0.0</jakarta.jsp.version>
@@ -77,7 +83,14 @@
             <scope>provided</scope>
         </dependency>
        
-        <!-- JSTL -->
+        <!-- JSTL API -->
+        <dependency>
+            <groupId>jakarta.servlet.jsp.jstl</groupId>
+            <artifactId>jakarta.servlet.jsp.jstl-api</artifactId>
+            <version>${jstl.version}</version>
+        </dependency>
+        
+        <!-- JSTL Implementation -->
         <dependency>
             <groupId>org.glassfish.web</groupId>
             <artifactId>jakarta.servlet.jsp.jstl</artifactId>
