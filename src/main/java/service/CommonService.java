@@ -10,9 +10,12 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpSession;
+
+import org.mindrot.jbcrypt.BCrypt;
 
 import dao.AssignmentDAO;
 import dao.CustomerContactDAO;
@@ -76,6 +79,24 @@ public class CommonService extends BaseService {
 	}
 
 	private final Converter conv = new Converter();
+	
+	// =========================================================
+	// セキュリティ強化：ログイン試行回数制限
+	// =========================================================
+	private static final int MAX_LOGIN_ATTEMPTS = 5;
+	private static final long LOCKOUT_DURATION_MS = 15 * 60 * 1000; // 15分
+	private static final ConcurrentHashMap<String, LoginAttempt> loginAttempts = new ConcurrentHashMap<>();
+	
+	/** ログイン試行情報を保持する内部クラス */
+	private static class LoginAttempt {
+		int count;
+		long lockoutUntil;
+		
+		LoginAttempt() {
+			this.count = 0;
+			this.lockoutUntil = 0;
+		}
+	}
 
 	public CommonService(HttpServletRequest req, boolean useDB) {
 		super(req, useDB);
@@ -86,14 +107,19 @@ public class CommonService extends BaseService {
 	// =========================================================
 
 	/**
-	 * 秘書ログイン。
+	 * 秘書ログイン（セキュリティ強化版）。
+	 * 
+	 * セキュリティ対策：
+	 * 1. BCryptによるパスワードハッシュ化
+	 * 2. ログイン試行回数制限（ブルートフォース攻撃対策）
+	 * 
 	 * @return 遷移先
 	 */
-	public String secretaryLogin() { // ★ REVERT: Role/共通ハンドラを廃止し、個別実装に戻す
+	public String secretaryLogin() {
 		final String loginId = req.getParameter(P_LOGIN_ID);
 		final String password = req.getParameter(P_PASSWORD);
 
-		// 必須チェック（元実装どおり）
+		// 必須チェック
 		validation.isNull("ログインID", loginId);
 		validation.isNull("パスワード", password);
 
@@ -102,30 +128,62 @@ public class CommonService extends BaseService {
 			return req.getContextPath() + PATH_SECRETARY_LOGIN;
 		}
 
+		// ログイン試行回数制限チェック（ブルートフォース攻撃対策）
+		LoginAttempt attempt = loginAttempts.computeIfAbsent(loginId, k -> new LoginAttempt());
+		long now = System.currentTimeMillis();
+		
+		// ロックアウト中かチェック
+		if (attempt.lockoutUntil > now) {
+			long remainingMinutes = (attempt.lockoutUntil - now) / 60000 + 1;
+			validation.addErrorMsg("ログイン試行回数が上限に達しました。" + remainingMinutes + "分後に再試行してください。");
+			req.setAttribute("errorMsg", validation.getErrorMsg());
+			return req.getContextPath() + PATH_SECRETARY_LOGIN;
+		}
+		
+		// ロックアウト期間が過ぎていたらリセット
+		if (attempt.lockoutUntil > 0 && attempt.lockoutUntil <= now) {
+			attempt.count = 0;
+			attempt.lockoutUntil = 0;
+		}
+
 		try (TransactionManager tm = new TransactionManager()) {
 			SecretaryDAO dao = new SecretaryDAO(tm.getConnection());
 			SecretaryDTO dto = dao.selectByMail(loginId);
 			
-
-			if (dto != null && safeEquals(dto.getPassword(), password)) {
+			// パスワード検証（BCryptによる安全な比較）
+			if (dto != null && verifyPassword(password, dto.getPassword())) {
+				// ログイン成功：試行回数をリセット
+				attempt.count = 0;
+				attempt.lockoutUntil = 0;
+				
+				// LoginUserオブジェクト作成
 				LoginUser loginUser = new LoginUser();
-
 				Secretary sec = new Secretary();
 				sec.setId(dto.getId());
 				sec.setMail(dto.getMail());
 				sec.setName(dto.getName());
-
 				loginUser.setSecretary(sec);
 				loginUser.setAuthority(AUTH_SECRETARY);
-
+				
 				putLoginUserToSession(loginUser);
 				return req.getContextPath() + PATH_SECRETARY_HOME;
 			} else {
-				validation.addErrorMsg("正しいログインIDとパスワードを入力してください。");
+				// 認証失敗：試行回数をインクリメント
+				attempt.count++;
+				
+				if (attempt.count >= MAX_LOGIN_ATTEMPTS) {
+					attempt.lockoutUntil = now + LOCKOUT_DURATION_MS;
+					validation.addErrorMsg("ログイン試行回数が上限に達しました。15分後に再試行してください。");
+				} else {
+					int remainingAttempts = MAX_LOGIN_ATTEMPTS - attempt.count;
+					validation.addErrorMsg("正しいログインIDとパスワードを入力してください。（残り試行回数: " + remainingAttempts + "回）");
+				}
+				
 				req.setAttribute("errorMsg", validation.getErrorMsg());
 				return req.getContextPath() + PATH_SECRETARY_LOGIN;
 			}
 		} catch (RuntimeException e) {
+			e.printStackTrace();
 			return req.getContextPath() + req.getServletPath() + "/error";
 		}
 	}
@@ -610,6 +668,40 @@ public class CommonService extends BaseService {
 	/** null セーフな equals。 */
 	private boolean safeEquals(String a, String b) {
 		return (a == null) ? (b == null) : a.equals(b);
+	}
+	
+	/**
+	 * BCryptを使用してパスワードを検証（セキュリティ強化）。
+	 * 
+	 * @param plainPassword 平文パスワード
+	 * @param hashedPassword ハッシュ化されたパスワード
+	 * @return 一致する場合はtrue
+	 */
+	private boolean verifyPassword(String plainPassword, String hashedPassword) {
+		try {
+			// BCryptハッシュの形式チェック（$2a$, $2b$, $2y$ で始まる）
+			if (hashedPassword != null && hashedPassword.startsWith("$2")) {
+				return BCrypt.checkpw(plainPassword, hashedPassword);
+			} else {
+				// 既存の平文パスワード（移行期間用の後方互換性）
+				// 本番環境では全てBCryptハッシュに移行することを推奨
+				return safeEquals(plainPassword, hashedPassword);
+			}
+		} catch (Exception e) {
+			// ハッシュ検証エラー時は認証失敗とする
+			return false;
+		}
+	}
+	
+	/**
+	 * パスワードをBCryptでハッシュ化（新規登録・パスワード変更時に使用）。
+	 * 
+	 * @param plainPassword 平文パスワード
+	 * @return BCryptハッシュ
+	 */
+	public static String hashPassword(String plainPassword) {
+		// BCryptのコストファクター（10が推奨値）
+		return BCrypt.hashpw(plainPassword, BCrypt.gensalt(10));
 	}
 	
 	private static BigDecimal nz(BigDecimal v) { return v == null ? BigDecimal.ZERO : v; }
