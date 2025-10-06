@@ -285,6 +285,7 @@ GRANT ALL PRIVILEGES ON DATABASE hidariude TO postgres;
     -   データベース `hidariude` 作成済み
     -   ユーザー `postgres` / パスワード `password`
     -   systemctl で自動起動設定済み
+    -   TCP 接続（localhost:5433）が許可されていること（pg_hba.conf）
 
 ### デプロイ手順
 
@@ -376,11 +377,27 @@ systemctl restart tomcat
 # ステータス確認
 systemctl status postgresql-15
 
-# データベース接続確認
-psql -h localhost -p 5433 -U postgres -d hidariude
+# データベース接続確認（peer認証）
+sudo -u postgres psql -p 5433 -d hidariude
 
 # テーブル一覧
-psql -h localhost -p 5433 -U postgres -d hidariude -c "\dt"
+sudo -u postgres psql -p 5433 -d hidariude -c "\dt"
+
+# TCP接続確認（Javaアプリケーションが使用）
+PGPASSWORD=password psql -h localhost -p 5433 -U postgres -d hidariude -c "SELECT 1;"
+```
+
+**注意**: Java アプリケーションは`localhost:5433`に TCP 接続します。`pg_hba.conf`で以下の設定が必要です：
+
+```
+# IPv4 local connections:
+host    hidariude       postgres        127.0.0.1/32            scram-sha-256
+```
+
+設定後は PostgreSQL を再起動：
+
+```bash
+systemctl restart postgresql-15
 ```
 
 #### ポート開放（ファイアウォール）
@@ -418,7 +435,7 @@ mvn clean package
 systemctl status postgresql-15
 
 # 接続テスト
-psql -h localhost -p 5433 -U postgres -d hidariude -c "SELECT 1;"
+sudo -u postgres psql -p 5433 -d hidariude -c "SELECT 1;"
 ```
 
 ### 自動デプロイ（オプション）

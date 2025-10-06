@@ -7,7 +7,10 @@
 # 前提条件:
 # - PostgreSQL 15 がポート5433で稼働中
 # - データベース「hidariude」が作成済み
-# - ユーザー「postgres」にパスワード「password」が設定済み
+# - rootユーザーで実行（sudo -u postgres で接続）
+#
+# 実行方法:
+#   ./init_database.sh
 #####################################################################
 
 set -e  # エラー時に即座に終了
@@ -40,17 +43,18 @@ log_sql() {
 # データベース設定
 #####################################################################
 
-DB_HOST="localhost"
 DB_PORT="5433"
 DB_NAME="hidariude"
 DB_USER="postgres"
-DB_PASSWORD="password"
-PGPASSWORD="$DB_PASSWORD"
-export PGPASSWORD
 
 # プロジェクト設定
 PROJECT_DIR="/opt/hidariude"
 SQL_FILE="$PROJECT_DIR/src/main/sql/hoshiiro.sql"
+
+# psqlコマンドのラッパー（sudo -u postgres経由で実行）
+psql_exec() {
+    sudo -u postgres psql -p "$DB_PORT" "$@"
+}
 
 #####################################################################
 # 事前確認
@@ -87,13 +91,15 @@ log_info "SQLファイル: $SQL_FILE"
 
 log_info "=== データベース接続確認 ==="
 
-if ! psql -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" -d "$DB_NAME" -c "SELECT 1;" > /dev/null 2>&1; then
+if ! psql_exec -d "$DB_NAME" -c "SELECT 1;" > /dev/null 2>&1; then
     log_error "データベースに接続できません"
     log_error "接続情報を確認してください:"
-    log_error "  ホスト: $DB_HOST"
     log_error "  ポート: $DB_PORT"
     log_error "  データベース: $DB_NAME"
-    log_error "  ユーザー: $DB_USER"
+    log_error "  ユーザー: $DB_USER (sudo経由)"
+    log_error ""
+    log_error "以下のコマンドで接続できることを確認してください:"
+    log_error "  sudo -u postgres psql -p $DB_PORT -d $DB_NAME"
     exit 1
 fi
 
@@ -107,11 +113,11 @@ log_warn ""
 log_warn "================================================"
 log_warn "警告: このスクリプトは既存のテーブルを削除します"
 log_warn "================================================"
-log_warn "データベース: $DB_NAME@$DB_HOST:$DB_PORT"
+log_warn "データベース: $DB_NAME (ポート: $DB_PORT)"
 log_warn ""
 
 # 既存テーブルの確認
-TABLE_COUNT=$(psql -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" -d "$DB_NAME" -t -c "
+TABLE_COUNT=$(psql_exec -d "$DB_NAME" -t -c "
     SELECT COUNT(*) 
     FROM information_schema.tables 
     WHERE table_schema = 'public' 
@@ -122,7 +128,7 @@ if [ "$TABLE_COUNT" -gt 0 ]; then
     log_warn "既存のテーブル数: $TABLE_COUNT"
     log_warn ""
     log_warn "既存のテーブル一覧:"
-    psql -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" -d "$DB_NAME" -c "
+    psql_exec -d "$DB_NAME" -c "
         SELECT tablename 
         FROM pg_tables 
         WHERE schemaname = 'public' 
@@ -169,7 +175,7 @@ if [ "$TABLE_COUNT" -gt 0 ]; then
     )
     
     for TABLE in "${TABLES[@]}"; do
-        TABLE_EXISTS=$(psql -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" -d "$DB_NAME" -t -c "
+        TABLE_EXISTS=$(psql_exec -d "$DB_NAME" -t -c "
             SELECT EXISTS (
                 SELECT 1 FROM information_schema.tables 
                 WHERE table_schema = 'public' 
@@ -179,13 +185,13 @@ if [ "$TABLE_COUNT" -gt 0 ]; then
         
         if [ "$TABLE_EXISTS" = "t" ]; then
             log_sql "DROP TABLE IF EXISTS $TABLE CASCADE"
-            psql -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" -d "$DB_NAME" -c "DROP TABLE IF EXISTS $TABLE CASCADE;" > /dev/null
+            psql_exec -d "$DB_NAME" -c "DROP TABLE IF EXISTS $TABLE CASCADE;" > /dev/null
         fi
     done
     
     # ドメインの削除
     log_sql "DROP DOMAIN IF EXISTS availability_flag CASCADE"
-    psql -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" -d "$DB_NAME" -c "DROP DOMAIN IF EXISTS availability_flag CASCADE;" > /dev/null 2>&1 || true
+    psql_exec -d "$DB_NAME" -c "DROP DOMAIN IF EXISTS availability_flag CASCADE;" > /dev/null 2>&1 || true
     
     log_info "既存テーブルの削除完了"
 else
@@ -201,7 +207,7 @@ log_info "=== DDLの実行 ==="
 log_info "SQLファイルを実行中: $SQL_FILE"
 
 # SQLファイルを実行
-if psql -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" -d "$DB_NAME" -f "$SQL_FILE" > /tmp/sql_output.log 2>&1; then
+if psql_exec -d "$DB_NAME" -f "$SQL_FILE" > /tmp/sql_output.log 2>&1; then
     log_info "DDL実行完了"
 else
     log_error "DDL実行中にエラーが発生しました"
@@ -217,7 +223,7 @@ fi
 log_info "=== 実行結果確認 ==="
 
 # テーブル数確認
-NEW_TABLE_COUNT=$(psql -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" -d "$DB_NAME" -t -c "
+NEW_TABLE_COUNT=$(psql_exec -d "$DB_NAME" -t -c "
     SELECT COUNT(*) 
     FROM information_schema.tables 
     WHERE table_schema = 'public' 
@@ -229,7 +235,7 @@ log_info ""
 
 # テーブル一覧とレコード数
 log_info "テーブル一覧とレコード数:"
-psql -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" -d "$DB_NAME" -c "
+psql_exec -d "$DB_NAME" -c "
     SELECT 
         schemaname,
         tablename,
@@ -253,19 +259,19 @@ psql -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" -d "$DB_NAME" -c "
 log_info "=== 初期データ確認 ==="
 
 # システム管理者
-ADMIN_COUNT=$(psql -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" -d "$DB_NAME" -t -c "SELECT COUNT(*) FROM system_admins;" | xargs)
+ADMIN_COUNT=$(psql_exec -d "$DB_NAME" -t -c "SELECT COUNT(*) FROM system_admins;" | xargs)
 log_info "システム管理者: $ADMIN_COUNT 件"
 
 # 秘書
-SECRETARY_COUNT=$(psql -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" -d "$DB_NAME" -t -c "SELECT COUNT(*) FROM secretaries;" | xargs)
+SECRETARY_COUNT=$(psql_exec -d "$DB_NAME" -t -c "SELECT COUNT(*) FROM secretaries;" | xargs)
 log_info "秘書: $SECRETARY_COUNT 件"
 
 # 顧客
-CUSTOMER_COUNT=$(psql -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" -d "$DB_NAME" -t -c "SELECT COUNT(*) FROM customers;" | xargs)
+CUSTOMER_COUNT=$(psql_exec -d "$DB_NAME" -t -c "SELECT COUNT(*) FROM customers;" | xargs)
 log_info "顧客: $CUSTOMER_COUNT 件"
 
 # 顧客担当者
-CONTACT_COUNT=$(psql -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" -d "$DB_NAME" -t -c "SELECT COUNT(*) FROM customer_contacts;" | xargs)
+CONTACT_COUNT=$(psql_exec -d "$DB_NAME" -t -c "SELECT COUNT(*) FROM customer_contacts;" | xargs)
 log_info "顧客担当者: $CONTACT_COUNT 件"
 
 #####################################################################
@@ -275,17 +281,14 @@ log_info "顧客担当者: $CONTACT_COUNT 件"
 log_info ""
 log_info "=== データベース初期化完了 ==="
 log_info "データベース: $DB_NAME"
-log_info "ホスト: $DB_HOST:$DB_PORT"
+log_info "ポート: $DB_PORT"
 log_info "テーブル数: $NEW_TABLE_COUNT"
 log_info ""
 log_info "接続確認:"
-log_info "  psql -h $DB_HOST -p $DB_PORT -U $DB_USER -d $DB_NAME"
+log_info "  sudo -u postgres psql -p $DB_PORT -d $DB_NAME"
 log_info ""
 log_info "次のステップ:"
 log_info "  ./deploy.sh を実行してアプリケーションをデプロイしてください"
-
-# パスワード環境変数をクリア
-unset PGPASSWORD
 
 exit 0
 
