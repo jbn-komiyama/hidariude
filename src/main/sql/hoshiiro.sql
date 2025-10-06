@@ -455,193 +455,193 @@ CREATE TABLE IF NOT EXISTS profiles (
 
 -- 下記は、assignment_idを修正する必要あり
 -- 2025-09-01（10件）
-INSERT INTO tasks (assignment_id, work_date, start_time, end_time, work_minute, work_content, approved_at, approved_by, customer_monthly_invoice_id, secretary_monthly_summary_id)
-VALUES ('f2d6bc84-7fc3-4f91-83d9-e30a5d5ec12a', DATE '2025-09-01', TIMESTAMP '2025-09-01 08:30:00', TIMESTAMP '2025-09-01 09:30:00', 60, '請求データ入力', NULL, NULL, NULL, NULL);
+-- INSERT INTO tasks (assignment_id, work_date, start_time, end_time, work_minute, work_content, approved_at, approved_by, customer_monthly_invoice_id, secretary_monthly_summary_id)
+-- VALUES ('f2d6bc84-7fc3-4f91-83d9-e30a5d5ec12a', DATE '2025-09-01', TIMESTAMP '2025-09-01 08:30:00', TIMESTAMP '2025-09-01 09:30:00', 60, '請求データ入力', NULL, NULL, NULL, NULL);
 
-INSERT INTO tasks (assignment_id, work_date, start_time, end_time, work_minute, work_content, approved_at, approved_by, customer_monthly_invoice_id, secretary_monthly_summary_id)
-VALUES ('a31e1fc3-10cd-459d-aeea-a183685262c7', DATE '2025-09-01', TIMESTAMP '2025-09-01 09:40:00', TIMESTAMP '2025-09-01 10:25:00', 45, '顧客メール対応', NULL, NULL, NULL, NULL);
+-- INSERT INTO tasks (assignment_id, work_date, start_time, end_time, work_minute, work_content, approved_at, approved_by, customer_monthly_invoice_id, secretary_monthly_summary_id)
+-- VALUES ('a31e1fc3-10cd-459d-aeea-a183685262c7', DATE '2025-09-01', TIMESTAMP '2025-09-01 09:40:00', TIMESTAMP '2025-09-01 10:25:00', 45, '顧客メール対応', NULL, NULL, NULL, NULL);
 
-INSERT INTO tasks (assignment_id, work_date, start_time, end_time, work_minute, work_content, approved_at, approved_by, customer_monthly_invoice_id, secretary_monthly_summary_id)
-VALUES ('6ac0baf5-65b4-4d58-ad19-e95d3cd4e98a', DATE '2025-09-01', TIMESTAMP '2025-09-01 10:35:00', TIMESTAMP '2025-09-01 11:05:00', 30, '議事録作成', NULL, NULL, NULL, NULL);
+-- INSERT INTO tasks (assignment_id, work_date, start_time, end_time, work_minute, work_content, approved_at, approved_by, customer_monthly_invoice_id, secretary_monthly_summary_id)
+-- VALUES ('6ac0baf5-65b4-4d58-ad19-e95d3cd4e98a', DATE '2025-09-01', TIMESTAMP '2025-09-01 10:35:00', TIMESTAMP '2025-09-01 11:05:00', 30, '議事録作成', NULL, NULL, NULL, NULL);
 
-INSERT INTO tasks (assignment_id, work_date, start_time, end_time, work_minute, work_content, approved_at, approved_by, customer_monthly_invoice_id, secretary_monthly_summary_id)
-VALUES ('f2d6bc84-7fc3-4f91-83d9-e30a5d5ec12a', DATE '2025-09-01', TIMESTAMP '2025-09-01 11:20:00', TIMESTAMP '2025-09-01 12:20:00', 60, '日報整理', NULL, NULL, NULL, NULL);
+-- INSERT INTO tasks (assignment_id, work_date, start_time, end_time, work_minute, work_content, approved_at, approved_by, customer_monthly_invoice_id, secretary_monthly_summary_id)
+-- VALUES ('f2d6bc84-7fc3-4f91-83d9-e30a5d5ec12a', DATE '2025-09-01', TIMESTAMP '2025-09-01 11:20:00', TIMESTAMP '2025-09-01 12:20:00', 60, '日報整理', NULL, NULL, NULL, NULL);
 
-INSERT INTO tasks (assignment_id, work_date, start_time, end_time, work_minute, work_content, approved_at, approved_by, customer_monthly_invoice_id, secretary_monthly_summary_id)
-VALUES ('a31e1fc3-10cd-459d-aeea-a183685262c7', DATE '2025-09-01', TIMESTAMP '2025-09-01 13:30:00', TIMESTAMP '2025-09-01 14:45:00', 75, '資料スキャン', NULL, NULL, NULL, NULL);
+-- INSERT INTO tasks (assignment_id, work_date, start_time, end_time, work_minute, work_content, approved_at, approved_by, customer_monthly_invoice_id, secretary_monthly_summary_id)
+-- VALUES ('a31e1fc3-10cd-459d-aeea-a183685262c7', DATE '2025-09-01', TIMESTAMP '2025-09-01 13:30:00', TIMESTAMP '2025-09-01 14:45:00', 75, '資料スキャン', NULL, NULL, NULL, NULL);
 
-INSERT INTO tasks (assignment_id, work_date, start_time, end_time, work_minute, work_content, approved_at, approved_by, customer_monthly_invoice_id, secretary_monthly_summary_id)
-VALUES ('6ac0baf5-65b4-4d58-ad19-e95d3cd4e98a', DATE '2025-09-01', TIMESTAMP '2025-09-01 14:55:00', TIMESTAMP '2025-09-01 15:25:00', 30, '契約書チェック', NULL, NULL, NULL, NULL);
+-- INSERT INTO tasks (assignment_id, work_date, start_time, end_time, work_minute, work_content, approved_at, approved_by, customer_monthly_invoice_id, secretary_monthly_summary_id)
+-- VALUES ('6ac0baf5-65b4-4d58-ad19-e95d3cd4e98a', DATE '2025-09-01', TIMESTAMP '2025-09-01 14:55:00', TIMESTAMP '2025-09-01 15:25:00', 30, '契約書チェック', NULL, NULL, NULL, NULL);
 
-INSERT INTO tasks (assignment_id, work_date, start_time, end_time, work_minute, work_content, approved_at, approved_by, customer_monthly_invoice_id, secretary_monthly_summary_id)
-VALUES ('f2d6bc84-7fc3-4f91-83d9-e30a5d5ec12a', DATE '2025-09-01', TIMESTAMP '2025-09-01 15:35:00', TIMESTAMP '2025-09-01 16:20:00', 45, '支払処理補助', NULL, NULL, NULL, NULL);
+-- INSERT INTO tasks (assignment_id, work_date, start_time, end_time, work_minute, work_content, approved_at, approved_by, customer_monthly_invoice_id, secretary_monthly_summary_id)
+-- VALUES ('f2d6bc84-7fc3-4f91-83d9-e30a5d5ec12a', DATE '2025-09-01', TIMESTAMP '2025-09-01 15:35:00', TIMESTAMP '2025-09-01 16:20:00', 45, '支払処理補助', NULL, NULL, NULL, NULL);
 
-INSERT INTO tasks (assignment_id, work_date, start_time, end_time, work_minute, work_content, approved_at, approved_by, customer_monthly_invoice_id, secretary_monthly_summary_id)
-VALUES ('a31e1fc3-10cd-459d-aeea-a183685262c7', DATE '2025-09-01', TIMESTAMP '2025-09-01 16:30:00', TIMESTAMP '2025-09-01 17:00:00', 30, '在庫表更新', NULL, NULL, NULL, NULL);
+-- INSERT INTO tasks (assignment_id, work_date, start_time, end_time, work_minute, work_content, approved_at, approved_by, customer_monthly_invoice_id, secretary_monthly_summary_id)
+-- VALUES ('a31e1fc3-10cd-459d-aeea-a183685262c7', DATE '2025-09-01', TIMESTAMP '2025-09-01 16:30:00', TIMESTAMP '2025-09-01 17:00:00', 30, '在庫表更新', NULL, NULL, NULL, NULL);
 
-INSERT INTO tasks (assignment_id, work_date, start_time, end_time, work_minute, work_content, approved_at, approved_by, customer_monthly_invoice_id, secretary_monthly_summary_id)
-VALUES ('6ac0baf5-65b4-4d58-ad19-e95d3cd4e98a', DATE '2025-09-01', TIMESTAMP '2025-09-01 17:10:00', TIMESTAMP '2025-09-01 18:10:00', 60, '会議準備', NULL, NULL, NULL, NULL);
+-- INSERT INTO tasks (assignment_id, work_date, start_time, end_time, work_minute, work_content, approved_at, approved_by, customer_monthly_invoice_id, secretary_monthly_summary_id)
+-- VALUES ('6ac0baf5-65b4-4d58-ad19-e95d3cd4e98a', DATE '2025-09-01', TIMESTAMP '2025-09-01 17:10:00', TIMESTAMP '2025-09-01 18:10:00', 60, '会議準備', NULL, NULL, NULL, NULL);
 
-INSERT INTO tasks (assignment_id, work_date, start_time, end_time, work_minute, work_content, approved_at, approved_by, customer_monthly_invoice_id, secretary_monthly_summary_id)
-VALUES ('f2d6bc84-7fc3-4f91-83d9-e30a5d5ec12a', DATE '2025-09-01', TIMESTAMP '2025-09-01 18:20:00', TIMESTAMP '2025-09-01 19:00:00', 40, '伝票整理', NULL, NULL, NULL, NULL);
+-- INSERT INTO tasks (assignment_id, work_date, start_time, end_time, work_minute, work_content, approved_at, approved_by, customer_monthly_invoice_id, secretary_monthly_summary_id)
+-- VALUES ('f2d6bc84-7fc3-4f91-83d9-e30a5d5ec12a', DATE '2025-09-01', TIMESTAMP '2025-09-01 18:20:00', TIMESTAMP '2025-09-01 19:00:00', 40, '伝票整理', NULL, NULL, NULL, NULL);
 
--- 2025-09-02（10件）
-INSERT INTO tasks (assignment_id, work_date, start_time, end_time, work_minute, work_content, approved_at, approved_by, customer_monthly_invoice_id, secretary_monthly_summary_id)
-VALUES ('a31e1fc3-10cd-459d-aeea-a183685262c7', DATE '2025-09-02', TIMESTAMP '2025-09-02 08:45:00', TIMESTAMP '2025-09-02 09:15:00', 30, '見積書作成補助', NULL, NULL, NULL, NULL);
+-- -- 2025-09-02（10件）
+-- INSERT INTO tasks (assignment_id, work_date, start_time, end_time, work_minute, work_content, approved_at, approved_by, customer_monthly_invoice_id, secretary_monthly_summary_id)
+-- VALUES ('a31e1fc3-10cd-459d-aeea-a183685262c7', DATE '2025-09-02', TIMESTAMP '2025-09-02 08:45:00', TIMESTAMP '2025-09-02 09:15:00', 30, '見積書作成補助', NULL, NULL, NULL, NULL);
 
-INSERT INTO tasks (assignment_id, work_date, start_time, end_time, work_minute, work_content, approved_at, approved_by, customer_monthly_invoice_id, secretary_monthly_summary_id)
-VALUES ('6ac0baf5-65b4-4d58-ad19-e95d3cd4e98a', DATE '2025-09-02', TIMESTAMP '2025-09-02 09:25:00', TIMESTAMP '2025-09-02 10:25:00', 60, 'マニュアル修正', NULL, NULL, NULL, NULL);
+-- INSERT INTO tasks (assignment_id, work_date, start_time, end_time, work_minute, work_content, approved_at, approved_by, customer_monthly_invoice_id, secretary_monthly_summary_id)
+-- VALUES ('6ac0baf5-65b4-4d58-ad19-e95d3cd4e98a', DATE '2025-09-02', TIMESTAMP '2025-09-02 09:25:00', TIMESTAMP '2025-09-02 10:25:00', 60, 'マニュアル修正', NULL, NULL, NULL, NULL);
 
-INSERT INTO tasks (assignment_id, work_date, start_time, end_time, work_minute, work_content, approved_at, approved_by, customer_monthly_invoice_id, secretary_monthly_summary_id)
-VALUES ('f2d6bc84-7fc3-4f91-83d9-e30a5d5ec12a', DATE '2025-09-02', TIMESTAMP '2025-09-02 10:35:00', TIMESTAMP '2025-09-02 11:20:00', 45, '進捗管理表更新', NULL, NULL, NULL, NULL);
+-- INSERT INTO tasks (assignment_id, work_date, start_time, end_time, work_minute, work_content, approved_at, approved_by, customer_monthly_invoice_id, secretary_monthly_summary_id)
+-- VALUES ('f2d6bc84-7fc3-4f91-83d9-e30a5d5ec12a', DATE '2025-09-02', TIMESTAMP '2025-09-02 10:35:00', TIMESTAMP '2025-09-02 11:20:00', 45, '進捗管理表更新', NULL, NULL, NULL, NULL);
 
-INSERT INTO tasks (assignment_id, work_date, start_time, end_time, work_minute, work_content, approved_at, approved_by, customer_monthly_invoice_id, secretary_monthly_summary_id)
-VALUES ('a31e1fc3-10cd-459d-aeea-a183685262c7', DATE '2025-09-02', TIMESTAMP '2025-09-02 11:30:00', TIMESTAMP '2025-09-02 12:00:00', 30, 'ファイル命名整理', NULL, NULL, NULL, NULL);
+-- INSERT INTO tasks (assignment_id, work_date, start_time, end_time, work_minute, work_content, approved_at, approved_by, customer_monthly_invoice_id, secretary_monthly_summary_id)
+-- VALUES ('a31e1fc3-10cd-459d-aeea-a183685262c7', DATE '2025-09-02', TIMESTAMP '2025-09-02 11:30:00', TIMESTAMP '2025-09-02 12:00:00', 30, 'ファイル命名整理', NULL, NULL, NULL, NULL);
 
-INSERT INTO tasks (assignment_id, work_date, start_time, end_time, work_minute, work_content, approved_at, approved_by, customer_monthly_invoice_id, secretary_monthly_summary_id)
-VALUES ('6ac0baf5-65b4-4d58-ad19-e95d3cd4e98a', DATE '2025-09-02', TIMESTAMP '2025-09-02 13:00:00', TIMESTAMP '2025-09-02 14:00:00', 60, 'タスク割当調整', NULL, NULL, NULL, NULL);
+-- INSERT INTO tasks (assignment_id, work_date, start_time, end_time, work_minute, work_content, approved_at, approved_by, customer_monthly_invoice_id, secretary_monthly_summary_id)
+-- VALUES ('6ac0baf5-65b4-4d58-ad19-e95d3cd4e98a', DATE '2025-09-02', TIMESTAMP '2025-09-02 13:00:00', TIMESTAMP '2025-09-02 14:00:00', 60, 'タスク割当調整', NULL, NULL, NULL, NULL);
 
-INSERT INTO tasks (assignment_id, work_date, start_time, end_time, work_minute, work_content, approved_at, approved_by, customer_monthly_invoice_id, secretary_monthly_summary_id)
-VALUES ('f2d6bc84-7fc3-4f91-83d9-e30a5d5ec12a', DATE '2025-09-02', TIMESTAMP '2025-09-02 14:10:00', TIMESTAMP '2025-09-02 14:25:00', 15, '問い合わせ一次対応', NULL, NULL, NULL, NULL);
+-- INSERT INTO tasks (assignment_id, work_date, start_time, end_time, work_minute, work_content, approved_at, approved_by, customer_monthly_invoice_id, secretary_monthly_summary_id)
+-- VALUES ('f2d6bc84-7fc3-4f91-83d9-e30a5d5ec12a', DATE '2025-09-02', TIMESTAMP '2025-09-02 14:10:00', TIMESTAMP '2025-09-02 14:25:00', 15, '問い合わせ一次対応', NULL, NULL, NULL, NULL);
 
-INSERT INTO tasks (assignment_id, work_date, start_time, end_time, work_minute, work_content, approved_at, approved_by, customer_monthly_invoice_id, secretary_monthly_summary_id)
-VALUES ('a31e1fc3-10cd-459d-aeea-a183685262c7', DATE '2025-09-02', TIMESTAMP '2025-09-02 14:35:00', TIMESTAMP '2025-09-02 15:20:00', 45, '出荷データ確認', NULL, NULL, NULL, NULL);
+-- INSERT INTO tasks (assignment_id, work_date, start_time, end_time, work_minute, work_content, approved_at, approved_by, customer_monthly_invoice_id, secretary_monthly_summary_id)
+-- VALUES ('a31e1fc3-10cd-459d-aeea-a183685262c7', DATE '2025-09-02', TIMESTAMP '2025-09-02 14:35:00', TIMESTAMP '2025-09-02 15:20:00', 45, '出荷データ確認', NULL, NULL, NULL, NULL);
 
-INSERT INTO tasks (assignment_id, work_date, start_time, end_time, work_minute, work_content, approved_at, approved_by, customer_monthly_invoice_id, secretary_monthly_summary_id)
-VALUES ('6ac0baf5-65b4-4d58-ad19-e95d3cd4e98a', DATE '2025-09-02', TIMESTAMP '2025-09-02 15:30:00', TIMESTAMP '2025-09-02 16:00:00', 30, '勤怠データ確認', NULL, NULL, NULL, NULL);
+-- INSERT INTO tasks (assignment_id, work_date, start_time, end_time, work_minute, work_content, approved_at, approved_by, customer_monthly_invoice_id, secretary_monthly_summary_id)
+-- VALUES ('6ac0baf5-65b4-4d58-ad19-e95d3cd4e98a', DATE '2025-09-02', TIMESTAMP '2025-09-02 15:30:00', TIMESTAMP '2025-09-02 16:00:00', 30, '勤怠データ確認', NULL, NULL, NULL, NULL);
 
-INSERT INTO tasks (assignment_id, work_date, start_time, end_time, work_minute, work_content, approved_at, approved_by, customer_monthly_invoice_id, secretary_monthly_summary_id)
-VALUES ('f2d6bc84-7fc3-4f91-83d9-e30a5d5ec12a', DATE '2025-09-02', TIMESTAMP '2025-09-02 16:10:00', TIMESTAMP '2025-09-02 17:25:00', 75, '請求書発行補助', NULL, NULL, NULL, NULL);
+-- INSERT INTO tasks (assignment_id, work_date, start_time, end_time, work_minute, work_content, approved_at, approved_by, customer_monthly_invoice_id, secretary_monthly_summary_id)
+-- VALUES ('f2d6bc84-7fc3-4f91-83d9-e30a5d5ec12a', DATE '2025-09-02', TIMESTAMP '2025-09-02 16:10:00', TIMESTAMP '2025-09-02 17:25:00', 75, '請求書発行補助', NULL, NULL, NULL, NULL);
 
-INSERT INTO tasks (assignment_id, work_date, start_time, end_time, work_minute, work_content, approved_at, approved_by, customer_monthly_invoice_id, secretary_monthly_summary_id)
-VALUES ('a31e1fc3-10cd-459d-aeea-a183685262c7', DATE '2025-09-02', TIMESTAMP '2025-09-02 17:35:00', TIMESTAMP '2025-09-02 18:15:00', 40, '顧客情報メンテ', NULL, NULL, NULL, NULL);
+-- INSERT INTO tasks (assignment_id, work_date, start_time, end_time, work_minute, work_content, approved_at, approved_by, customer_monthly_invoice_id, secretary_monthly_summary_id)
+-- VALUES ('a31e1fc3-10cd-459d-aeea-a183685262c7', DATE '2025-09-02', TIMESTAMP '2025-09-02 17:35:00', TIMESTAMP '2025-09-02 18:15:00', 40, '顧客情報メンテ', NULL, NULL, NULL, NULL);
 
 
-BEGIN;
+-- BEGIN;
 
--- 毎回同じ擬似乱数にしたい場合（不要なら消してOK）
-SELECT setseed(0.3141592653);
+-- -- 毎回同じ擬似乱数にしたい場合（不要なら消してOK）
+-- SELECT setseed(0.3141592653);
 
--- 既存の一時表を掃除
-DROP TABLE IF EXISTS t_mths;
-DROP TABLE IF EXISTS t_cust;
-DROP TABLE IF EXISTS t_secs;
-DROP TABLE IF EXISTS t_pairs;
-DROP TABLE IF EXISTS t_work;
+-- -- 既存の一時表を掃除
+-- DROP TABLE IF EXISTS t_mths;
+-- DROP TABLE IF EXISTS t_cust;
+-- DROP TABLE IF EXISTS t_secs;
+-- DROP TABLE IF EXISTS t_pairs;
+-- DROP TABLE IF EXISTS t_work;
 
--- 対象月（当月を含む過去24か月）
-CREATE TEMP TABLE t_mths (
-  ym text PRIMARY KEY,
-  m  integer
-) ON COMMIT DROP;
+-- -- 対象月（当月を含む過去24か月）
+-- CREATE TEMP TABLE t_mths (
+--   ym text PRIMARY KEY,
+--   m  integer
+-- ) ON COMMIT DROP;
 
-INSERT INTO t_mths(ym, m)
-SELECT to_char(date_trunc('month', CURRENT_DATE) - (gs || ' months')::interval, 'YYYY-MM') AS ym,
-       gs AS m
-FROM generate_series(0, 23) AS gs;
+-- INSERT INTO t_mths(ym, m)
+-- SELECT to_char(date_trunc('month', CURRENT_DATE) - (gs || ' months')::interval, 'YYYY-MM') AS ym,
+--        gs AS m
+-- FROM generate_series(0, 23) AS gs;
 
--- 顧客（band: 6/12/24ヶ月）
-CREATE TEMP TABLE t_cust (
-  cust_id uuid PRIMARY KEY,
-  band    integer NOT NULL
-) ON COMMIT DROP;
+-- -- 顧客（band: 6/12/24ヶ月）
+-- CREATE TEMP TABLE t_cust (
+--   cust_id uuid PRIMARY KEY,
+--   band    integer NOT NULL
+-- ) ON COMMIT DROP;
 
-INSERT INTO t_cust(cust_id, band) VALUES
-  ('b887c445-9224-480d-b10d-017c9f63d1f3'::uuid, 24), -- Alpha  C001
-  ('62f834a3-d6d8-4647-9c8e-db4c45ac7d60'::uuid, 24), -- Beta   C002
-  ('2c21e1e7-4f36-4f4b-99a0-d9781dd7e454'::uuid, 24), -- Gamma  C003
-  ('dfe8e8e2-ba97-4673-a9c8-8ed1b3ada173'::uuid, 24), -- Delta  C004
-  ('26009e89-ffca-4591-a1aa-c22c0b3b117e'::uuid, 24), -- Eps    C005
-  ('e1bd8b84-2bbb-4d7e-9d52-3c1fad1382ef'::uuid, 12), -- Zeta   C006 (12ヶ月)
-  ('555593b7-68d1-489f-a55b-5ec7757e229d'::uuid, 12), -- Eta    C007 (12ヶ月)
-  ('6b862c31-855f-4964-bc43-94eb309d1567'::uuid,  6), -- Theta  C008 (6ヶ月)
-  ('49cf7627-9369-411e-9d56-e19bddacfd11'::uuid,  6), -- Iota   C009 (6ヶ月)
-  ('756ac87a-2bab-4646-9dc5-3dc373bd9e71'::uuid,  6); -- Kappa  C010 (6ヶ月)
+-- INSERT INTO t_cust(cust_id, band) VALUES
+--   ('b887c445-9224-480d-b10d-017c9f63d1f3'::uuid, 24), -- Alpha  C001
+--   ('62f834a3-d6d8-4647-9c8e-db4c45ac7d60'::uuid, 24), -- Beta   C002
+--   ('2c21e1e7-4f36-4f4b-99a0-d9781dd7e454'::uuid, 24), -- Gamma  C003
+--   ('dfe8e8e2-ba97-4673-a9c8-8ed1b3ada173'::uuid, 24), -- Delta  C004
+--   ('26009e89-ffca-4591-a1aa-c22c0b3b117e'::uuid, 24), -- Eps    C005
+--   ('e1bd8b84-2bbb-4d7e-9d52-3c1fad1382ef'::uuid, 12), -- Zeta   C006 (12ヶ月)
+--   ('555593b7-68d1-489f-a55b-5ec7757e229d'::uuid, 12), -- Eta    C007 (12ヶ月)
+--   ('6b862c31-855f-4964-bc43-94eb309d1567'::uuid,  6), -- Theta  C008 (6ヶ月)
+--   ('49cf7627-9369-411e-9d56-e19bddacfd11'::uuid,  6), -- Iota   C009 (6ヶ月)
+--   ('756ac87a-2bab-4646-9dc5-3dc373bd9e71'::uuid,  6); -- Kappa  C010 (6ヶ月)
 
--- 秘書
-CREATE TEMP TABLE t_secs (
-  sec_id uuid PRIMARY KEY
-) ON COMMIT DROP;
+-- -- 秘書
+-- CREATE TEMP TABLE t_secs (
+--   sec_id uuid PRIMARY KEY
+-- ) ON COMMIT DROP;
 
-INSERT INTO t_secs(sec_id) VALUES
-  ('15a61dc9-3e8b-484b-a5af-f90b820ba87f'::uuid),
-  ('4419920c-4616-445e-8961-8f83122a73d2'::uuid),
-  ('550bfa21-fdd8-4108-b308-5901e3fd0333'::uuid),
-  ('a1a9fd61-041d-4932-a7ce-ae41cab46ebb'::uuid),
-  ('879cda20-162c-45da-923a-4f581cb89f59'::uuid),
-  ('441edc34-1995-4f32-ab45-1ffe9f973345'::uuid),
-  ('ad05f000-b7dc-40db-88df-9d4e942f4a28'::uuid),
-  ('daa33114-fede-42e1-bdf1-d296057670e6'::uuid),
-  ('a6f01b76-de06-45cd-bd9e-15083ed645df'::uuid),
-  ('0db89c4c-2ac5-4514-9ad9-89ee12f5f339'::uuid),
-  ('68d3ee44-394a-41fb-9cc6-b5195b7aa6e6'::uuid);
+-- INSERT INTO t_secs(sec_id) VALUES
+--   ('15a61dc9-3e8b-484b-a5af-f90b820ba87f'::uuid),
+--   ('4419920c-4616-445e-8961-8f83122a73d2'::uuid),
+--   ('550bfa21-fdd8-4108-b308-5901e3fd0333'::uuid),
+--   ('a1a9fd61-041d-4932-a7ce-ae41cab46ebb'::uuid),
+--   ('879cda20-162c-45da-923a-4f581cb89f59'::uuid),
+--   ('441edc34-1995-4f32-ab45-1ffe9f973345'::uuid),
+--   ('ad05f000-b7dc-40db-88df-9d4e942f4a28'::uuid),
+--   ('daa33114-fede-42e1-bdf1-d296057670e6'::uuid),
+--   ('a6f01b76-de06-45cd-bd9e-15083ed645df'::uuid),
+--   ('0db89c4c-2ac5-4514-9ad9-89ee12f5f339'::uuid),
+--   ('68d3ee44-394a-41fb-9cc6-b5195b7aa6e6'::uuid);
 
--- 顧客×秘書×月（バンド内の月のみ active）
-CREATE TEMP TABLE t_pairs (
-  ym       text,
-  cust_id  uuid,
-  sec_id   uuid
-) ON COMMIT DROP;
+-- -- 顧客×秘書×月（バンド内の月のみ active）
+-- CREATE TEMP TABLE t_pairs (
+--   ym       text,
+--   cust_id  uuid,
+--   sec_id   uuid
+-- ) ON COMMIT DROP;
 
-INSERT INTO t_pairs(ym, cust_id, sec_id)
-SELECT m.ym, c.cust_id, s.sec_id
-FROM t_mths m
-JOIN t_cust c ON m.m <= CASE c.band WHEN 6 THEN 5 WHEN 12 THEN 11 ELSE 23 END
-CROSS JOIN t_secs s;
+-- INSERT INTO t_pairs(ym, cust_id, sec_id)
+-- SELECT m.ym, c.cust_id, s.sec_id
+-- FROM t_mths m
+-- JOIN t_cust c ON m.m <= CASE c.band WHEN 6 THEN 5 WHEN 12 THEN 11 ELSE 23 END
+-- CROSS JOIN t_secs s;
 
--- 分数をランダム生成（0分=非稼働は除外）→ 同じ分数を両テーブルで共有
-CREATE TEMP TABLE t_work (
-  ym       text,
-  cust_id  uuid,
-  sec_id   uuid,
-  minutes  integer
-) ON COMMIT DROP;
+-- -- 分数をランダム生成（0分=非稼働は除外）→ 同じ分数を両テーブルで共有
+-- CREATE TEMP TABLE t_work (
+--   ym       text,
+--   cust_id  uuid,
+--   sec_id   uuid,
+--   minutes  integer
+-- ) ON COMMIT DROP;
 
-INSERT INTO t_work(ym, cust_id, sec_id, minutes)
-SELECT p.ym, p.cust_id, p.sec_id,
-       -- 約35%でゼロ、それ以外は 60..360 分（30分刻み）を中心にばらけさせる
-       30 * (2 + (floor(random()*6))::int + (floor(random()*6))::int) AS minutes
-FROM t_pairs p
-WHERE random() >= 0.35  -- 35% を除外 = 非稼働
-;
+-- INSERT INTO t_work(ym, cust_id, sec_id, minutes)
+-- SELECT p.ym, p.cust_id, p.sec_id,
+--        -- 約35%でゼロ、それ以外は 60..360 分（30分刻み）を中心にばらけさせる
+--        30 * (2 + (floor(random()*6))::int + (floor(random()*6))::int) AS minutes
+-- FROM t_pairs p
+-- WHERE random() >= 0.35  -- 35% を除外 = 非稼働
+-- ;
 
--- タスク件数算出（90分=1件、最低1件）※ minutes>0 のみ入っている前提
--- ここから投入に先立ち該当期間の既存データを削除（重複防止）
-DELETE FROM customer_monthly_invoices cmi
-USING (SELECT DISTINCT ym FROM t_mths) m
-WHERE cmi.target_year_month = m.ym
-  AND cmi.customer_id IN (SELECT cust_id FROM t_cust);
+-- -- タスク件数算出（90分=1件、最低1件）※ minutes>0 のみ入っている前提
+-- -- ここから投入に先立ち該当期間の既存データを削除（重複防止）
+-- DELETE FROM customer_monthly_invoices cmi
+-- USING (SELECT DISTINCT ym FROM t_mths) m
+-- WHERE cmi.target_year_month = m.ym
+--   AND cmi.customer_id IN (SELECT cust_id FROM t_cust);
 
-DELETE FROM secretary_monthly_summaries sms
-USING (SELECT DISTINCT ym FROM t_mths) m
-WHERE sms.target_year_month = m.ym
-  AND sms.secretary_id IN (SELECT sec_id FROM t_secs);
+-- DELETE FROM secretary_monthly_summaries sms
+-- USING (SELECT DISTINCT ym FROM t_mths) m
+-- WHERE sms.target_year_month = m.ym
+--   AND sms.secretary_id IN (SELECT sec_id FROM t_secs);
 
--- 顧客月次請求（¥2,200/時）
-INSERT INTO customer_monthly_invoices
-  (customer_id, target_year_month, total_amount, total_tasks_count, total_work_time, status)
-SELECT
-  w.cust_id                                        AS customer_id,
-  w.ym                                             AS target_year_month,
-  ROUND((2200.0/60.0) * SUM(w.minutes), 2)         AS total_amount,
-  SUM(GREATEST(1, ROUND(w.minutes::numeric / 90.0)::int)) AS total_tasks_count,
-  SUM(w.minutes)                                   AS total_work_time,
-  'closed'                                         AS status
-FROM t_work w
-GROUP BY w.cust_id, w.ym;
+-- -- 顧客月次請求（¥2,200/時）
+-- INSERT INTO customer_monthly_invoices
+--   (customer_id, target_year_month, total_amount, total_tasks_count, total_work_time, status)
+-- SELECT
+--   w.cust_id                                        AS customer_id,
+--   w.ym                                             AS target_year_month,
+--   ROUND((2200.0/60.0) * SUM(w.minutes), 2)         AS total_amount,
+--   SUM(GREATEST(1, ROUND(w.minutes::numeric / 90.0)::int)) AS total_tasks_count,
+--   SUM(w.minutes)                                   AS total_work_time,
+--   'closed'                                         AS status
+-- FROM t_work w
+-- GROUP BY w.cust_id, w.ym;
 
--- 秘書月次サマリ（¥1,300/時）
-INSERT INTO secretary_monthly_summaries
-  (secretary_id, target_year_month, total_secretary_amount, total_tasks_count, total_work_time, status)
-SELECT
-  w.sec_id                                         AS secretary_id,
-  w.ym                                             AS target_year_month,
-  ROUND((1300.0/60.0) * SUM(w.minutes), 2)         AS total_secretary_amount,
-  SUM(GREATEST(1, ROUND(w.minutes::numeric / 90.0)::int)) AS total_tasks_count,
-  SUM(w.minutes)                                   AS total_work_time,
-  'closed'                                         AS status
-FROM t_work w
-GROUP BY w.sec_id, w.ym;
+-- -- 秘書月次サマリ（¥1,300/時）
+-- INSERT INTO secretary_monthly_summaries
+--   (secretary_id, target_year_month, total_secretary_amount, total_tasks_count, total_work_time, status)
+-- SELECT
+--   w.sec_id                                         AS secretary_id,
+--   w.ym                                             AS target_year_month,
+--   ROUND((1300.0/60.0) * SUM(w.minutes), 2)         AS total_secretary_amount,
+--   SUM(GREATEST(1, ROUND(w.minutes::numeric / 90.0)::int)) AS total_tasks_count,
+--   SUM(w.minutes)                                   AS total_work_time,
+--   'closed'                                         AS status
+-- FROM t_work w
+-- GROUP BY w.sec_id, w.ym;
 
-COMMIT;
+-- COMMIT;
 
