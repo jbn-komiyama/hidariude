@@ -167,6 +167,7 @@ PostgreSQL で以下のデータベースとユーザーを作成してくださ
 -- PostgreSQL に接続して実行
 CREATE DATABASE hidariude;
 CREATE USER postgres WITH PASSWORD 'password';
+ALTER USER postgres WITH PASSWORD 'password';
 GRANT ALL PRIVILEGES ON DATABASE hidariude TO postgres;
 ```
 
@@ -270,6 +271,170 @@ GRANT ALL PRIVILEGES ON DATABASE hidariude TO postgres;
 
 ---
 
+## AlmaLinux 10 へのデプロイ
+
+### 前提条件
+
+以下の環境が構築済みであること：
+
+-   **Java 24** - `/usr/lib/jvm/jdk-24.0.2-oracle-x64`
+-   **Apache Maven 3.9.11** - `/opt/apache-maven-3.9.11`
+-   **Apache Tomcat 10.1.46** - `/opt/tomcat/apache-tomcat-10.1.46`
+    -   systemctl で自動起動設定済み
+-   **PostgreSQL 15** - ポート 5433 で稼働
+    -   データベース `hidariude` 作成済み
+    -   ユーザー `postgres` / パスワード `password`
+    -   systemctl で自動起動設定済み
+
+### デプロイ手順
+
+#### 1. リポジトリのクローン
+
+```bash
+cd /opt
+git clone <repository-url> hidariude
+cd hidariude
+```
+
+#### 2. データベースの初期化
+
+初回のみ、またはデータベースをリセットする場合に実行：
+
+```bash
+chmod +x init_database.sh
+./init_database.sh
+```
+
+このスクリプトは以下を実行します：
+
+-   既存テーブルの削除（確認プロンプトあり）
+-   DDL の実行（テーブル作成）
+-   ダミーデータの投入
+
+#### 3. アプリケーションのデプロイ
+
+```bash
+chmod +x deploy.sh
+./deploy.sh
+```
+
+このスクリプトは以下を実行します：
+
+-   Git リポジトリの更新（git pull）
+-   Maven ビルド（clean package）
+-   Tomcat の停止
+-   既存 WAR ファイルの削除
+-   新しい WAR ファイルのデプロイ
+-   Tomcat の起動
+
+#### 4. アプリケーションへのアクセス
+
+デプロイ完了後、以下の URL でアクセス可能：
+
+```
+http://localhost:8080/hidariude
+http://<サーバーのIPアドレス>:8080/hidariude
+```
+
+### トラブルシューティング（AlmaLinux）
+
+#### デプロイスクリプトの実行権限エラー
+
+```bash
+chmod +x deploy.sh init_database.sh
+```
+
+#### Tomcat ログの確認
+
+```bash
+# リアルタイムログ
+tail -f /opt/tomcat/apache-tomcat-10.1.46/logs/catalina.out
+
+# エラーログ
+tail -f /opt/tomcat/apache-tomcat-10.1.46/logs/catalina.$(date +%Y-%m-%d).log
+```
+
+#### Tomcat の手動操作
+
+```bash
+# ステータス確認
+systemctl status tomcat
+
+# 起動
+systemctl start tomcat
+
+# 停止
+systemctl stop tomcat
+
+# 再起動
+systemctl restart tomcat
+```
+
+#### PostgreSQL の確認
+
+```bash
+# ステータス確認
+systemctl status postgresql-15
+
+# データベース接続確認
+psql -h localhost -p 5433 -U postgres -d hidariude
+
+# テーブル一覧
+psql -h localhost -p 5433 -U postgres -d hidariude -c "\dt"
+```
+
+#### ポート開放（ファイアウォール）
+
+外部からアクセスする場合：
+
+```bash
+# ファイアウォール確認
+firewall-cmd --list-all
+
+# ポート8080を開放
+firewall-cmd --permanent --add-port=8080/tcp
+firewall-cmd --reload
+```
+
+#### デプロイ失敗時の対処
+
+1. Tomcat ログを確認
+
+```bash
+tail -100 /opt/tomcat/apache-tomcat-10.1.46/logs/catalina.out
+```
+
+2. ビルドログを確認（Maven エラー）
+
+```bash
+cd /opt/hidariude
+mvn clean package
+```
+
+3. データベース接続エラーの場合
+
+```bash
+# PostgreSQL稼働確認
+systemctl status postgresql-15
+
+# 接続テスト
+psql -h localhost -p 5433 -U postgres -d hidariude -c "SELECT 1;"
+```
+
+### 自動デプロイ（オプション）
+
+cron で定期的にデプロイする場合：
+
+```bash
+# crontab編集
+crontab -e
+
+# 例：毎日深夜2時にデプロイ
+0 2 * * * /opt/hidariude/deploy.sh >> /var/log/hidariude-deploy.log 2>&1
+```
+
+---
+
 ## 更新履歴
 
 ### v0.0.1-SNAPSHOT
@@ -277,3 +442,4 @@ GRANT ALL PRIVILEGES ON DATABASE hidariude TO postgres;
 -   初期プロジェクト構成
 -   VS Code 開発環境対応
 -   Maven + Tomcat 統合設定
+-   AlmaLinux 10 デプロイスクリプト追加
