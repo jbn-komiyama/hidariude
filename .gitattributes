@@ -1,0 +1,27 @@
+# シェルスクリプトは常にLF改行
+*.sh text eol=lf
+
+# SQLファイルも常にLF改行
+*.sql text eol=lf
+
+# Javaファイルは自動判定（通常はLF）
+*.java text
+
+# JSPファイルも自動判定
+*.jsp text
+
+# XMLファイルも自動判定
+*.xml text
+
+# プロパティファイル
+*.properties text
+
+# Markdownファイル
+*.md text
+
+# バイナリファイル
+*.jar binary
+*.war binary
+*.class binary
+*.xlsx binary
+

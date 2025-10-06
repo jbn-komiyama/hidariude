@@ -335,6 +335,8 @@ chmod +x deploy.sh
 ```
 http://localhost:8080/hidariude
 http://<サーバーのIPアドレス>:8080/hidariude
+
+curl -i http://localhost:8080/hidariude
 ```
 
 ### トラブルシューティング（AlmaLinux）
