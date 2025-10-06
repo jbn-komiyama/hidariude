@@ -44,7 +44,8 @@ export PATH=$JAVA_HOME/bin:$MAVEN_HOME/bin:$PATH
 # プロジェクト設定
 PROJECT_NAME="hidariude"
 REPO_DIR="/opt/${PROJECT_NAME}"
-WAR_FILE="${PROJECT_NAME}-0.0.1-SNAPSHOT.war"
+WAR_FILE_ORIGINAL="${PROJECT_NAME}-0.0.1-SNAPSHOT.war"
+WAR_FILE_DEPLOY="${PROJECT_NAME}.war"
 TOMCAT_USER="tomcat"  # Tomcatの実行ユーザー（環境に合わせて変更）
 
 #####################################################################
@@ -125,13 +126,13 @@ log_info "WARファイルをビルド中..."
 mvn package -DskipTests
 
 # ビルド成果物の確認
-if [ ! -f "target/${WAR_FILE}" ]; then
-    log_error "WARファイルが生成されませんでした: target/${WAR_FILE}"
+if [ ! -f "target/${WAR_FILE_ORIGINAL}" ]; then
+    log_error "WARファイルが生成されませんでした: target/${WAR_FILE_ORIGINAL}"
     exit 1
 fi
 
-WAR_SIZE=$(du -h "target/${WAR_FILE}" | cut -f1)
-log_info "WARファイル生成完了: ${WAR_FILE} (${WAR_SIZE})"
+WAR_SIZE=$(du -h "target/${WAR_FILE_ORIGINAL}" | cut -f1)
+log_info "WARファイル生成完了: ${WAR_FILE_ORIGINAL} (${WAR_SIZE})"
 
 #####################################################################
 # Tomcat停止
@@ -171,9 +172,20 @@ if [ -d "$CATALINA_HOME/webapps/${PROJECT_NAME}" ]; then
     rm -rf "$CATALINA_HOME/webapps/${PROJECT_NAME}"
 fi
 
-if [ -f "$CATALINA_HOME/webapps/${WAR_FILE}" ]; then
-    log_info "既存のWARファイルを削除: $CATALINA_HOME/webapps/${WAR_FILE}"
-    rm -f "$CATALINA_HOME/webapps/${WAR_FILE}"
+if [ -f "$CATALINA_HOME/webapps/${WAR_FILE_DEPLOY}" ]; then
+    log_info "既存のWARファイルを削除: $CATALINA_HOME/webapps/${WAR_FILE_DEPLOY}"
+    rm -f "$CATALINA_HOME/webapps/${WAR_FILE_DEPLOY}"
+fi
+
+# 古いバージョン付きWARファイルも削除（念のため）
+if [ -f "$CATALINA_HOME/webapps/${WAR_FILE_ORIGINAL}" ]; then
+    log_info "既存のバージョン付きWARファイルを削除: $CATALINA_HOME/webapps/${WAR_FILE_ORIGINAL}"
+    rm -f "$CATALINA_HOME/webapps/${WAR_FILE_ORIGINAL}"
+fi
+
+if [ -d "$CATALINA_HOME/webapps/${PROJECT_NAME}-0.0.1-SNAPSHOT" ]; then
+    log_info "既存のバージョン付きディレクトリを削除: $CATALINA_HOME/webapps/${PROJECT_NAME}-0.0.1-SNAPSHOT"
+    rm -rf "$CATALINA_HOME/webapps/${PROJECT_NAME}-0.0.1-SNAPSHOT"
 fi
 
 # workディレクトリのクリーンアップ（キャッシュ削除）
@@ -188,18 +200,18 @@ fi
 
 log_info "=== 新しいWARファイルのデプロイ ==="
 
-log_info "WARファイルをコピー中..."
-cp "target/${WAR_FILE}" "$CATALINA_HOME/webapps/"
+log_info "WARファイルをコピー中（${WAR_FILE_ORIGINAL} → ${WAR_FILE_DEPLOY}）..."
+cp "target/${WAR_FILE_ORIGINAL}" "$CATALINA_HOME/webapps/${WAR_FILE_DEPLOY}"
 
 # パーミッション設定（Tomcatユーザーが読めるように）
 if id "$TOMCAT_USER" &>/dev/null; then
-    chown "$TOMCAT_USER:$TOMCAT_USER" "$CATALINA_HOME/webapps/${WAR_FILE}"
+    chown "$TOMCAT_USER:$TOMCAT_USER" "$CATALINA_HOME/webapps/${WAR_FILE_DEPLOY}"
     log_info "パーミッション設定完了 (所有者: $TOMCAT_USER)"
 else
     log_warn "Tomcatユーザー '$TOMCAT_USER' が見つかりません。パーミッション設定をスキップします"
 fi
 
-log_info "WARファイルのデプロイ完了: $CATALINA_HOME/webapps/${WAR_FILE}"
+log_info "WARファイルのデプロイ完了: $CATALINA_HOME/webapps/${WAR_FILE_DEPLOY}"
 
 #####################################################################
 # Tomcat起動
@@ -245,11 +257,15 @@ fi
 
 log_info "=== デプロイ完了 ==="
 log_info "プロジェクト: ${PROJECT_NAME}"
+log_info "ブランチ: ${CURRENT_BRANCH}"
 log_info "コミット: ${COMMIT_HASH}"
-log_info "WARファイル: ${WAR_FILE}"
+log_info "WARファイル: ${WAR_FILE_DEPLOY}"
 log_info ""
 log_info "アプリケーションURL:"
 log_info "  http://localhost:8080/${PROJECT_NAME}"
+log_info ""
+log_info "アプリケーション確認:"
+log_info "  ls -la $CATALINA_HOME/webapps/ | grep ${PROJECT_NAME}"
 log_info ""
 log_info "Tomcatログ:"
 log_info "  tail -f $CATALINA_HOME/logs/catalina.out"
