@@ -128,7 +128,8 @@ public class CommonService extends BaseService {
 			return req.getContextPath() + PATH_SECRETARY_LOGIN;
 		}
 
-		// ログイン試行回数制限チェック（ブルートフォース攻撃対策）
+		// ★ 一時的にコメントアウト：ログイン試行回数制限チェック（ブルートフォース攻撃対策）
+		/*
 		LoginAttempt attempt = loginAttempts.computeIfAbsent(loginId, k -> new LoginAttempt());
 		long now = System.currentTimeMillis();
 		
@@ -145,16 +146,21 @@ public class CommonService extends BaseService {
 			attempt.count = 0;
 			attempt.lockoutUntil = 0;
 		}
+		*/
 
 		try (TransactionManager tm = new TransactionManager()) {
 			SecretaryDAO dao = new SecretaryDAO(tm.getConnection());
 			SecretaryDTO dto = dao.selectByMail(loginId);
 			
-			// パスワード検証（BCryptによる安全な比較）
-			if (dto != null && verifyPassword(password, dto.getPassword())) {
-				// ログイン成功：試行回数をリセット
+			// ★ 一時的にコメントアウト：パスワード検証（BCryptによる安全な比較）
+			// if (dto != null && verifyPassword(password, dto.getPassword())) {
+			// 他のログインと同様に単純な文字列比較を使用
+			if (dto != null && safeEquals(dto.getPassword(), password)) {
+				// ★ 一時的にコメントアウト：ログイン成功：試行回数をリセット
+				/*
 				attempt.count = 0;
 				attempt.lockoutUntil = 0;
+				*/
 				
 				// LoginUserオブジェクト作成
 				LoginUser loginUser = new LoginUser();
@@ -168,7 +174,8 @@ public class CommonService extends BaseService {
 				putLoginUserToSession(loginUser);
 				return req.getContextPath() + PATH_SECRETARY_HOME;
 			} else {
-				// 認証失敗：試行回数をインクリメント
+				// ★ 一時的にコメントアウト：認証失敗：試行回数をインクリメント
+				/*
 				attempt.count++;
 				
 				if (attempt.count >= MAX_LOGIN_ATTEMPTS) {
@@ -178,7 +185,9 @@ public class CommonService extends BaseService {
 					int remainingAttempts = MAX_LOGIN_ATTEMPTS - attempt.count;
 					validation.addErrorMsg("正しいログインIDとパスワードを入力してください。（残り試行回数: " + remainingAttempts + "回）");
 				}
+				*/
 				
+				validation.addErrorMsg("正しいログインIDとパスワードを入力してください。");
 				req.setAttribute("errorMsg", validation.getErrorMsg());
 				return req.getContextPath() + PATH_SECRETARY_LOGIN;
 			}
