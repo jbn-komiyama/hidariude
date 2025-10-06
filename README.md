@@ -454,6 +454,302 @@ crontab -e
 
 ---
 
+## 本番環境への公開（重要）
+
+### ⚠️ 公開前の必須セキュリティ対策
+
+8080 ポートを外部公開する前に、以下のセキュリティ対策を**必ず**実施してください：
+
+#### 1. データベースパスワードの変更
+
+**現在のデフォルト設定：**
+
+-   ユーザー: `postgres`
+-   パスワード: `password` ⚠️ **絶対に変更必須！**
+
+**変更手順：**
+
+```bash
+# PostgreSQLに接続
+sudo -u postgres psql -p 5433
+
+# パスワード変更
+ALTER USER postgres WITH PASSWORD '強力なパスワード';
+\q
+```
+
+**アプリケーション側の設定変更：**
+
+`src/main/java/dao/TransactionManager.java` の 11 行目を変更：
+
+```java
+private static final String DB_PASSWORD = "新しい強力なパスワード";
+```
+
+変更後、再ビルド・再デプロイ：
+
+```bash
+cd /opt/hidariude
+./deploy.sh
+```
+
+#### 2. システム管理者の初期パスワード変更
+
+データベースに登録されている管理者アカウントもデフォルトパスワードです：
+
+```sql
+-- 現在: password1, password2 など
+-- これらを強力なパスワード（BCrypt ハッシュ）に変更してください
+```
+
+アプリケーションのログイン画面から初回ログイン後、すぐにパスワード変更してください。
+
+#### 3. ファイアウォール設定（Sakura VPS）
+
+**最小権限の原則で設定：**
+
+```bash
+# 現在のルール確認
+firewall-cmd --list-all
+
+# 必要なポートのみ開放
+firewall-cmd --permanent --add-service=ssh       # SSH（22）
+firewall-cmd --permanent --add-port=8080/tcp     # アプリケーション
+# firewall-cmd --permanent --add-port=443/tcp    # HTTPS（将来的に）
+
+# PostgreSQLポートは外部公開しない（デフォルトで閉じている）
+# 5433ポートは絶対に開放しないでください
+
+# 設定を反映
+firewall-cmd --reload
+
+# 確認
+firewall-cmd --list-all
+```
+
+#### 4. PostgreSQL の外部アクセス防止
+
+PostgreSQL（ポート 5433）は**絶対に外部公開しない**でください：
+
+```bash
+# pg_hba.confの確認
+sudo cat /var/lib/pgsql/15/data/pg_hba.conf
+
+# localhostからのみアクセス許可されていることを確認
+# host    hidariude    postgres    127.0.0.1/32    scram-sha-256
+# ↑ 127.0.0.1/32 = localhost のみ（正しい設定）
+
+# 以下のような設定は絶対にしない
+# host    all    all    0.0.0.0/0    trust  ← 危険！
+```
+
+#### 5. Tomcat のセキュリティ設定
+
+**管理画面の無効化または保護：**
+
+```bash
+# Tomcat管理画面（manager, host-manager）を使用しない場合は削除
+rm -rf /opt/tomcat/apache-tomcat-10.1.46/webapps/manager
+rm -rf /opt/tomcat/apache-tomcat-10.1.46/webapps/host-manager
+rm -rf /opt/tomcat/apache-tomcat-10.1.46/webapps/docs
+rm -rf /opt/tomcat/apache-tomcat-10.1.46/webapps/examples
+rm -rf /opt/tomcat/apache-tomcat-10.1.46/webapps/ROOT  # デフォルトページも削除可
+
+# Tomcat再起動
+systemctl restart tomcat
+```
+
+#### 6. HTTPS 化の検討（推奨）
+
+本番環境では HTTP（8080）ではなく HTTPS（443）を使用することを強く推奨します：
+
+**Let's Encrypt + Nginx リバースプロキシの例：**
+
+```bash
+# Nginx インストール
+dnf install -y nginx certbot python3-certbot-nginx
+
+# Nginx設定（/etc/nginx/conf.d/hidariude.conf）
+cat > /etc/nginx/conf.d/hidariude.conf << 'EOF'
+server {
+    listen 80;
+    server_name your-domain.com;
+
+    location / {
+        proxy_pass http://localhost:8080;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+}
+EOF
+
+# SSL証明書取得
+certbot --nginx -d your-domain.com
+
+# Nginx起動
+systemctl enable nginx
+systemctl start nginx
+```
+
+この場合、ファイアウォールは 80（HTTP）と 443（HTTPS）のみ開放し、8080 は閉じたままにします。
+
+#### 7. ログローテーション設定
+
+Tomcat ログが肥大化しないよう設定：
+
+```bash
+# /etc/logrotate.d/tomcat を作成
+cat > /etc/logrotate.d/tomcat << 'EOF'
+/opt/tomcat/apache-tomcat-10.1.46/logs/catalina.out {
+    daily
+    rotate 14
+    compress
+    missingok
+    notifempty
+    copytruncate
+}
+EOF
+```
+
+#### 8. 定期バックアップの設定
+
+```bash
+# バックアップディレクトリ作成
+mkdir -p /opt/backups
+
+# バックアップスクリプト作成
+cat > /opt/backups/backup.sh << 'EOF'
+#!/bin/bash
+DATE=$(date +%Y%m%d-%H%M%S)
+BACKUP_DIR="/opt/backups"
+
+# データベースバックアップ
+sudo -u postgres pg_dump -p 5433 hidariude | gzip > "$BACKUP_DIR/db-$DATE.sql.gz"
+
+# WARファイルバックアップ
+cp /opt/tomcat/apache-tomcat-10.1.46/webapps/hidariude.war "$BACKUP_DIR/war-$DATE.war"
+
+# 14日以上古いバックアップを削除
+find "$BACKUP_DIR" -name "*.gz" -mtime +14 -delete
+find "$BACKUP_DIR" -name "*.war" -mtime +14 -delete
+EOF
+
+chmod +x /opt/backups/backup.sh
+
+# cron設定（毎日深夜3時にバックアップ）
+crontab -e
+# 以下を追加
+# 0 3 * * * /opt/backups/backup.sh >> /var/log/backup.log 2>&1
+```
+
+#### 9. セキュリティアップデート
+
+```bash
+# 定期的にシステムを最新化
+dnf update -y
+
+# 自動セキュリティアップデートを有効化
+dnf install -y dnf-automatic
+systemctl enable --now dnf-automatic-install.timer
+```
+
+#### 10. アクセス制限（IP 制限）
+
+管理機能に IP 制限をかけることを検討：
+
+**Nginx の場合：**
+
+```nginx
+location /admin {
+    allow 203.0.113.0/24;  # 許可するIPアドレス範囲
+    deny all;
+    proxy_pass http://localhost:8080;
+}
+```
+
+**ファイアウォールの場合：**
+
+```bash
+# 特定のIPからのみ8080へのアクセスを許可
+firewall-cmd --permanent --add-rich-rule='rule family="ipv4" source address="203.0.113.10" port protocol="tcp" port="8080" accept'
+firewall-cmd --reload
+```
+
+---
+
+### 🚀 公開手順（セキュリティ対策完了後）
+
+上記のセキュリティ対策を完了したら、ポートを開放します：
+
+#### パターン A: 直接公開（HTTP）
+
+```bash
+# 8080ポート開放
+firewall-cmd --permanent --add-port=8080/tcp
+firewall-cmd --reload
+
+# 外部からアクセステスト
+curl -i http://<サーバーIP>:8080/hidariude
+```
+
+#### パターン B: Nginx 経由（推奨）
+
+```bash
+# 80/443ポート開放
+firewall-cmd --permanent --add-service=http
+firewall-cmd --permanent --add-service=https
+firewall-cmd --reload
+
+# 8080は外部公開しない（Nginxからのみアクセス可）
+# 外部からアクセステスト
+curl -i http://<ドメイン名>/hidariude
+```
+
+---
+
+### 📊 公開後の監視
+
+#### アクセスログの確認
+
+```bash
+# Tomcatアクセスログ
+tail -f /opt/tomcat/apache-tomcat-10.1.46/logs/localhost_access_log.$(date +%Y-%m-%d).txt
+
+# エラーログ
+tail -f /opt/tomcat/apache-tomcat-10.1.46/logs/catalina.out
+```
+
+#### リソース監視
+
+```bash
+# CPU/メモリ使用率
+top
+htop
+
+# ディスク使用量
+df -h
+
+# ネットワーク接続
+ss -tunlp | grep -E ':(8080|5433)'
+```
+
+---
+
+### ⚠️ 重要な注意事項まとめ
+
+| 項目               | 現状       | 対策必須度  | 推奨対策               |
+| ------------------ | ---------- | ----------- | ---------------------- |
+| DB パスワード      | `password` | 🔴 **必須** | 強力なパスワードに変更 |
+| PostgreSQL 公開    | 閉じている | ✅ OK       | 絶対に開放しない       |
+| 管理者パスワード   | デフォルト | 🔴 **必須** | 初回ログイン後変更     |
+| HTTPS              | 未対応     | 🟡 推奨     | Let's Encrypt 導入     |
+| ログローテーション | 未設定     | 🟡 推奨     | logrotate 設定         |
+| バックアップ       | 未設定     | 🟡 推奨     | cron で自動化          |
+
+---
+
 ## 更新履歴
 
 ### v0.0.1-SNAPSHOT
