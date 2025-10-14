@@ -17,7 +17,7 @@
   <!-- タイトル & 月指定 -->
   <div class="d-flex align-items-center justify-content-between mb-3">
     <h1 class="h3 mb-0">秘書支払いサマリー</h1>
-    <form id="ymForm" method="get" action="${pageContext.request.contextPath}/invoice/admin/cost_summary" class="d-flex gap-2">
+    <form id="ymForm" method="get" action="${pageContext.request.contextPath}/admin/invoice/costs" class="d-flex gap-2">
       <input type="month" class="form-control" name="targetYM" value="${yearMonth}">
       <button class="btn btn-primary">表示</button>
     </form>
@@ -26,7 +26,7 @@
   <!-- KPIカード（今月＋過去3ヶ月） -->
   <div class="row g-3 mb-4">
     <div class="col-12 col-md-3">
-      <a class="text-decoration-none" href="${pageContext.request.contextPath}/invoice/admin/cost_summary?targetYM=${ymNow}">
+      <a class="text-decoration-none" href="${pageContext.request.contextPath}/admin/invoice/costs?targetYM=${ymNow}">
         <div class="card border-primary h-100">
           <div class="card-header bg-primary text-white">今月（${m0}月）</div>
           <div class="card-body">
@@ -38,7 +38,7 @@
     </div>
 
     <div class="col-12 col-md-3">
-      <a class="text-decoration-none" href="${pageContext.request.contextPath}/invoice/admin/cost_summary?targetYM=${ymPrev1}">
+      <a class="text-decoration-none" href="${pageContext.request.contextPath}/admin/invoice/costs?targetYM=${ymPrev1}">
         <div class="card border-primary h-100">
           <div class="card-header bg-primary text-white">先月（${m1}月）</div>
           <div class="card-body">
@@ -49,7 +49,7 @@
     </div>
 
     <div class="col-12 col-md-3">
-      <a class="text-decoration-none" href="${pageContext.request.contextPath}/invoice/admin/cost_summary?targetYM=${ymPrev2}">
+      <a class="text-decoration-none" href="${pageContext.request.contextPath}/admin/invoice/costs?targetYM=${ymPrev2}">
         <div class="card border-primary h-100">
           <div class="card-header bg-primary text-white">2ヶ月前（${m2}月）</div>
           <div class="card-body">
@@ -60,7 +60,7 @@
     </div>
 
     <div class="col-12 col-md-3">
-      <a class="text-decoration-none" href="${pageContext.request.contextPath}/invoice/admin/cost_summary?targetYM=${ymPrev3}">
+      <a class="text-decoration-none" href="${pageContext.request.contextPath}/admin/invoice/costs?targetYM=${ymPrev3}">
         <div class="card border-primary h-100">
           <div class="card-header bg-primary text-white">3ヶ月前（${m3}月）</div>
           <div class="card-body">

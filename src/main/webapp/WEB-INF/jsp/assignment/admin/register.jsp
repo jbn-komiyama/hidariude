@@ -13,7 +13,7 @@
 	href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"
 	rel="stylesheet" />
 </head>
-<body class="bg-light">
+<body  class="bg-primary bg-opacity-10">
 	<%@ include file="/WEB-INF/jsp/_parts/admin/navbar.jspf"%>
 	<div class="container py-4">
 		<h1 class="h4 mb-3">アサイン登録</h1>
@@ -98,7 +98,7 @@
 										maxFractionDigits="0" groupingUsed="false"
 										var="trBaseSecPlain" />
 									<option value="${tr.id}" data-basecust="${trBaseCustPlain}"
-										data-basesec="${trBaseSecPlain}"
+										data-basesec="${trBaseSecPlain}" data-rankname="${tr.rankName}"
 										<c:if test="${param.taskRankId == tr.id}">selected</c:if>>
 										<c:out value="${tr.rankName}" />（ 顧客:
 										<fmt:formatNumber value="${tr.basePayCustomer}"
@@ -204,14 +204,15 @@
 								<th class="text-end">基本単価 顧客 - 秘書</th>
 								<th class="text-end">基本単価 顧客 - 秘書</th>
 								<th class="text-end">継続単価 顧客 - 秘書</th>
-								<th>ステータス</th>
+								<th class="text-end">合計単価 顧客 - 秘書</th>
+								<th class="text-end">継続月数</th>
 							</tr>
 						</thead>
 						<tbody>
 							<c:forEach var="a" items="${futureAssignments}">
 								<tr>
 									<td><c:out value="${a.targetYearMonth}" /></td>
-									<td><c:out value="${a.secretaryName}" /></td>
+									<td><a href="${pageContext.request.contextPath}/admin/secretary/detail?id=${a.secretaryId}"><c:out value="${a.secretaryName}" /></a></td>
 									<td><c:out value="${a.taskRankName}" /></td>
 									<fmt:formatNumber value="${a.basePayCustomer}" type="number"
 										maxFractionDigits="0" var="baseCust" />
@@ -227,26 +228,20 @@
 									<fmt:formatNumber
 										value="${a.customerBasedIncentiveForSecretary}" type="number"
 										maxFractionDigits="0" var="contSec" />
-									<td class="text-end">${empty baseCust ? '-' : baseCust}-
+									<td class="text-end">${empty baseCust ? '-' : baseCust} -
 										${empty baseSec ? '-' : baseSec}</td>
 									<td class="text-end">${empty rankupCust ? '-' : rankupCust}
 										- ${empty rankupSec ? '-' : rankupSec}</td>
-									<td class="text-end">${empty contCust ? '-' : contCust}-
+									<td class="text-end">${empty contCust ? '-' : contCust} -
 										${empty contSec ? '-' : contSec}</td>
-									<td><c:choose>
-											<c:when test="${a.assignmentStatus == 'active'}">
-												<span class="badge bg-success">有効</span>
-											</c:when>
-											<c:when test="${a.assignmentStatus == 'paused'}">
-												<span class="badge bg-warning text-dark">一時停止</span>
-											</c:when>
-											<c:when test="${a.assignmentStatus == 'draft'}">
-												<span class="badge bg-secondary">下書き</span>
-											</c:when>
-											<c:otherwise>
-												<span class="badge bg-light text-dark">未設定</span>
-											</c:otherwise>
-										</c:choose></td>
+									<td class="text-end">
+									<fmt:formatNumber
+										value="${a.hourlyPayCustomer }" type="number"
+										maxFractionDigits="0"/> - 
+									<fmt:formatNumber
+										value="${a.hourlyPaySecretary }" type="number"
+										maxFractionDigits="0"/></td>
+									<td class="text-end">${a.consecutiveMonths }か月</td>
 								</tr>
 							</c:forEach>
 						</tbody>
@@ -404,7 +399,7 @@
           <tbody>
             <c:forEach var="r" items="${secretaryCandidates}">
               <tr>
-                <td><c:out value="${r.name}"/></td>
+                <td><a href="${pageContext.request.contextPath}/admin/secretary/detail?id=${r.id}"><c:out value="${r.name}"/></a></td>
                 <td><c:out value="${empty r.rankName ? '-' : r.rankName}"/></td>
 
                 <!-- 0/1/2 を  ×/△/〇 に -->
@@ -435,53 +430,93 @@
   </c:choose>
 </div>
 
-	<script>
-		(function() {
-			const fmt = new Intl.NumberFormat('ja-JP');
-			const selRank = document.getElementById('taskRankId');
-			const selSec = document.getElementById('secretaryId');
+<script>
+(function() {
+  const fmt = new Intl.NumberFormat('ja-JP');
+  const selRank = document.getElementById('taskRankId');
+  const selSec  = document.getElementById('secretaryId');
 
-			const dispBaseCust = document.getElementById('dispBaseCust');
-			const dispBaseSec = document.getElementById('dispBaseSec');
-			const dispIncCust = document.getElementById('dispIncCust');
-			const dispIncSec = document.getElementById('dispIncSec');
+  const dispBaseCust = document.getElementById('dispBaseCust');
+  const dispBaseSec  = document.getElementById('dispBaseSec');
+  const dispIncCust  = document.getElementById('dispIncCust');
+  const dispIncSec   = document.getElementById('dispIncSec');
 
-			const hBaseCust = document.getElementById('hBaseCust');
-			const hBaseSec = document.getElementById('hBaseSec');
-			const hIncCust = document.getElementById('hIncCust');
-			const hIncSec = document.getElementById('hIncSec');
+  const hBaseCust = document.getElementById('hBaseCust');
+  const hBaseSec  = document.getElementById('hBaseSec');
+  const hIncCust  = document.getElementById('hIncCust');
+  const hIncSec   = document.getElementById('hIncSec');
 
-			function updateRank() {
-				const opt = selRank.options[selRank.selectedIndex];
-				const baseCust = opt ? opt.getAttribute('data-basecust') : '';
-				const baseSec = opt ? opt.getAttribute('data-basesec') : '';
-				dispBaseCust.textContent = baseCust ? fmt.format(parseInt(
-						baseCust, 10) || 0) : '-';
-				dispBaseSec.textContent = baseSec ? fmt.format(parseInt(
-						baseSec, 10) || 0) : '-';
-				hBaseCust.value = baseCust || '';
-				hBaseSec.value = baseSec || '';
-			}
+  // ★ 継続単価の2入力（顧客/秘書）
+  const inpContCust = document.querySelector('input[name="customerBasedIncentiveForCustomer"]');
+  const inpContSec  = document.querySelector('input[name="customerBasedIncentiveForSecretary"]');
 
-			function updateSecretary() {
-				const opt = selSec.options[selSec.selectedIndex];
-				const incSec = opt ? opt.getAttribute('data-rankup') : '0';
-				const incCust = opt ? opt.getAttribute('data-rankupcust') : '0';
-				const nSec = parseInt(incSec, 10) || 0;
-				const nCust = parseInt(incCust, 10) || 0;
-				dispIncSec.textContent = fmt.format(nSec);
-				dispIncCust.textContent = fmt.format(nCust);
-				hIncSec.value = String(nSec);
-				hIncCust.value = String(nCust);
-			}
+  function updateRank() {
+    const opt = selRank.options[selRank.selectedIndex];
+    const baseCust = opt ? opt.getAttribute('data-basecust') : '';
+    const baseSec  = opt ? opt.getAttribute('data-basesec')  : '';
+    dispBaseCust.textContent = baseCust ? fmt.format(parseInt(baseCust, 10) || 0) : '-';
+    dispBaseSec.textContent  = baseSec  ? fmt.format(parseInt(baseSec, 10)  || 0) : '-';
+    hBaseCust.value = baseCust || '';
+    hBaseSec.value  = baseSec  || '';
+  }
 
-			selRank.addEventListener('change', updateRank);
-			selSec.addEventListener('change', updateSecretary);
+  function updateSecretary() {
+    const opt = selSec.options[selSec.selectedIndex];
+    const incSec  = opt ? opt.getAttribute('data-rankup')     : '0';
+    const incCust = opt ? opt.getAttribute('data-rankupcust') : '0';
+    const nSec  = parseInt(incSec,  10) || 0;
+    const nCust = parseInt(incCust, 10) || 0;
+    dispIncSec.textContent  = fmt.format(nSec);
+    dispIncCust.textContent = fmt.format(nCust);
+    hIncSec.value  = String(nSec);
+    hIncCust.value = String(nCust);
+  }
 
-			updateRank();
-			updateSecretary();
-		})();
-	</script>
+  // ★ ランクがPなら4項目を0固定（表示・hidden・入力禁止）
+  function enforceZeroIfRankP() {
+    const opt = selRank.options[selRank.selectedIndex];
+    const rankName = (opt && opt.getAttribute('data-rankname')) || '';
+    const isP = rankName === 'P';
+
+    if (isP) {
+      // ランクアップ単価（顧客/秘書）：表示＆POST値ともに 0
+      dispIncCust.textContent = '0';
+      dispIncSec.textContent  = '0';
+      hIncCust.value = '0';
+      hIncSec.value  = '0';
+
+      // 継続単価（顧客/秘書）：入力欄を 0 にしてreadOnly化
+      inpContCust.value = '0';
+      inpContSec.value  = '0';
+      inpContCust.readOnly = true;
+      inpContSec.readOnly  = true;
+      // 念のため min を満たす（既に min=0 指定済み）
+    } else {
+      // ランクP以外は編集可能
+      inpContCust.readOnly = false;
+      inpContSec.readOnly  = false;
+      // ランクアップ単価は秘書選択に従う（updateSecretaryで更新）
+    }
+  }
+
+  selRank.addEventListener('change', function(){
+    updateRank();
+    updateSecretary();   // ランクP以外へ切替時は秘書由来の増額を反映
+    enforceZeroIfRankP();
+  });
+
+  selSec.addEventListener('change', function(){
+    updateSecretary();
+    enforceZeroIfRankP(); // ランクPなら0固定を優先
+  });
+
+  // 初期表示
+  updateRank();
+  updateSecretary();
+  enforceZeroIfRankP();
+})();
+</script>
+
 	<script
 		src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 </body>

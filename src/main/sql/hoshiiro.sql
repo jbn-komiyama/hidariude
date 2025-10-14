@@ -453,69 +453,21 @@ CREATE TABLE IF NOT EXISTS profiles (
 );
 
 
--- 下記は、assignment_idを修正する必要あり
--- 2025-09-01（10件）
-INSERT INTO tasks (assignment_id, work_date, start_time, end_time, work_minute, work_content, approved_at, approved_by, customer_monthly_invoice_id, secretary_monthly_summary_id)
-VALUES ('f2d6bc84-7fc3-4f91-83d9-e30a5d5ec12a', DATE '2025-09-01', TIMESTAMP '2025-09-01 08:30:00', TIMESTAMP '2025-09-01 09:30:00', 60, '請求データ入力', NULL, NULL, NULL, NULL);
+-- =========================
+-- UP: tasks にアラート関連の2カラムを追加
+-- =========================
+ALTER TABLE tasks
+  ADD COLUMN IF NOT EXISTS alerted_at      TIMESTAMP,  -- いつアラートしたか（無タイムゾーン）
+  ADD COLUMN IF NOT EXISTS alerted_comment TEXT;       -- アラート理由などのメモ
 
-INSERT INTO tasks (assignment_id, work_date, start_time, end_time, work_minute, work_content, approved_at, approved_by, customer_monthly_invoice_id, secretary_monthly_summary_id)
-VALUES ('a31e1fc3-10cd-459d-aeea-a183685262c7', DATE '2025-09-01', TIMESTAMP '2025-09-01 09:40:00', TIMESTAMP '2025-09-01 10:25:00', 45, '顧客メール対応', NULL, NULL, NULL, NULL);
+-- 任意（スキーマドキュメント用コメント）
+COMMENT ON COLUMN tasks.alerted_at      IS 'アラート日時（通知/差し戻しなどの事前警告に使用）';
+COMMENT ON COLUMN tasks.alerted_comment IS 'アラート理由/メモ';
 
-INSERT INTO tasks (assignment_id, work_date, start_time, end_time, work_minute, work_content, approved_at, approved_by, customer_monthly_invoice_id, secretary_monthly_summary_id)
-VALUES ('6ac0baf5-65b4-4d58-ad19-e95d3cd4e98a', DATE '2025-09-01', TIMESTAMP '2025-09-01 10:35:00', TIMESTAMP '2025-09-01 11:05:00', 30, '議事録作成', NULL, NULL, NULL, NULL);
-
-INSERT INTO tasks (assignment_id, work_date, start_time, end_time, work_minute, work_content, approved_at, approved_by, customer_monthly_invoice_id, secretary_monthly_summary_id)
-VALUES ('f2d6bc84-7fc3-4f91-83d9-e30a5d5ec12a', DATE '2025-09-01', TIMESTAMP '2025-09-01 11:20:00', TIMESTAMP '2025-09-01 12:20:00', 60, '日報整理', NULL, NULL, NULL, NULL);
-
-INSERT INTO tasks (assignment_id, work_date, start_time, end_time, work_minute, work_content, approved_at, approved_by, customer_monthly_invoice_id, secretary_monthly_summary_id)
-VALUES ('a31e1fc3-10cd-459d-aeea-a183685262c7', DATE '2025-09-01', TIMESTAMP '2025-09-01 13:30:00', TIMESTAMP '2025-09-01 14:45:00', 75, '資料スキャン', NULL, NULL, NULL, NULL);
-
-INSERT INTO tasks (assignment_id, work_date, start_time, end_time, work_minute, work_content, approved_at, approved_by, customer_monthly_invoice_id, secretary_monthly_summary_id)
-VALUES ('6ac0baf5-65b4-4d58-ad19-e95d3cd4e98a', DATE '2025-09-01', TIMESTAMP '2025-09-01 14:55:00', TIMESTAMP '2025-09-01 15:25:00', 30, '契約書チェック', NULL, NULL, NULL, NULL);
-
-INSERT INTO tasks (assignment_id, work_date, start_time, end_time, work_minute, work_content, approved_at, approved_by, customer_monthly_invoice_id, secretary_monthly_summary_id)
-VALUES ('f2d6bc84-7fc3-4f91-83d9-e30a5d5ec12a', DATE '2025-09-01', TIMESTAMP '2025-09-01 15:35:00', TIMESTAMP '2025-09-01 16:20:00', 45, '支払処理補助', NULL, NULL, NULL, NULL);
-
-INSERT INTO tasks (assignment_id, work_date, start_time, end_time, work_minute, work_content, approved_at, approved_by, customer_monthly_invoice_id, secretary_monthly_summary_id)
-VALUES ('a31e1fc3-10cd-459d-aeea-a183685262c7', DATE '2025-09-01', TIMESTAMP '2025-09-01 16:30:00', TIMESTAMP '2025-09-01 17:00:00', 30, '在庫表更新', NULL, NULL, NULL, NULL);
-
-INSERT INTO tasks (assignment_id, work_date, start_time, end_time, work_minute, work_content, approved_at, approved_by, customer_monthly_invoice_id, secretary_monthly_summary_id)
-VALUES ('6ac0baf5-65b4-4d58-ad19-e95d3cd4e98a', DATE '2025-09-01', TIMESTAMP '2025-09-01 17:10:00', TIMESTAMP '2025-09-01 18:10:00', 60, '会議準備', NULL, NULL, NULL, NULL);
-
-INSERT INTO tasks (assignment_id, work_date, start_time, end_time, work_minute, work_content, approved_at, approved_by, customer_monthly_invoice_id, secretary_monthly_summary_id)
-VALUES ('f2d6bc84-7fc3-4f91-83d9-e30a5d5ec12a', DATE '2025-09-01', TIMESTAMP '2025-09-01 18:20:00', TIMESTAMP '2025-09-01 19:00:00', 40, '伝票整理', NULL, NULL, NULL, NULL);
-
--- 2025-09-02（10件）
-INSERT INTO tasks (assignment_id, work_date, start_time, end_time, work_minute, work_content, approved_at, approved_by, customer_monthly_invoice_id, secretary_monthly_summary_id)
-VALUES ('a31e1fc3-10cd-459d-aeea-a183685262c7', DATE '2025-09-02', TIMESTAMP '2025-09-02 08:45:00', TIMESTAMP '2025-09-02 09:15:00', 30, '見積書作成補助', NULL, NULL, NULL, NULL);
-
-INSERT INTO tasks (assignment_id, work_date, start_time, end_time, work_minute, work_content, approved_at, approved_by, customer_monthly_invoice_id, secretary_monthly_summary_id)
-VALUES ('6ac0baf5-65b4-4d58-ad19-e95d3cd4e98a', DATE '2025-09-02', TIMESTAMP '2025-09-02 09:25:00', TIMESTAMP '2025-09-02 10:25:00', 60, 'マニュアル修正', NULL, NULL, NULL, NULL);
-
-INSERT INTO tasks (assignment_id, work_date, start_time, end_time, work_minute, work_content, approved_at, approved_by, customer_monthly_invoice_id, secretary_monthly_summary_id)
-VALUES ('f2d6bc84-7fc3-4f91-83d9-e30a5d5ec12a', DATE '2025-09-02', TIMESTAMP '2025-09-02 10:35:00', TIMESTAMP '2025-09-02 11:20:00', 45, '進捗管理表更新', NULL, NULL, NULL, NULL);
-
-INSERT INTO tasks (assignment_id, work_date, start_time, end_time, work_minute, work_content, approved_at, approved_by, customer_monthly_invoice_id, secretary_monthly_summary_id)
-VALUES ('a31e1fc3-10cd-459d-aeea-a183685262c7', DATE '2025-09-02', TIMESTAMP '2025-09-02 11:30:00', TIMESTAMP '2025-09-02 12:00:00', 30, 'ファイル命名整理', NULL, NULL, NULL, NULL);
-
-INSERT INTO tasks (assignment_id, work_date, start_time, end_time, work_minute, work_content, approved_at, approved_by, customer_monthly_invoice_id, secretary_monthly_summary_id)
-VALUES ('6ac0baf5-65b4-4d58-ad19-e95d3cd4e98a', DATE '2025-09-02', TIMESTAMP '2025-09-02 13:00:00', TIMESTAMP '2025-09-02 14:00:00', 60, 'タスク割当調整', NULL, NULL, NULL, NULL);
-
-INSERT INTO tasks (assignment_id, work_date, start_time, end_time, work_minute, work_content, approved_at, approved_by, customer_monthly_invoice_id, secretary_monthly_summary_id)
-VALUES ('f2d6bc84-7fc3-4f91-83d9-e30a5d5ec12a', DATE '2025-09-02', TIMESTAMP '2025-09-02 14:10:00', TIMESTAMP '2025-09-02 14:25:00', 15, '問い合わせ一次対応', NULL, NULL, NULL, NULL);
-
-INSERT INTO tasks (assignment_id, work_date, start_time, end_time, work_minute, work_content, approved_at, approved_by, customer_monthly_invoice_id, secretary_monthly_summary_id)
-VALUES ('a31e1fc3-10cd-459d-aeea-a183685262c7', DATE '2025-09-02', TIMESTAMP '2025-09-02 14:35:00', TIMESTAMP '2025-09-02 15:20:00', 45, '出荷データ確認', NULL, NULL, NULL, NULL);
-
-INSERT INTO tasks (assignment_id, work_date, start_time, end_time, work_minute, work_content, approved_at, approved_by, customer_monthly_invoice_id, secretary_monthly_summary_id)
-VALUES ('6ac0baf5-65b4-4d58-ad19-e95d3cd4e98a', DATE '2025-09-02', TIMESTAMP '2025-09-02 15:30:00', TIMESTAMP '2025-09-02 16:00:00', 30, '勤怠データ確認', NULL, NULL, NULL, NULL);
-
-INSERT INTO tasks (assignment_id, work_date, start_time, end_time, work_minute, work_content, approved_at, approved_by, customer_monthly_invoice_id, secretary_monthly_summary_id)
-VALUES ('f2d6bc84-7fc3-4f91-83d9-e30a5d5ec12a', DATE '2025-09-02', TIMESTAMP '2025-09-02 16:10:00', TIMESTAMP '2025-09-02 17:25:00', 75, '請求書発行補助', NULL, NULL, NULL, NULL);
-
-INSERT INTO tasks (assignment_id, work_date, start_time, end_time, work_minute, work_content, approved_at, approved_by, customer_monthly_invoice_id, secretary_monthly_summary_id)
-VALUES ('a31e1fc3-10cd-459d-aeea-a183685262c7', DATE '2025-09-02', TIMESTAMP '2025-09-02 17:35:00', TIMESTAMP '2025-09-02 18:15:00', 40, '顧客情報メンテ', NULL, NULL, NULL, NULL);
-
+-- 任意（検索用インデックス、よく「アラート済み一覧」を出すなら）
+CREATE INDEX IF NOT EXISTS idx_tasks_alerted_at
+  ON tasks (alerted_at)
+  WHERE deleted_at IS NULL;
 
 BEGIN;
 

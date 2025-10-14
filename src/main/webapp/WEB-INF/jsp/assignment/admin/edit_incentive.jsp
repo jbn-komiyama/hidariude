@@ -133,11 +133,10 @@
     </div>
   </div>
 </div>
-
 <script>
 (function(){
   // 3桁区切り→数値
-  function toNumber(v){ if(!v) return 0; return parseInt(String(v).replace(/,/g,''),10)||0; }
+  function toNumber(v){ if(v === null || v === undefined) return 0; return parseInt(String(v).replace(/,/g,''),10)||0; }
   function fmt(n){ return n.toLocaleString(); }
 
   const form = document.getElementById('editForm');
@@ -161,8 +160,13 @@
 
   // 入力フォーマット（blurでカンマ付与）
   function addComma(e){
-    const n = toNumber(e.target.value);
-    e.target.value = n ? fmt(n) : '';
+    const raw = String(e.target.value).trim();
+    if (raw === "") {                     // 空欄は空欄のまま（=未入力）
+      e.target.value = "";
+      return;
+    }
+    const n = toNumber(raw);              // "0" は 0 に
+    e.target.value = fmt(n);              // 0 のときも "0" を表示
   }
 
   inpCust.addEventListener('input', update);
@@ -173,6 +177,7 @@
   update(); // 初期表示
 })();
 </script>
+
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 </body>
