@@ -693,9 +693,4 @@ public class CommonService extends BaseService {
         return sum;
     }
 
-    // ---------------------------------------------------------
-    // 🗑️（削除済み）未使用メソッド
-    // ---------------------------------------------------------
-    // private MonthStat loadCustomerMonthStat(UUID customerId, YearMonth ym, TaskDAO tdao)
-    // → 参照なしのため削除済み（loadCustomerMonthStatByWorkDate に統一）
 }

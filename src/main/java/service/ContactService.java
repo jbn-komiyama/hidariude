@@ -621,9 +621,7 @@ public class ContactService extends BaseService {
             req.setAttribute(A_ERROR_MSG, validation.getErrorMsg());
             return req.getContextPath() + req.getServletPath() + "/error";
         }
-
         // ※ バリデーションは myPageEditCheck() と同等に行う想定（省略可）
-
         try (TransactionManager tm = new TransactionManager()) {
             CustomerDAO cDao  = new CustomerDAO(tm.getConnection());
             CustomerContactDAO ccDao = new CustomerContactDAO(tm.getConnection());

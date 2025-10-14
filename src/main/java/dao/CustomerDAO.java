@@ -135,6 +135,27 @@ public class CustomerDAO extends BaseDAO {
 	 *
 	 * @param conn 呼び出し側トランザクションから受け取るコネクション
 	 */
+ // 直近2か月（YYYY-MM を2本）で、顧客のアサイン一覧を取得（status列なし）
+    private static final String SQL_SELECT_TWO_MONTH_ASSIGNMENT =
+            "SELECT " +
+            "  a.id, a.customer_id, a.secretary_id, a.task_rank_id, a.target_year_month, " +
+            "  a.base_pay_customer, a.base_pay_secretary, a.increase_base_pay_customer, a.increase_base_pay_secretary, " +
+            "  a.customer_based_incentive_for_customer, a.customer_based_incentive_for_secretary, " + // ← ここまで assignments の金額系
+            "  a.created_at, a.updated_at, a.deleted_at, " +                                           // ← status を除去
+            "  tr.rank_name, " +
+            "  s.id, s.name, s.secretary_rank_id, s.is_pm_secretary, " +
+            "  sr.rank_name AS secretary_rank_name " +
+            "FROM assignments a " +
+            "JOIN task_rank   tr ON tr.id = a.task_rank_id " +
+            "JOIN secretaries s  ON s.id = a.secretary_id AND s.deleted_at IS NULL " +
+            "LEFT JOIN secretary_rank sr ON sr.id = s.secretary_rank_id " +
+            "WHERE a.deleted_at IS NULL " +
+            "  AND a.customer_id = ? " +
+            "  AND a.target_year_month IN (?, ?) " +
+            "ORDER BY a.target_year_month DESC, s.name ASC";
+
+ 
+    
 	public CustomerDAO(Connection conn) {
 		super(conn);
 	}
@@ -370,7 +391,7 @@ public class CustomerDAO extends BaseDAO {
 			throw new DAOException(errorMsg, e);
 		}
 	}
-	
+
 	/**
 	 * 最近登録された顧客を10件取得します。<br>
 	 * 取得カラムは、id / company_code / company_name / mail / phone / created_at。
@@ -425,6 +446,72 @@ public class CustomerDAO extends BaseDAO {
 	 * @return 影響行数（通常は1）
 	 * @throws DAOException INSERT に失敗した場合
 	 */
+    
+    public List<AssignmentDTO> selectAssignmentsForCustomerInMonths(UUID customerId, String ym1, String ym2) {
+        List<AssignmentDTO> list = new ArrayList<>();
+
+        try (PreparedStatement ps = conn.prepareStatement(SQL_SELECT_TWO_MONTH_ASSIGNMENT)) {
+            ps.setObject(1, customerId);
+            ps.setString(2, ym1);
+            ps.setString(3, ym2);
+
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    int i = 1;
+                    AssignmentDTO ad = new AssignmentDTO();
+                    // assignments
+                    ad.setAssignmentId(rs.getObject(i++, UUID.class));               // a.id
+                    ad.setAssignmentCustomerId(rs.getObject(i++, UUID.class));        // a.customer_id
+                    ad.setAssignmentSecretaryId(rs.getObject(i++, UUID.class));       // a.secretary_id
+                    ad.setTaskRankId(rs.getObject(i++, UUID.class));                  // a.task_rank_id
+                    ad.setTargetYearMonth(rs.getString(i++));                         // a.target_year_month
+                    ad.setBasePayCustomer(rs.getBigDecimal(i++));                     // a.base_pay_customer
+                    ad.setBasePaySecretary(rs.getBigDecimal(i++));                    // a.base_pay_secretary
+                    ad.setIncreaseBasePayCustomer(rs.getBigDecimal(i++));             // a.increase_base_pay_customer
+                    ad.setIncreaseBasePaySecretary(rs.getBigDecimal(i++));            // a.increase_base_pay_secretary
+                    ad.setCustomerBasedIncentiveForCustomer(rs.getBigDecimal(i++));   // a.customer_based_incentive_for_customer
+                    ad.setCustomerBasedIncentiveForSecretary(rs.getBigDecimal(i++));  // a.customer_based_incentive_for_secretary
+                    // （status 削除済みのため読み取りなし）
+                    ad.setAssignmentCreatedAt(rs.getTimestamp(i++));                  // a.created_at
+                    ad.setAssignmentUpdatedAt(rs.getTimestamp(i++));                  // a.updated_at
+                    ad.setAssignmentDeletedAt(rs.getTimestamp(i++));                  // a.deleted_at
+
+                    // task_rank
+                    ad.setTaskRankName(rs.getString(i++));                            // tr.rank_name
+
+                    // secretaries
+                    ad.setSecretaryId(rs.getObject(i++, UUID.class));                 // s.id
+                    ad.setSecretaryName(rs.getString(i++));                           // s.name
+                    ad.setSecretaryRankId(rs.getObject(i++, UUID.class));             // s.secretary_rank_id
+                    ad.setIsPmSecretary(rs.getBoolean(i++));                          // s.is_pm_secretary
+
+                    // secretary_rank name
+                    ad.setSecretaryRankName(rs.getString(i++));                       // sr.rank_name
+
+                    list.add(ad);
+                }
+            }
+        } catch (SQLException e) {
+            throw new DAOException("E:C44 直近2か月のアサイン取得に失敗しました。", e);
+        }
+
+        return list;
+    }
+    
+  
+
+    
+    // =======================
+    // 登録
+    // =======================
+    
+    /**
+     * 顧客の新規登録を行う。
+     *
+     * @param dto 登録する顧客DTO
+     * @return 影響行数（通常は1）
+     * @throws DAOException INSERTに失敗した場合
+     */
 	public int insert(CustomerDTO dto) {
 		try (PreparedStatement ps = conn.prepareStatement(SQL_INSERT_CUSTOMER)) {
 			ps.setString(1, dto.getCompanyCode());

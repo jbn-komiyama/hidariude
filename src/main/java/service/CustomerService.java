@@ -39,15 +39,15 @@ public class CustomerService extends BaseService {
     // =========================
     // ① 定数・共通化（パラメータ名／パス／フォーマッタ／コンバータ）
     // =========================
-
-    // ----- View names -----
-    private static final String VIEW_HOME            = "customer/admin/home";
-    private static final String VIEW_REGISTER        = "customer/admin/register";
-    private static final String VIEW_REGISTER_CHECK  = "customer/admin/register_check";
-    private static final String VIEW_REGISTER_DONE   = "customer/admin/register_done";
-    private static final String VIEW_EDIT            = "customer/admin/edit";
-    private static final String VIEW_EDIT_CHECK      = "customer/admin/edit_check";
-    private static final String VIEW_EDIT_DONE       = "customer/admin/edit_done";
+	
+	// ===== ビュー名 =====
+    private static final String VIEW_HOME      		= "customer/admin/home";
+    private static final String VIEW_REGISTER			= "customer/admin/register";    
+    private static final String VIEW_REGISTER_CHECK	= "customer/admin/register_check";    
+    private static final String VIEW_REGISTER_DONE 	= "customer/admin/register_done"; 
+    private static final String VIEW_EDIT         		= "customer/admin/edit";         
+    private static final String VIEW_EDIT_CHECK		= "customer/admin/edit_check"; 
+    private static final String VIEW_EDIT_DONE    	= "customer/admin/edit_done";   
     private static final String VIEW_DETAIL          = "customer/admin/detail";
 
     // ----- Attribute keys -----
@@ -76,6 +76,7 @@ public class CustomerService extends BaseService {
     private static final String P_ADDRESS1     = "address1";
     private static final String P_ADDRESS2     = "address2";
     private static final String P_BUILDING     = "building";
+
 
     // ----- Formatter / Zone -----
     private static final ZoneId     Z_JST      = ZoneId.of("Asia/Tokyo");

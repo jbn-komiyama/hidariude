@@ -9,7 +9,7 @@
   <title>顧客マイページ</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
 </head>
-<body class="bg-primary bg-opacity-10"><!-- ★ 青系背景で統一 -->
+<body class="bg-primary bg-opacity-10">
 <%@ include file="/WEB-INF/jsp/_parts/customer/navbar.jspf" %>
 
 <div class="container py-4">
@@ -24,10 +24,8 @@
     <div class="card-header bg-primary text-white">プロフィール</div>
     <div class="card-body">
 
-      <!-- ヘッダー（簡易アバター＋氏名行） -->
+      <!-- ヘッダー -->
       <div class="d-flex align-items-center mb-3">
-        <span class="rounded-circle bg-primary-subtle text-primary d-inline-flex align-items-center justify-content-center me-3 px-3 py-2 fw-bold">
-          <c:out value="${empty cc.name ? '?' : fn:substring(cc.name,0,1)}"/>
         </span>
         <div>
           <div class="h5 mb-0"><c:out value="${empty cc.name ? '—' : cc.name}"/></div>
@@ -46,7 +44,7 @@
         </div>
       </div>
 
-      <!-- 明細（キー/値テーブル：秘書側と同トーン） -->
+      <!-- 明細 -->
       <div class="table-responsive">
         <table class="table table-sm align-middle mb-0">
           <tbody>
@@ -143,13 +141,12 @@
   <!-- 同一会社の他担当者 -->
   <c:if test="${not empty customer.customerContacts}">
     <div class="card shadow-sm mb-4">
-      <div class="card-header bg-primary text-white">この会社の他の担当者</div>
+      <div class="card-header bg-primary text-white">会社担当者一覧</div>
       <div class="card-body">
         <div class="table-responsive">
           <table class="table table-sm align-middle mb-0">
             <thead class="text-muted">
               <tr>
-                <th style="width:48px;"></th>
                 <th>氏名</th>
                 <th>部署</th>
                 <th>メール</th>
@@ -159,11 +156,6 @@
             <tbody>
               <c:forEach var="p" items="${customer.customerContacts}">
                 <tr>
-                  <td class="text-center">
-                    <span class="rounded-circle bg-primary-subtle text-primary d-inline-flex align-items-center justify-content-center px-2 py-1 fw-bold">
-                      <c:out value="${empty p.name ? '?' : fn:substring(p.name,0,1)}"/>
-                    </span>
-                  </td>
                   <td><c:out value="${empty p.name ? '—' : p.name}"/></td>
                   <td><c:out value="${empty p.department ? '—' : p.department}"/></td>
                   <td>

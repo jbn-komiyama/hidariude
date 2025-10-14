@@ -349,7 +349,7 @@ public class FrontController extends HttpServlet {
 			 * A04 マイページ編集業務
 			 * 
 			 */
-			case "/mypage"->{
+			case "/mypage/home"->{
 				nextPath = new SecretaryService(req, true).myPageList();
 			}
 			
@@ -476,15 +476,16 @@ public class FrontController extends HttpServlet {
 			case "/assignment/list"->{
 				nextPath = new AssignmentService(req, true).outsourceList();
 			}
-			
-			
-			
 			case "/task/list" -> {
 				nextPath = new TaskService(req, true).customerTaskList();
 			}
 			case "/task/alert" -> {
 				nextPath = new TaskService(req, true).customerTaskAlert();
 			}
+			case "/assignment/profile"->{
+				nextPath = new AssignmentService(req, true).secretaryProfile();
+			}
+			
     	}
 	}
     

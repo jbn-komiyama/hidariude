@@ -756,6 +756,52 @@ public class AssignmentDAO extends BaseDAO {
 			"   AND a.target_year_month <= (SELECT ym FROM eff) " +
 			" ORDER BY a.target_year_month DESC, tr.rank_no NULLS LAST, s.name NULLS LAST, a.created_at";
 
+//    	/** 顧客×今月まで（<=YM）の assignments 履歴（最新月→） */
+//    	private static final String SQL_SELECT_BY_CUSTOMER_UPTO_YM_DESC =
+//    	    "WITH eff AS ( " +
+//    	    "  SELECT CASE " +
+//    	    "    WHEN ? > to_char(date_trunc('month', current_date) + interval '1 month','YYYY-MM') " +
+//    	    "    THEN to_char(date_trunc('month', current_date) + interval '1 month','YYYY-MM') " +
+//    	    "    ELSE ? END AS ym " +
+//    	    ") " +
+//    	    "SELECT a.id, a.customer_id, a.secretary_id, a.task_rank_id, a.target_year_month, " +
+//    	    "       a.base_pay_customer, a.base_pay_secretary, a.increase_base_pay_customer, a.increase_base_pay_secretary, " +
+//    	    "       a.customer_based_incentive_for_customer, a.customer_based_incentive_for_secretary, a.status, " +
+//    	    "       a.created_at, a.updated_at, a.deleted_at, " +
+//    	    "       tr.rank_name, tr.rank_no, " +
+//    	    "       s.id AS s_id, s.name AS s_name, s.secretary_rank_id, sr.rank_name AS sr_rank_name " +
+//    	    "  FROM assignments a " +
+//    	    "  LEFT JOIN task_rank tr      ON tr.id = a.task_rank_id " +
+//    	    "  LEFT JOIN secretaries s     ON s.id = a.secretary_id AND s.deleted_at IS NULL " +
+//    	    "  LEFT JOIN secretary_rank sr ON sr.id = s.secretary_rank_id " +
+//    	    " WHERE a.deleted_at IS NULL AND a.customer_id = ? " +
+//    	    "   AND a.target_year_month <= (SELECT ym FROM eff) " +
+//    	    " ORDER BY a.target_year_month DESC, tr.rank_no NULLS LAST, s.name NULLS LAST, a.created_at";
+    
+    	
+    	//秘書プロフィール取得
+        private static final String SQL_SELECT_PROFILE_BY_SECRETARY_ID =
+        	    "SELECT id, secretary_id, " +
+        	    " weekday_morning, weekday_daytime, weekday_night, " +
+        	    " saturday_morning, saturday_daytime, saturday_night, " +
+        	    " sunday_morning, sunday_daytime, sunday_night, " +
+        	    " weekday_work_hours, saturday_work_hours, sunday_work_hours, " +
+        	    " monthly_work_hours, " +
+        	    " remark, qualification, work_history, academic_background, self_introduction, " +
+        	    " created_at, updated_at, deleted_at " +
+        	    "FROM profiles " +
+        	    "WHERE deleted_at IS NULL AND secretary_id = ?";
+        
+        // 秘書の基本情報（氏名/フリガナ）のみ取得
+        private static final String SQL_SELECT_SECRETARY_NAME_BY_ID =
+            "SELECT name, name_ruby FROM secretaries WHERE deleted_at IS NULL AND id = ?";
+        
+        private static final String SQL_SELECT_SECRETARY_ID_BY_NAME =
+        	    "SELECT id FROM secretaries " +
+        	    " WHERE deleted_at IS NULL AND name = ? " +
+        	    " ORDER BY created_at ASC LIMIT 1";   
+        
+        
 	public AssignmentDAO(Connection conn) {
 		super(conn);
 	}
@@ -1545,6 +1591,84 @@ public class AssignmentDAO extends BaseDAO {
 		}
 		return list;
 	}
+
+    //秘書プロフィール表示
+    public dto.ProfileDTO selectProfileBySecretaryId(UUID secretaryId) {
+        try (PreparedStatement ps = conn.prepareStatement(SQL_SELECT_PROFILE_BY_SECRETARY_ID)) {
+            ps.setObject(1, secretaryId);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (!rs.next()) return null;
+
+                dto.ProfileDTO p = new dto.ProfileDTO();
+                int i = 1;
+                p.setId(rs.getObject(i++, UUID.class));
+                p.setSecretaryId(rs.getObject(i++, UUID.class));
+
+                p.setWeekdayMorning(rs.getObject(i++, Integer.class));
+                p.setWeekdayDaytime(rs.getObject(i++, Integer.class));
+                p.setWeekdayNight(rs.getObject(i++, Integer.class));
+
+                p.setSaturdayMorning(rs.getObject(i++, Integer.class));
+                p.setSaturdayDaytime(rs.getObject(i++, Integer.class));
+                p.setSaturdayNight(rs.getObject(i++, Integer.class));
+
+                p.setSundayMorning(rs.getObject(i++, Integer.class));
+                p.setSundayDaytime(rs.getObject(i++, Integer.class));
+                p.setSundayNight(rs.getObject(i++, Integer.class));
+
+                p.setWeekdayWorkHours(rs.getBigDecimal(i++));
+                p.setSaturdayWorkHours(rs.getBigDecimal(i++));
+                p.setSundayWorkHours(rs.getBigDecimal(i++));
+
+                p.setMonthlyWorkHours(rs.getBigDecimal(i++));
+
+                p.setRemark(rs.getString(i++));
+                p.setQualification(rs.getString(i++));
+                p.setWorkHistory(rs.getString(i++));
+                p.setAcademicBackground(rs.getString(i++));
+                p.setSelfIntroduction(rs.getString(i++));
+
+                p.setCreatedAt(rs.getTimestamp(i++));
+                p.setUpdatedAt(rs.getTimestamp(i++));
+                p.setDeletedAt(rs.getTimestamp(i++));
+                return p;
+            }
+        } catch (SQLException e) {
+            throw new DAOException("E:C46 profiles 読み取りに失敗しました。", e);
+        }
+    }
+
+    // 氏名/フリガナだけ取得（存在しなければ null を返す）
+    public java.util.Optional<java.util.AbstractMap.SimpleEntry<String,String>> selectSecretaryNameById(UUID secretaryId) {
+        try (PreparedStatement ps = conn.prepareStatement(SQL_SELECT_SECRETARY_NAME_BY_ID)) {
+            ps.setObject(1, secretaryId);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    String name = rs.getString(1);
+                    String ruby = rs.getString(2);
+                    return java.util.Optional.of(new java.util.AbstractMap.SimpleEntry<>(name, ruby));
+                }
+                return java.util.Optional.empty();
+            }
+        } catch (SQLException e) {
+            throw new DAOException("E:C47 secretaries 氏名取得に失敗しました。", e);
+        }
+    }
+    
+    /** 氏名（完全一致）→ 秘書ID を返す。該当なしは Optional.empty() */
+    public java.util.Optional<java.util.UUID> selectSecretaryIdByName(String name) {
+        try (PreparedStatement ps = conn.prepareStatement(SQL_SELECT_SECRETARY_ID_BY_NAME)) {
+            ps.setString(1, name);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    return java.util.Optional.of(rs.getObject(1, java.util.UUID.class));
+                }
+                return java.util.Optional.empty();
+            }
+        } catch (SQLException e) {
+            throw new DAOException("E:AS-N2 秘書ID(氏名検索) 取得に失敗しました。", e);
+        }
+    }
 
 	public List<AssignmentDTO> selectByCustomerUpToYearMonthDesc(UUID customerId, String upToYm) {
 		List<AssignmentDTO> list = new ArrayList<>();

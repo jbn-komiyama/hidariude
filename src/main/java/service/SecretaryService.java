@@ -13,6 +13,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpSession;
 
 import dao.AssignmentDAO;
+import dao.DAOException;
 import dao.ProfileDAO;
 import dao.SecretaryDAO;
 import dao.SecretaryMonthlySummaryDAO;
@@ -687,7 +688,7 @@ public class SecretaryService extends BaseService {
         final String bankAccount = req.getParameter(P_BANK_ACCOUNT);
         final String bankOwner   = req.getParameter(P_BANK_OWNER);
 
-        // 再検証
+        // 入力検証
         validation.isNull("氏名", name);
         validation.isNull("メールアドレス", mail);
         if (notBlank(mail))       validation.isEmail(mail);
@@ -705,16 +706,20 @@ public class SecretaryService extends BaseService {
         try (TransactionManager tm = new TransactionManager()) {
             SecretaryDAO dao = new SecretaryDAO(tm.getConnection());
 
+            // 現行データ
             SecretaryDTO cur = dao.selectByUUId(myId);
-            if (cur == null) {
+            if (cur == null || cur.getId() == null) { // ← 空DTO対策
+            	System.out.println("アカウント情報が取得できませんでした。");
                 validation.addErrorMsg("アカウント情報が取得できませんでした。");
                 req.setAttribute(A_ERROR_MSG, validation.getErrorMsg());
                 return req.getContextPath() + req.getServletPath() + "/error";
             }
 
             // 自ID除外のメール重複
+            // メール重複（論理削除含め全件を対象）
             if (notBlank(mail) && dao.mailCheckExceptId(mail, cur.getId())) {
-                validation.addErrorMsg("登録いただいたメールアドレスはすでに使われています。");
+            	System.out.println("登録いただいたメールアドレスはすでに使われています。");
+            	validation.addErrorMsg("登録いただいたメールアドレスはすでに使われています。");
                 req.setAttribute(A_ERROR_MSG, validation.getErrorMsg());
                 pushMyPageFormBackToRequest();
                 return VIEW_MYPAGE_EDIT;
@@ -734,17 +739,31 @@ public class SecretaryService extends BaseService {
             dto.setAddress1(address1);
             dto.setAddress2(address2);
             dto.setBuilding(building);
-            dto.setPassword(notBlank(password) ? password : cur.getPassword()); // 入力時のみ更新
+            dto.setPassword(notBlank(password) ? password : cur.getPassword());
             dto.setBankName(bankName);
             dto.setBankBranch(bankBranch);
             dto.setBankType(bankType);
             dto.setBankAccount(bankAccount);
             dto.setBankOwner(bankOwner);
-
             dao.updateWithBank(dto);
             tm.commit();
+            try {
+                dao.updateWithBank(dto);
+            } catch (DAOException ex) {
+                // 23505 = unique_violation (PostgreSQL)
+                Throwable cause = ex.getCause();
+                if (cause instanceof java.sql.SQLException sqlEx && "23505".equals(sqlEx.getSQLState())) {
+                    System.out.println("登録いただいたメールアドレスはすでに使われています。");
+                    validation.addErrorMsg("登録いただいたメールアドレスはすでに使われています。");
+                    req.setAttribute(A_ERROR_MSG, validation.getErrorMsg());
+                    pushMyPageFormBackToRequest();
+                    return VIEW_MYPAGE_EDIT;
+                }
+                throw ex; 
+            }
 
-            // セッションの loginUser も更新（表示のブレ防止）
+            tm.commit();
+
             HttpSession session = req.getSession(false);
             if (session != null) {
                 Object u = session.getAttribute("loginUser");
@@ -759,13 +778,15 @@ public class SecretaryService extends BaseService {
             return req.getContextPath() + "/secretary/mypage/home";
 
         } catch (RuntimeException e) {
-            validation.addErrorMsg("データベースに不正な操作が行われました");
+            // ここに来るのは主に DB/DAO のその他例外
+            validation.addErrorMsg("処理中にエラーが発生しました。再度お試しください。");
             req.setAttribute(A_ERROR_MSG, validation.getErrorMsg());
+            System.out.println("処理中にエラーが発生しました。再度お試しください。");
             return req.getContextPath() + req.getServletPath() + "/error";
         }
     }
 
-    // =========================================================
+	// =========================================================
     // Private helpers
     // =========================================================
 
