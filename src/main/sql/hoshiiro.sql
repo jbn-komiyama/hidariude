@@ -348,15 +348,6 @@ ALTER TABLE customers
   REFERENCES customer_contacts(id)
   ON UPDATE CASCADE
   ON DELETE SET NULL;
-  
-ALTER TABLE tasks DROP CONSTRAINT IF EXISTS tasks_approved_by_system_admin_fkey;
-
-ALTER TABLE tasks
-  ADD CONSTRAINT tasks_approved_by_secretary_fkey
-  FOREIGN KEY (approved_by)
-  REFERENCES secretaries(id)
-  ON UPDATE CASCADE
-  ON DELETE SET NULL;
 
 ALTER TABLE secretaries
   ADD COLUMN IF NOT EXISTS bank_name    VARCHAR(255),
