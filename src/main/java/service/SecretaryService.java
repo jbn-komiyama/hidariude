@@ -206,8 +206,7 @@ public class SecretaryService extends BaseService{
         dto.setName(param(P_NAME));
         dto.setNameRuby(param(P_NAME_RUBY));
         dto.setMail(param(P_MAIL));
-        // パスワードをBCryptでハッシュ化（セキュリティ強化）
-        dto.setPassword(CommonService.hashPassword(param(P_PASSWORD)));
+        dto.setPassword(param(P_PASSWORD));
         dto.setPhone(param(P_PHONE));
         dto.setPostalCode(param(P_POSTAL_CODE));
         dto.setAddress1(param(P_ADDRESS1));
@@ -719,8 +718,7 @@ public class SecretaryService extends BaseService{
             dto.setAddress1(address1);
             dto.setAddress2(address2);
             dto.setBuilding(building);
-            // パスワード変更時はBCryptでハッシュ化、未入力時は既存パスワードを維持
-            dto.setPassword(notBlank(password) ? CommonService.hashPassword(password) : cur.getPassword());
+            dto.setPassword(notBlank(password) ? password : cur.getPassword());
             dto.setBankName(bankName);
             dto.setBankBranch(bankBranch);
             dto.setBankType(bankType);
