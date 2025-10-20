@@ -85,17 +85,17 @@ log_info "PostgreSQL ステータス: $(systemctl is-active postgresql-15)"
 
 # PostgreSQL接続数上限の設定確認・変更
 PGCONF="/var/lib/pgsql/15/data/postgresql.conf"
-REQUIRED_MAX_CONN=300
+REQUIRED_MAX_CONN=200
 
 log_info "=== PostgreSQL接続数設定確認 ==="
 
 if [ -f "$PGCONF" ]; then
-    # 現在のmax_connections設定を確認
-    CURRENT_MAX_CONN=$(grep "^max_connections" "$PGCONF" | sed 's/.*= *//' | head -1)
+    # 現在のmax_connections設定を確認（コメント部分を除外）
+    CURRENT_MAX_CONN=$(grep "^max_connections" "$PGCONF" | sed 's/.*=[[:space:]]*\([0-9]*\).*/\1/' | head -1)
     
     if [ -z "$CURRENT_MAX_CONN" ]; then
         # コメントアウトされている場合はデフォルト値を取得
-        CURRENT_MAX_CONN=$(grep "^#max_connections" "$PGCONF" | sed 's/.*= *//' | head -1)
+        CURRENT_MAX_CONN=$(grep "^#max_connections" "$PGCONF" | sed 's/.*=[[:space:]]*\([0-9]*\).*/\1/' | head -1)
         if [ -z "$CURRENT_MAX_CONN" ]; then
             CURRENT_MAX_CONN=100  # PostgreSQLのデフォルト値
         fi
@@ -107,16 +107,30 @@ if [ -f "$PGCONF" ]; then
         log_warn "max_connectionsが推奨値より小さいため、${REQUIRED_MAX_CONN}に変更します..."
         
         # バックアップを作成
-        cp "$PGCONF" "${PGCONF}.backup.$(date +%Y%m%d_%H%M%S)"
+        BACKUP_FILE="${PGCONF}.backup.$(date +%Y%m%d_%H%M%S)"
+        cp "$PGCONF" "$BACKUP_FILE"
+        log_info "バックアップ作成: $BACKUP_FILE"
         
-        # max_connectionsを変更（既存の設定をコメントアウトし、新しい設定を追加）
-        sed -i "s/^max_connections.*/#&/" "$PGCONF"
-        sed -i "s/^#max_connections.*/#&/" "$PGCONF"
-        echo "" >> "$PGCONF"
-        echo "# HikariCP対応のため接続数を増加 ($(date +%Y-%m-%d))" >> "$PGCONF"
-        echo "max_connections = ${REQUIRED_MAX_CONN}" >> "$PGCONF"
+        # max_connectionsを変更（既存の設定を直接置き換え）
+        if grep -q "^max_connections" "$PGCONF"; then
+            # 既に設定されている場合は値を置き換え
+            sed -i "s/^max_connections[[:space:]]*=.*/max_connections = ${REQUIRED_MAX_CONN}/" "$PGCONF"
+        elif grep -q "^#max_connections" "$PGCONF"; then
+            # コメントアウトされている場合はコメント解除して値を設定
+            sed -i "s/^#max_connections[[:space:]]*=.*/max_connections = ${REQUIRED_MAX_CONN}/" "$PGCONF"
+        else
+            # 設定がない場合は追加
+            echo "" >> "$PGCONF"
+            echo "# HikariCP対応のため接続数を増加 ($(date +%Y-%m-%d))" >> "$PGCONF"
+            echo "max_connections = ${REQUIRED_MAX_CONN}" >> "$PGCONF"
+        fi
         
         log_info "max_connectionsを${REQUIRED_MAX_CONN}に設定しました"
+        
+        # 設定ファイルの確認（デバッグ用）
+        NEW_CONF_VALUE=$(grep "^max_connections" "$PGCONF" | sed 's/.*=[[:space:]]*\([0-9]*\).*/\1/')
+        log_info "設定ファイル内の値: max_connections = ${NEW_CONF_VALUE}"
+        
         log_info "PostgreSQLを再起動します..."
         
         systemctl restart postgresql-15
@@ -130,6 +144,15 @@ if [ -f "$PGCONF" ]; then
         
         if systemctl is-active --quiet postgresql-15; then
             log_info "PostgreSQL再起動完了"
+            
+            # 再起動後の実効値を確認
+            sleep 2
+            ACTUAL_VALUE=$(sudo -u postgres psql -p 5433 -t -c "SHOW max_connections;" 2>/dev/null | xargs)
+            if [ "$ACTUAL_VALUE" = "$REQUIRED_MAX_CONN" ]; then
+                log_info "max_connectionsの適用成功: ${ACTUAL_VALUE}"
+            else
+                log_warn "max_connectionsが期待値と異なります: ${ACTUAL_VALUE} (期待値: ${REQUIRED_MAX_CONN})"
+            fi
         else
             log_error "PostgreSQLの再起動に失敗しました"
             exit 1
