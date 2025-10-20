@@ -489,35 +489,36 @@ CREATE TEMP TABLE t_cust (
   band    integer NOT NULL
 ) ON COMMIT DROP;
 
-INSERT INTO t_cust(cust_id, band) VALUES
-  ('b887c445-9224-480d-b10d-017c9f63d1f3'::uuid, 24), -- Alpha  C001
-  ('62f834a3-d6d8-4647-9c8e-db4c45ac7d60'::uuid, 24), -- Beta   C002
-  ('2c21e1e7-4f36-4f4b-99a0-d9781dd7e454'::uuid, 24), -- Gamma  C003
-  ('dfe8e8e2-ba97-4673-a9c8-8ed1b3ada173'::uuid, 24), -- Delta  C004
-  ('26009e89-ffca-4591-a1aa-c22c0b3b117e'::uuid, 24), -- Eps    C005
-  ('e1bd8b84-2bbb-4d7e-9d52-3c1fad1382ef'::uuid, 12), -- Zeta   C006 (12ヶ月)
-  ('555593b7-68d1-489f-a55b-5ec7757e229d'::uuid, 12), -- Eta    C007 (12ヶ月)
-  ('6b862c31-855f-4964-bc43-94eb309d1567'::uuid,  6), -- Theta  C008 (6ヶ月)
-  ('49cf7627-9369-411e-9d56-e19bddacfd11'::uuid,  6), -- Iota   C009 (6ヶ月)
-  ('756ac87a-2bab-4646-9dc5-3dc373bd9e71'::uuid,  6); -- Kappa  C010 (6ヶ月)
+-- 実際のDBから顧客IDを取得して使用
+INSERT INTO t_cust(cust_id, band)
+SELECT id, 24 FROM customers WHERE company_code = 'C001'  -- Alpha
+UNION ALL
+SELECT id, 24 FROM customers WHERE company_code = 'C002'  -- Beta
+UNION ALL
+SELECT id, 24 FROM customers WHERE company_code = 'C003'  -- Gamma
+UNION ALL
+SELECT id, 24 FROM customers WHERE company_code = 'C004'  -- Delta
+UNION ALL
+SELECT id, 24 FROM customers WHERE company_code = 'C005'  -- Epsilon
+UNION ALL
+SELECT id, 12 FROM customers WHERE company_code = 'C006'  -- Zeta (12ヶ月)
+UNION ALL
+SELECT id, 12 FROM customers WHERE company_code = 'C007'  -- Eta (12ヶ月)
+UNION ALL
+SELECT id, 6 FROM customers WHERE company_code = 'C008'   -- Theta (6ヶ月)
+UNION ALL
+SELECT id, 6 FROM customers WHERE company_code = 'C009'   -- Iota (6ヶ月)
+UNION ALL
+SELECT id, 6 FROM customers WHERE company_code = 'C010';  -- Kappa (6ヶ月)
 
 -- 秘書
 CREATE TEMP TABLE t_secs (
   sec_id uuid PRIMARY KEY
 ) ON COMMIT DROP;
 
-INSERT INTO t_secs(sec_id) VALUES
-  ('15a61dc9-3e8b-484b-a5af-f90b820ba87f'::uuid),
-  ('4419920c-4616-445e-8961-8f83122a73d2'::uuid),
-  ('550bfa21-fdd8-4108-b308-5901e3fd0333'::uuid),
-  ('a1a9fd61-041d-4932-a7ce-ae41cab46ebb'::uuid),
-  ('879cda20-162c-45da-923a-4f581cb89f59'::uuid),
-  ('441edc34-1995-4f32-ab45-1ffe9f973345'::uuid),
-  ('ad05f000-b7dc-40db-88df-9d4e942f4a28'::uuid),
-  ('daa33114-fede-42e1-bdf1-d296057670e6'::uuid),
-  ('a6f01b76-de06-45cd-bd9e-15083ed645df'::uuid),
-  ('0db89c4c-2ac5-4514-9ad9-89ee12f5f339'::uuid),
-  ('68d3ee44-394a-41fb-9cc6-b5195b7aa6e6'::uuid);
+-- 実際のDBから秘書IDを取得して使用
+INSERT INTO t_secs(sec_id)
+SELECT id FROM secretaries WHERE secretary_code IN ('S001', 'S002', 'S003', 'S004', 'S005', 'S006', 'S007', 'S008', 'S009', 'S010');
 
 -- 顧客×秘書×月（バンド内の月のみ active）
 CREATE TEMP TABLE t_pairs (
