@@ -256,7 +256,6 @@ public class ProfileDAO extends BaseDAO {
             try (ResultSet rs = ps.executeQuery()) {
             	
                 while (rs.next()) {
-                	System.out.println("hoge");
                     Map<String, Object> m = new HashMap<>();
                     m.put("id",        rs.getObject("id"));
                     m.put("name",      rs.getString("name"));

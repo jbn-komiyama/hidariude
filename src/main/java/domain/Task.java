@@ -23,6 +23,8 @@ public class Task implements Serializable{
     private Date createdAt;
     private Date updatedAt;
     private Date deletedAt;
+    private Date alertedAt;
+    private String alertComment;
     private BigDecimal hourFee;
     private BigDecimal fee;
     private BigDecimal hourFeeCustomer;
@@ -203,5 +205,17 @@ public class Task implements Serializable{
 	private boolean hasRemander;
 	public boolean isHasRemander() { return hasRemander; }
 	public void setHasRemander(boolean b) { this.hasRemander = b; }
+	public Date getAlertedAt() {
+		return alertedAt;
+	}
+	public void setAlertedAt(Date alertedAt) {
+		this.alertedAt = alertedAt;
+	}
+	public String getAlertComment() {
+		return alertComment;
+	}
+	public void setAlertComment(String alertComment) {
+		this.alertComment = alertComment;
+	}
 
 }

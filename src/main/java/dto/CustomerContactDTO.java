@@ -23,7 +23,7 @@ public class CustomerContactDTO implements Serializable {
 	private Timestamp lastLoginAt;
 
 	public UUID getCustomerId() {
-		return id;
+		return customerId;
 	}
 
 	public void setCustomerId(UUID customerId) {

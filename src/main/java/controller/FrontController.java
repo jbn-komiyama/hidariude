@@ -254,6 +254,12 @@ public class FrontController extends HttpServlet {
 		case "/task/remand_done"->{
 			nextPath = new TaskService(req, true).adminTaskRemandDone();
 		}
+		case "/task/alert"->{
+			nextPath = new TaskService(req, true).adminTaskAlertList();
+		}
+		case "/task/alert_delete"->{
+			nextPath = new TaskService(req, true).adminAlertDelete();
+		}
 		
 		
 		
@@ -470,7 +476,12 @@ public class FrontController extends HttpServlet {
 			case "/assignment/list"->{
 				nextPath = new AssignmentService(req, true).outsourceList();
 			}
-			
+			case "/task/list" -> {
+				nextPath = new TaskService(req, true).customerTaskList();
+			}
+			case "/task/alert" -> {
+				nextPath = new TaskService(req, true).customerTaskAlert();
+			}
 			case "/assignment/profile"->{
 				nextPath = new AssignmentService(req, true).secretaryProfile();
 			}

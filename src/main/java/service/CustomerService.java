@@ -1,29 +1,44 @@
 package service;
 
+import java.time.LocalDate;
+import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 import jakarta.servlet.http.HttpServletRequest;
 
+import dao.AssignmentDAO;
 import dao.CustomerDAO;
+import dao.CustomerMonthlyInvoiceDAO;
 import dao.TransactionManager;
+import domain.Assignment;
 import domain.Customer;
+import dto.AssignmentDTO;
 import dto.CustomerDTO;
+import dto.CustomerMonthlyInvoiceDTO;
 
 /**
- * 顧客サービス（一覧／登録／更新／削除）を扱うクラス。
- * <p>
- * 画面遷移名（ビュー名）、リクエスト属性名、リクエストパラメータ名を定数として集約し、
- * サービス内でのハードコードの散在を防ぎます。DBアクセスは {@link TransactionManager}
- * を try-with-resources で利用し、例外時はエラーページへ遷移します。
- * </p>
- * <p>
- * 入力チェックは {@link BaseService#validation} を用い、エラー時はエラーメッセージを
- * リクエスト属性 {@code errorMsg} に詰めて元画面へ戻します。
- * </p>
+ * 【admin】顧客サービス（一覧／詳細／登録／編集／削除）
+ *
+ * <p>このクラスは管理者向けの顧客機能を提供します。入力検証は {@link BaseService#validation}、
+ * DB アクセスは {@link TransactionManager} を用いた try-with-resources で行います。
+ * 例外発生時は {@code errorMsg} を設定し、共通エラーページへ遷移します。</p>
+ *
+ * <ul>
+ *   <li>FrontController でのルーティング（/admin 配下）に対応</li>
+ *   <li>ビュー名・属性名・パラメータ名は定数に集約し、JSP 名やキー名のハードコードを回避</li>
+ *   <li>JSP 側参照名は既存のまま（キー文字列は不変）</li>
+ * </ul>
  */
-public class CustomerService extends BaseService{
+public class CustomerService extends BaseService {
+
+    // =========================
+    // ① 定数・共通化（パラメータ名／パス／フォーマッタ／コンバータ）
+    // =========================
 	
 	// ===== ビュー名 =====
     private static final String VIEW_HOME      		= "customer/admin/home";
@@ -33,15 +48,25 @@ public class CustomerService extends BaseService{
     private static final String VIEW_EDIT         		= "customer/admin/edit";         
     private static final String VIEW_EDIT_CHECK		= "customer/admin/edit_check"; 
     private static final String VIEW_EDIT_DONE    	= "customer/admin/edit_done";   
-   
+    private static final String VIEW_DETAIL          = "customer/admin/detail";
 
-    // ===== 属性名 =====
-    private static final String A_CUSTOMERS = "customers";
-    private static final String A_CUSTOMER  = "customer";
-    private static final String A_MESSAGE   = "message";
-    private static final String A_ERROR_MSG = "errorMsg";
+    // ----- Attribute keys -----
+    private static final String A_CUSTOMERS          = "customers";
+    private static final String A_CUSTOMER           = "customer";
+    private static final String A_MESSAGE            = "message";
+    private static final String A_ERROR_MSG          = "errorMsg";
 
-    // ===== パラメータ名 =====
+    // 明細/集計画面で使用している既存の属性キー（JSP互換のため変更禁止）
+    private static final String A_ASSIGNMENTS_THIS   = "assignmentsThisMonth";
+    private static final String A_CONT_MONTHS        = "contMonths";
+    private static final String A_INVOICE_TOTAL_AMT  = "invoiceTotalAmount";
+    private static final String A_INVOICE_TOTAL_CNT  = "invoiceTotalCount";
+    private static final String A_INVOICE_TOTAL_WORK = "invoiceTotalWork";
+    private static final String A_INVOICES_LAST12    = "invoicesLast12";
+    private static final String A_ASSIGNMENTS_HIST   = "assignmentsHistory";
+    private static final String A_TARGET_YM          = "targetYM";
+
+    // ----- Request parameter keys -----
     private static final String P_ID           = "id";
     private static final String P_COMPANY_CODE = "companyCode";
     private static final String P_COMPANY_NAME = "companyName";
@@ -53,147 +78,164 @@ public class CustomerService extends BaseService{
     private static final String P_BUILDING     = "building";
 
 
-    /** DTO→ドメイン変換器（都度 new せず再利用） */
+    // ----- Formatter / Zone -----
+    private static final ZoneId     Z_JST      = ZoneId.of("Asia/Tokyo");
+    private static final DateTimeFormatter F_YM = DateTimeFormatter.ofPattern("yyyy-MM");
+
+    // ----- Converter（DTO → Domain 変換器） -----
     private final Converter conv = new Converter();
 
-    
+    // =========================
+    // ② フィールド、コンストラクタ
+    // =========================
+
     /**
      * コンストラクタ。
-     *
      * @param req   現在の {@link HttpServletRequest}
-     * @param useDB DBを使用するかどうか（本実装ではフラグ自体は保持のみ）
+     * @param useDB DBを使用するかどうか（フラグ自体は保持のみ）
      */
     public CustomerService(HttpServletRequest req, boolean useDB) {
         super(req, useDB);
     }
 
-    
-    // =======================
-    // 一覧
-    // =======================
-    
+    // =========================
+    // ③ メソッド（コントローラ呼び出しメソッド：すべて admin 用）
+    // =========================
+
+    // =========================
+    // 「【admin】機能：顧客一覧」
+    // =========================
+
     /**
-     * 顧客一覧を取得して一覧画面へ遷移します。
+     * 「顧客一覧」表示。
      * <ul>
-     *   <li>DAOで全件取得（論理削除を除外）</li>
-     *   <li>DTOをドメインへ変換</li>
-     *   <li>リクエスト属性 {@code customers} へ格納</li>
+     *   <li>DAOから全件（論理削除除外想定）取得。</li>
+     *   <li>DTO を Domain に変換し {@code customers} へ格納。</li>
      * </ul>
-     *
-     * @return 一覧画面のビュー名（{@value #VIEW_HOME}）。例外時はエラーページ。
+     * @return 一覧ビュー（{@value #VIEW_HOME}）。例外時はエラーページへ。
      */
     public String customerList() {
         try (TransactionManager tm = new TransactionManager()) {
             CustomerDAO dao = new CustomerDAO(tm.getConnection());
             List<CustomerDTO> dtos = dao.selectAll();
 
-            // DTO -> Domain 変換
-            List<Customer> customers = new ArrayList<>(dtos.size()); //初期容量最適化
+            // DTO -> Domain へ詰替
+            List<Customer> customers = new ArrayList<>(dtos.size());
             for (CustomerDTO dto : dtos) {
-                customers.add(conv.toDomain(dto)); // Converter の再利用
+                customers.add(conv.toDomain(dto));
             }
 
-            req.setAttribute("customers", customers);
-            return VIEW_HOME; // ★ CHANGED
+            req.setAttribute(A_CUSTOMERS, customers);
+            return VIEW_HOME;
         } catch (RuntimeException e) {
+            validation.addErrorMsg("顧客一覧の取得に失敗しました。");
+            req.setAttribute(A_ERROR_MSG, validation.getErrorMsg());
             return req.getContextPath() + req.getServletPath() + "/error";
         }
     }
-    
-    /** 顧客詳細（①〜⑥） */
+
+    // =========================
+    // 「【admin】機能：顧客詳細」
+    // =========================
+
+    /**
+     * 「顧客詳細」表示。
+     * <ul>
+     *   <li>request param {@code id}: 顧客UUID</li>
+     *   <li>顧客＆担当者、当月アサイン、通算請求サマリ、直近12か月請求、アサイン履歴を取得。</li>
+     *   <li>取得データを既存の属性キー名で JSP に渡す（キー名は変更しない）。</li>
+     * </ul>
+     * @return 詳細ビュー（{@value #VIEW_DETAIL}）。不正IDや例外時はエラーページへ。
+     */
     public String customerDetail() {
-        final String idStr = req.getParameter("id"); // 顧客ID
+        final String idStr = req.getParameter(P_ID); // 顧客ID(UUID文字列)
+
+        // UUIDバリデーション（簡易：BaseService#validation を活用）
         if (!validation.isUuid(idStr)) {
-            req.setAttribute("errorMsg", java.util.List.of("不正な顧客IDです。"));
+            req.setAttribute(A_ERROR_MSG, List.of("不正な顧客IDです。"));
             return req.getContextPath() + req.getServletPath() + "/error";
         }
 
-        java.time.ZoneId Z_JST = java.time.ZoneId.of("Asia/Tokyo");
-        String ymNow = java.time.LocalDate.now(Z_JST)
-            .format(java.time.format.DateTimeFormatter.ofPattern("yyyy-MM"));
+        // 「当月 (yyyy-MM)」を JST で算出
+        String ymNow = LocalDate.now(Z_JST).format(F_YM);
 
         try (TransactionManager tm = new TransactionManager()) {
-            java.util.UUID customerId = java.util.UUID.fromString(idStr);
+            UUID customerId = UUID.fromString(idStr);
 
             // ①② 顧客＋担当者一覧
             CustomerDAO cdao = new CustomerDAO(tm.getConnection());
             CustomerDTO cDto = cdao.selectWithContactsByUuid(customerId);
             if (cDto == null) {
-                req.setAttribute("errorMsg", java.util.List.of("顧客が見つかりません。"));
+                req.setAttribute(A_ERROR_MSG, List.of("顧客が見つかりません。"));
                 return req.getContextPath() + req.getServletPath() + "/error";
             }
-            domain.Customer customer = conv.toDomain(cDto);
-            req.setAttribute("customer", customer);
+            Customer customer = conv.toDomain(cDto);
+            req.setAttribute(A_CUSTOMER, customer);
 
-            // ③ 今月のアサイン（継続はランク別）
-            dao.AssignmentDAO adao = new dao.AssignmentDAO(tm.getConnection());
-            java.util.List<dto.AssignmentDTO> thisMonthDtos =
-                adao.selectThisMonthByCustomerWithContRank(customerId, ymNow);
+            // ③ 今月のアサイン（継続ランク付き）
+            AssignmentDAO adao = new AssignmentDAO(tm.getConnection());
+            List<AssignmentDTO> thisMonthDtos = adao.selectThisMonthByCustomerWithContRank(customerId, ymNow);
 
-            java.util.List<domain.Assignment> thisMonth = new java.util.ArrayList<>();
-            java.util.Map<java.util.UUID,Integer> contMap = new java.util.HashMap<>();
-            for (dto.AssignmentDTO d : thisMonthDtos) {
+            List<Assignment> thisMonth = new ArrayList<>();
+            Map<UUID, Integer> contMap = new HashMap<>();
+            for (AssignmentDTO d : thisMonthDtos) {
                 thisMonth.add(conv.toDomain(d));
                 if (d.getAssignmentId() != null) {
                     contMap.put(d.getAssignmentId(),
-                            d.getConsecutiveMonths() == null ? 0 : d.getConsecutiveMonths());
+                                d.getConsecutiveMonths() == null ? 0 : d.getConsecutiveMonths());
                 }
             }
-            req.setAttribute("assignmentsThisMonth", thisMonth);
-            req.setAttribute("contMonths", contMap);
+            req.setAttribute(A_ASSIGNMENTS_THIS, thisMonth);
+            req.setAttribute(A_CONT_MONTHS, contMap);
 
             // ④ 今までの請求合計（Summary）
-            dao.CustomerMonthlyInvoiceDAO idao = new dao.CustomerMonthlyInvoiceDAO(tm.getConnection());
+            CustomerMonthlyInvoiceDAO idao = new CustomerMonthlyInvoiceDAO(tm.getConnection());
             var summary = idao.selectSummaryUpToYm(customerId, ymNow);
-            req.setAttribute("invoiceTotalAmount", summary.totalAmount);
-            req.setAttribute("invoiceTotalCount",  summary.count);
-            req.setAttribute("invoiceTotalWork",   summary.totalWorkMinutes);
+            req.setAttribute(A_INVOICE_TOTAL_AMT,  summary.totalAmount);
+            req.setAttribute(A_INVOICE_TOTAL_CNT,  summary.count);
+            req.setAttribute(A_INVOICE_TOTAL_WORK, summary.totalWorkMinutes);
 
-            // ⑥ 直近1年の請求（DTO をそのまま渡す）
-            java.util.List<dto.CustomerMonthlyInvoiceDTO> inv12 =
-                idao.selectLast12UpToYm(customerId, ymNow);
-            req.setAttribute("invoicesLast12", inv12);
+            // ⑥ 直近1年の請求（DTOをそのまま渡す）
+            List<CustomerMonthlyInvoiceDTO> inv12 = idao.selectLast12UpToYm(customerId, ymNow);
+            req.setAttribute(A_INVOICES_LAST12, inv12);
 
             // ⑤ 今月までのアサイン履歴（最新→）
-            java.util.List<dto.AssignmentDTO> historyDtos =
-                adao.selectByCustomerUpToYearMonthDesc(customerId, ymNow);
-            java.util.List<domain.Assignment> history = new java.util.ArrayList<>();
-            for (dto.AssignmentDTO d : historyDtos) history.add(conv.toDomain(d));
-            req.setAttribute("assignmentsHistory", history);
+            List<AssignmentDTO> historyDtos = adao.selectByCustomerUpToYearMonthDesc(customerId, ymNow);
+            List<Assignment> history = new ArrayList<>();
+            for (AssignmentDTO d : historyDtos) history.add(conv.toDomain(d));
+            req.setAttribute(A_ASSIGNMENTS_HIST, history);
 
-            req.setAttribute("targetYM", ymNow);
-            return "customer/admin/detail";
+            req.setAttribute(A_TARGET_YM, ymNow);
+            return VIEW_DETAIL;
         } catch (RuntimeException e) {
-            e.printStackTrace();
+            validation.addErrorMsg("顧客詳細の取得に失敗しました。");
+            req.setAttribute(A_ERROR_MSG, validation.getErrorMsg());
             return req.getContextPath() + req.getServletPath() + "/error";
         }
     }
-    
 
-    
-    // =======================
-    // 新規登録（画面／確定）
-    // =======================
-    
+    // =========================
+    // 「【admin】機能：顧客 新規登録（画面→確認→確定）」
+    // =========================
+
     /**
-     * 新規登録画面へ遷移します。
-     *
-     * @return 新規登録画面のビュー名（{@value #VIEW_REGISTER}）
+     * 「顧客 新規登録」画面表示。
+     * <p>入力フォーム表示のみ。DB アクセスなし。</p>
+     * @return 登録ビュー（{@value #VIEW_REGISTER}）
      */
     public String customerRegister() {
         return VIEW_REGISTER;
     }
-    
-    
+
     /**
-     * ★ ADDED: 新規登録の確認処理。
-     * <p>
-     * 入力値の必須・形式チェックと、company_code の重複チェックを行い、
-     * 問題なければ確認画面へ遷移します。エラー時は入力値をそのまま属性へ戻して
-     * 登録画面に戻ります。
-     * </p>
-     *
-     * @return 確認画面のビュー名（{@value #VIEW_REGISTER_CHECK}）。エラー時は {@value #VIEW_REGISTER}。
+     * 「顧客 新規登録」確認。
+     * <ul>
+     *   <li>request param: {@code companyCode, companyName, mail, phone, postalCode} ほか</li>
+     *   <li>必須/形式チェック、{@code companyCode} の重複チェック。</li>
+     *   <li>エラー時: {@code errorMsg} と入力値を戻して登録画面へ。</li>
+     *   <li>成功時: 入力値を属性へ詰め替え、確認画面へ。</li>
+     * </ul>
+     * @return 確認ビュー（{@value #VIEW_REGISTER_CHECK}）または登録ビュー。
      */
     public String customerRegisterCheck() {
         final String companyCode = req.getParameter(P_COMPANY_CODE);
@@ -205,19 +247,21 @@ public class CustomerService extends BaseService{
         // 必須
         validation.isNull("会社コード", companyCode);
         validation.isNull("会社名", companyName);
-        // 任意チェック（入力がある場合のみ）
+        // 任意の形式チェック
         if (notBlank(mail))       validation.isEmail(mail);
         if (notBlank(phone))      validation.isPhoneNumber(phone);
         if (notBlank(postalCode)) validation.isPostalCode(postalCode);
-        
-        // DB重複チェック
+
+        // companyCode 重複チェック
         if (!validation.hasErrorMsg() && notBlank(companyCode)) {
             try (TransactionManager tm = new TransactionManager()) {
                 CustomerDAO dao = new CustomerDAO(tm.getConnection());
                 if (dao.companyCodeExists(companyCode)) {
                     validation.addErrorMsg("その会社コードは既に使われています。");
                 }
-            } catch (RuntimeException ignore) { /* 例外時は従来どおりエラーページに遷移するためここでは握りつぶしません */ }
+            } catch (RuntimeException ignore) {
+                // ここでは握りつぶし、後段の例外ハンドリングに委譲
+            }
         }
 
         if (validation.hasErrorMsg()) {
@@ -226,20 +270,18 @@ public class CustomerService extends BaseService{
             return VIEW_REGISTER;
         }
 
-        // 確認画面は hidden で値を引き継ぐため、属性にも積んでおく
-        pushFormBackToRequest();
+        pushFormBackToRequest();     // hiddenで引き継ぐ＋画面でも参照可能に
         return VIEW_REGISTER_CHECK;
     }
-    
-    
+
     /**
-     * 新規登録の確定処理。
-     * <p>
-     * 最終チェック（必須・形式・company_code 重複）を行い、問題なければ INSERT を実行します。
-     * 完了後は完了画面へ遷移します。
-     * </p>
-     *
-     * @return 完了画面のビュー名（{@value #VIEW_REGISTER_DONE}）。エラー時は登録画面。
+     * 「顧客 新規登録」確定。
+     * <ul>
+     *   <li>最終チェック（必須/形式/重複）を行い INSERT。</li>
+     *   <li>成功時: {@code message} を設定し完了画面へ。</li>
+     *   <li>失敗時: {@code errorMsg} と入力値を戻して登録画面へ。</li>
+     * </ul>
+     * @return 完了ビュー（{@value #VIEW_REGISTER_DONE}）または登録ビュー。
      */
     public String customerRegisterDone() {
         final String companyCode = req.getParameter(P_COMPANY_CODE);
@@ -266,7 +308,7 @@ public class CustomerService extends BaseService{
         try (TransactionManager tm = new TransactionManager()) {
             CustomerDAO dao = new CustomerDAO(tm.getConnection());
 
-            // ★ CHANGED: 重複再チェック
+            // companyCode 重複の最終確認
             if (notBlank(companyCode) && dao.companyCodeExists(companyCode)) {
                 validation.addErrorMsg("その会社コードは既に使われています。");
                 req.setAttribute(A_ERROR_MSG, validation.getErrorMsg());
@@ -286,9 +328,9 @@ public class CustomerService extends BaseService{
 
             int num = dao.insert(dto);
             tm.commit();
+
             req.setAttribute(A_MESSAGE, "登録が完了しました（件数:" + num + "）");
             return VIEW_REGISTER_DONE;
-
         } catch (RuntimeException e) {
             validation.addErrorMsg("データベースに不正な操作が行われました");
             req.setAttribute(A_ERROR_MSG, validation.getErrorMsg());
@@ -296,20 +338,18 @@ public class CustomerService extends BaseService{
             return req.getContextPath() + req.getServletPath() + "/error";
         }
     }
-    
-    
-    
-    // =====================================================
-    // 編集（画面 → 確認 → 確定）
-    // =====================================================
+
+    // =========================
+    // 「【admin】機能：顧客 編集（画面→確認→確定）」
+    // =========================
 
     /**
-     * 編集画面表示（一覧の「編集」ボタンから遷移）。
-     * <p>
-     * 指定された ID の顧客を取得し、編集画面へ遷移します。
-     * </p>
-     *
-     * @return 編集画面のビュー名（{@value #VIEW_EDIT}）。ID不正や例外時はエラーページ。
+     * 「顧客 編集」画面表示。
+     * <ul>
+     *   <li>request param {@code id}: 顧客UUID</li>
+     *   <li>該当顧客を取得して {@code customer} に設定。</li>
+     * </ul>
+     * @return 編集ビュー（{@value #VIEW_EDIT}）。不正IDや例外時はエラーページ。
      */
     public String customerEdit() {
         final String idStr = req.getParameter(P_ID);
@@ -329,15 +369,14 @@ public class CustomerService extends BaseService{
         }
     }
 
-    
     /**
-     * ★ ADDED: 編集の確認処理。
-     * <p>
-     * 入力値の必須・形式チェックに加えて、company_code の重複（自ID除外）を確認します。
-     * 問題なければ確認画面へ遷移、エラー時は編集画面へ戻します。
-     * </p>
-     *
-     * @return 確認画面のビュー名（{@value #VIEW_EDIT_CHECK}）。エラー時は {@value #VIEW_EDIT}。
+     * 「顧客 編集」確認。
+     * <ul>
+     *   <li>必須/形式チェック、{@code companyCode} の重複チェック（自ID除外）。</li>
+     *   <li>エラー時: {@code errorMsg} と入力値を戻して編集画面へ。</li>
+     *   <li>成功時: 入力値を属性に詰め替え、確認画面へ。</li>
+     * </ul>
+     * @return 確認ビュー（{@value #VIEW_EDIT_CHECK}）または編集ビュー。
      */
     public String customerEditCheck() {
         final String idStr       = req.getParameter(P_ID);
@@ -353,7 +392,7 @@ public class CustomerService extends BaseService{
         if (notBlank(phone))      validation.isPhoneNumber(phone);
         if (notBlank(postalCode)) validation.isPostalCode(postalCode);
 
-        // DB重複チェック（自分は除外）
+        // companyCode 重複（自分は除外）
         if (!validation.hasErrorMsg() && notBlank(companyCode)) {
             try (TransactionManager tm = new TransactionManager()) {
                 CustomerDAO dao = new CustomerDAO(tm.getConnection());
@@ -375,16 +414,15 @@ public class CustomerService extends BaseService{
         pushFormBackToRequest();
         return VIEW_EDIT_CHECK;
     }
-    
 
     /**
-     * 編集の確定処理。
-     * <p>
-     * 最終チェック（必須・形式・company_code 重複（自ID除外））を行い、問題なければ UPDATE を実行します。
-     * 完了後は編集完了画面へ遷移します。
-     * </p>
-     *
-     * @return 完了画面のビュー名（{@value #VIEW_EDIT_DONE}）。エラー時は編集画面またはエラーページ。
+     * 「顧客 編集」確定。
+     * <ul>
+     *   <li>最終チェック（必須/形式/重複（自ID除外））を行い UPDATE。</li>
+     *   <li>成功時: {@code message} を設定し完了画面へ。</li>
+     *   <li>失敗時: {@code errorMsg} と入力値を戻して編集画面へ、またはエラーページへ。</li>
+     * </ul>
+     * @return 完了ビュー（{@value #VIEW_EDIT_DONE}）または編集ビュー/エラーページ。
      */
     public String customerEditDone() {
         final String idStr       = req.getParameter(P_ID);
@@ -414,7 +452,7 @@ public class CustomerService extends BaseService{
             CustomerDAO dao = new CustomerDAO(tm.getConnection());
             UUID id = UUID.fromString(idStr);
 
-            // ★ CHANGED: 重複再チェック（自分は除外）
+            // companyCode 重複（自分除外）の最終確認
             if (notBlank(companyCode) && dao.companyCodeExistsExceptId(companyCode, id)) {
                 validation.addErrorMsg("その会社コードは既に使われています。");
                 req.setAttribute(A_ERROR_MSG, validation.getErrorMsg());
@@ -436,9 +474,9 @@ public class CustomerService extends BaseService{
 
             int num = dao.update(dto);
             tm.commit();
+
             req.setAttribute(A_MESSAGE, "更新が完了しました（件数:" + num + "）");
             return VIEW_EDIT_DONE;
-
         } catch (IllegalArgumentException ex) {
             validation.addErrorMsg("不正なIDが指定されました。");
             req.setAttribute(A_ERROR_MSG, validation.getErrorMsg());
@@ -450,16 +488,17 @@ public class CustomerService extends BaseService{
         }
     }
 
-
-    
-    // =====================================================
-    // 削除
-    // =====================================================
+    // =========================
+    // 「【admin】機能：顧客 削除」
+    // =========================
 
     /**
-     * 顧客の論理削除（deleted_at を現在時刻に更新）を行い、一覧へ戻ります。
-     *
-     * @return 一覧URL（リダイレクト先想定）。例外時はエラーページ。
+     * 「顧客 論理削除」実行。
+     * <ul>
+     *   <li>request param {@code id}: 顧客UUID</li>
+     *   <li>成功時: 一覧へリダイレクト（{@code /admin/customer}）。</li>
+     * </ul>
+     * @return リダイレクト先 もしくは エラーページ。
      */
     public String customerDelete() {
         final String idStr = req.getParameter(P_ID);
@@ -468,20 +507,22 @@ public class CustomerService extends BaseService{
             CustomerDAO dao = new CustomerDAO(tm.getConnection());
             dao.delete(id);
             tm.commit();
-            return req.getContextPath() + "/admin/customer"; // 一覧へ
+            return req.getContextPath() + "/admin/customer";
         } catch (RuntimeException e) {
             validation.addErrorMsg("データベースに不正な操作が行われました");
             req.setAttribute(A_ERROR_MSG, validation.getErrorMsg());
             return req.getContextPath() + req.getServletPath() + "/error";
         }
     }
-    
-    
-    // =====================================================
-    // Helper
-    // =====================================================
 
-    /** リクエストから読み取った入力値を、そのままリクエスト属性に積み直す。 */
+    // =========================
+    // ④ ヘルパー
+    // =========================
+
+    /**
+     * 入力値（request param）を同名の属性に詰め替える（JSP の再表示用）。
+     * <p>属性キー名はパラメータ名と同一。JSP 互換性を壊さない。</p>
+     */
     private void pushFormBackToRequest() {
         req.setAttribute(P_COMPANY_CODE, req.getParameter(P_COMPANY_CODE));
         req.setAttribute(P_COMPANY_NAME, req.getParameter(P_COMPANY_NAME));
@@ -493,16 +534,12 @@ public class CustomerService extends BaseService{
         req.setAttribute(P_BUILDING,     req.getParameter(P_BUILDING));
     }
 
-    /** 文字列が null/空白でないかの簡易チェック */
+    /**
+     * 文字列が null・空白でないかの簡易チェック。
+     * @param s 文字列
+     * @return true=非空白
+     */
     private boolean notBlank(String s) {
         return s != null && !s.isBlank();
     }
-
-
-
-
-   
-
-
-
 }

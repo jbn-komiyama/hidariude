@@ -127,8 +127,8 @@
 									<c:forEach var="t" items="${tasks}" varStatus="st">
 										<tr>
 											<td>${st.count}</td>
-											<td>${t.assignment.secretaryName}</td>
-											<td>${t.assignment.companyName}</td>
+											<td><a href="${pageContext.request.contextPath}/admin/secretary/detail?id=${t.assignment.secretaryId}">${t.assignment.secretaryName}</a></td>
+											<td><a href="${pageContext.request.contextPath}/admin/customer/detail?id=${t.assignment.customerId}">${t.assignment.companyName}</a></td>
 											<td><fmt:formatDate value="${t.workDate}"
 													pattern="dd (E)" timeZone="Asia/Tokyo" /></td>
 											<td><fmt:formatDate value="${t.startTime}"
@@ -214,8 +214,6 @@
 		</div>
 	</div>
 
-	<script
-		src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 	<script>
 document.getElementById('remandModal')?.addEventListener('show.bs.modal', function (event) {
   const btn = event.relatedTarget;

@@ -1,6 +1,7 @@
 // Converter.java
 package service;
 
+import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
@@ -182,6 +183,41 @@ public class Converter {
         sr.setRankName(dto.getSecretaryRankName());
         secretary.setSecretaryRank(sr);
         assignment.setSecretary(secretary);
+        
+        // ===== ここから hourlyPay のフォールバック補完 =====
+        // Customer側：hourlyPayCustomer が null なら base+inc+cont を合算（全部nullなら未設定のまま）
+        if (assignment.getHourlyPayCustomer() == null) {
+            boolean hasAny =
+                dto.getBasePayCustomer() != null ||
+                dto.getIncreaseBasePayCustomer() != null ||
+                dto.getCustomerBasedIncentiveForCustomer() != null;
+
+            if (hasAny) {
+                assignment.setHourlyPayCustomer(
+                    nz(dto.getBasePayCustomer())
+                        .add(nz(dto.getIncreaseBasePayCustomer()))
+                        .add(nz(dto.getCustomerBasedIncentiveForCustomer()))
+                );
+            }
+        }
+
+        // Secretary側：hourlyPaySecretary が null なら base+inc+cont を合算（全部nullなら未設定のまま）
+        if (assignment.getHourlyPaySecretary() == null) {
+            boolean hasAny =
+                dto.getBasePaySecretary() != null ||
+                dto.getIncreaseBasePaySecretary() != null ||
+                dto.getCustomerBasedIncentiveForSecretary() != null;
+
+            if (hasAny) {
+                assignment.setHourlyPaySecretary(
+                    nz(dto.getBasePaySecretary())
+                        .add(nz(dto.getIncreaseBasePaySecretary()))
+                        .add(nz(dto.getCustomerBasedIncentiveForSecretary()))
+                );
+            }
+        }
+        // ===== hourlyPay フォールバックここまで =====
+        
 
         return assignment;
 	}
@@ -232,6 +268,8 @@ public class Converter {
         t.setUpdatedAt(ts2date(dto.getUpdatedAt()));
         t.setDeletedAt(ts2date(dto.getDeletedAt()));
         t.setRemandedAt(ts2date(dto.getRemandedAt()));
+        t.setAlertedAt(ts2date(dto.getAlertedAt()));
+        t.setAlertComment(dto.getAlertComment());
         t.setRemandedById(dto.getRemandedBy());
         t.setRemandComment(dto.getRemandComment());
         t.setUnapproved(dto.getUnapproved());
@@ -366,5 +404,9 @@ public class Converter {
 
     private Date sql2date(java.sql.Date d) {
         return d == null ? null : new Date(d.getTime());
+    }
+    
+    private static BigDecimal nz(BigDecimal v) {
+        return v != null ? v : BigDecimal.ZERO;
     }
 }

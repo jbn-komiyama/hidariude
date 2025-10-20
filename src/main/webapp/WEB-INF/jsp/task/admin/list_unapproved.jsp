@@ -106,9 +106,9 @@
                         </div>
                       </td>
                       <td>${st.count}</td>
-                      <td>${t.assignment.secretaryName}</td>
-                      <td>${t.assignment.companyName}</td>
-                      <td><fmt:formatDate value="${t.workDate}" pattern="dd (E)" timeZone="Asia/Tokyo"/></td>
+                      <td><a href="${pageContext.request.contextPath}/admin/secretary/detail?id=${t.assignment.secretaryId}">${t.assignment.secretaryName}</a></td>
+											<td><a href="${pageContext.request.contextPath}/admin/customer/detail?id=${t.assignment.customerId}">${t.assignment.companyName}</a></td>
+											<td><fmt:formatDate value="${t.workDate}" pattern="dd (E)" timeZone="Asia/Tokyo"/></td>
                       <td>
                         <fmt:formatDate value="${t.startTime}" pattern="HH:mm" timeZone="Asia/Tokyo"/> ～
                         <fmt:formatDate value="${t.endTime}" pattern="HH:mm" timeZone="Asia/Tokyo"/>

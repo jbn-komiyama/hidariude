@@ -185,7 +185,7 @@
 														<td class="text-center fw-semibold"
 															rowspan="${customerRowspan}">${st.index + 1}</td>
 														<td class="text-nowrap" rowspan="${customerRowspan}">
-															<c:out value="${c.companyName}" /> <c:set var="hasPm"
+															<a href="${pageContext.request.contextPath}/admin/customer/detail?id=${c.id}"><c:out value="${c.companyName}" /></a> <c:set var="hasPm"
 																value="false" /> <c:forEach var="g2" items="${groups}">
 																<c:if test="${g2.secretary != null}">
 																	<c:set var="hasPm" value="true" />
@@ -206,8 +206,8 @@
 
 													<c:if test="${as.first}">
 														<td class="text-nowrap"
-															rowspan="${fn:length(g.assignments)}"><c:out
-																value="${g.secretary != null ? g.secretary.name : '—'}" />
+															rowspan="${fn:length(g.assignments)}"><a href="${pageContext.request.contextPath}/admin/secretary/detail?id=${g.secretary.id}"><c:out
+																value="${g.secretary != null ? g.secretary.name : '—'}" /></a>
 														</td>
 														<td class="text-nowrap"
 															rowspan="${fn:length(g.assignments)}"><c:out
@@ -245,14 +245,27 @@
 															pattern="#,##0" />)</td>
 
 													<td class="text-nowrap">
-														<form method="get"
-															action="${pageContext.request.contextPath}/admin/assignment/edit"
-															class="d-inline">
-															<input type="hidden" name="id" value="${a.id}"> <input
-																type="hidden" name="targetYM" value="${targetYM}">
-															<button type="submit"
-																class="btn btn-sm btn-outline-secondary">変更</button>
-														</form>
+														<c:set var="isRankP" value="${a.taskRankName == 'P'}" />
+
+														<c:choose>
+															<c:when test="${isRankP}">
+																<button type="button"
+																	class="btn btn-sm btn-outline-secondary" disabled
+																	title="ランクPは変更できません">変更</button>
+															</c:when>
+
+															<c:otherwise>
+																<form method="get"
+																	action="${pageContext.request.contextPath}/admin/assignment/edit"
+																	class="d-inline">
+																	<input type="hidden" name="id" value="${a.id}">
+																	<input type="hidden" name="targetYM"
+																		value="${targetYM}">
+																	<button type="submit"
+																		class="btn btn-sm btn-outline-secondary">変更</button>
+																</form>
+															</c:otherwise>
+														</c:choose>
 														<form method="post"
 															action="${pageContext.request.contextPath}/admin/assignment/delete"
 															class="d-inline"
@@ -271,7 +284,7 @@
 									<c:otherwise>
 										<tr>
 											<td class="text-center fw-semibold">${st.index + 1}</td>
-											<td class="text-nowrap"><c:out value="${c.companyName}" /></td>
+											<td class="text-nowrap"><a href="${pageContext.request.contextPath}/admin/customer/detail?id=${c.id}"><c:out value="${c.companyName}" /></a></td>
 											<td colspan="8" class="text-center text-muted">
 												<form method="post"
 													action="${pageContext.request.contextPath}/admin/assignment/pm_register">

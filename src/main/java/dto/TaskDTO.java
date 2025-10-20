@@ -22,6 +22,9 @@ public class TaskDTO implements Serializable {
     private Timestamp createdAt;
     private Timestamp updatedAt;
     private Timestamp deletedAt;
+    private Timestamp alertedAt;
+    private String alertComment;
+    private String secretaryName;
    
     private int unapproved;
     private int approved;
@@ -159,5 +162,23 @@ public class TaskDTO implements Serializable {
 
 	public BigDecimal getTotalAmountApproved() { return totalAmountApproved; }
 	public void setTotalAmountApproved(BigDecimal v) { this.totalAmountApproved = v; }
+	public String getSecretaryName() {
+		return secretaryName;
+	}
+	public void setSecretaryName(String secretaryName) {
+		this.secretaryName = secretaryName;
+	}
+	public Timestamp getAlertedAt() {
+		return alertedAt;
+	}
+	public void setAlertedAt(Timestamp alertedAt) {
+		this.alertedAt = alertedAt;
+	}
+	public String getAlertComment() {
+		return alertComment;
+	}
+	public void setAlertComment(String alertComment) {
+		this.alertComment = alertComment;
+	}
 }
 

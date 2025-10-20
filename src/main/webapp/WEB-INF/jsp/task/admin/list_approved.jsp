@@ -84,8 +84,9 @@
 				時間 <strong>${totalMinute%60}</strong> 分
 			</span> <span>合計金額：<strong> <fmt:formatNumber
 						value="${sumCustomer}" type="number" maxFractionDigits="0"
-						groupingUsed="true" /> / <fmt:formatNumber value="${sumSecretary}"
-						type="number" maxFractionDigits="0" groupingUsed="true" /> 円
+						groupingUsed="true" /> / <fmt:formatNumber
+						value="${sumSecretary}" type="number" maxFractionDigits="0"
+						groupingUsed="true" /> 円
 			</strong></span>
 		</div>
 
@@ -147,8 +148,10 @@
 													</div>
 												</td>
 												<td>${st.count}</td>
-												<td>${t.assignment.secretaryName}</td>
-												<td>${t.assignment.companyName}</td>
+												<td><a
+													href="${pageContext.request.contextPath}/admin/secretary/detail?id=${t.assignment.secretaryId}">${t.assignment.secretaryName}</a></td>
+												<td><a
+													href="${pageContext.request.contextPath}/admin/customer/detail?id=${t.assignment.customerId}">${t.assignment.companyName}</a></td>
 												<td><fmt:formatDate value="${t.workDate}"
 														pattern="dd (E)" timeZone="Asia/Tokyo" /></td>
 												<td><fmt:formatDate value="${t.startTime}"
@@ -174,7 +177,7 @@
                           </c:when>
 														<c:otherwise>—</c:otherwise>
 													</c:choose></td>
-												
+
 												<td><c:choose>
 
 														<c:when test="${t.approvedAt eq null and t.hasRemander}">
