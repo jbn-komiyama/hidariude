@@ -83,6 +83,64 @@ if ! systemctl is-active --quiet postgresql-15; then
 fi
 log_info "PostgreSQL ステータス: $(systemctl is-active postgresql-15)"
 
+# PostgreSQL接続数上限の設定確認・変更
+PGCONF="/var/lib/pgsql/15/data/postgresql.conf"
+REQUIRED_MAX_CONN=300
+
+log_info "=== PostgreSQL接続数設定確認 ==="
+
+if [ -f "$PGCONF" ]; then
+    # 現在のmax_connections設定を確認
+    CURRENT_MAX_CONN=$(grep "^max_connections" "$PGCONF" | sed 's/.*= *//' | head -1)
+    
+    if [ -z "$CURRENT_MAX_CONN" ]; then
+        # コメントアウトされている場合はデフォルト値を取得
+        CURRENT_MAX_CONN=$(grep "^#max_connections" "$PGCONF" | sed 's/.*= *//' | head -1)
+        if [ -z "$CURRENT_MAX_CONN" ]; then
+            CURRENT_MAX_CONN=100  # PostgreSQLのデフォルト値
+        fi
+    fi
+    
+    log_info "現在のmax_connections: $CURRENT_MAX_CONN"
+    
+    if [ "$CURRENT_MAX_CONN" -lt "$REQUIRED_MAX_CONN" ]; then
+        log_warn "max_connectionsが推奨値より小さいため、${REQUIRED_MAX_CONN}に変更します..."
+        
+        # バックアップを作成
+        cp "$PGCONF" "${PGCONF}.backup.$(date +%Y%m%d_%H%M%S)"
+        
+        # max_connectionsを変更（既存の設定をコメントアウトし、新しい設定を追加）
+        sed -i "s/^max_connections.*/#&/" "$PGCONF"
+        sed -i "s/^#max_connections.*/#&/" "$PGCONF"
+        echo "" >> "$PGCONF"
+        echo "# HikariCP対応のため接続数を増加 ($(date +%Y-%m-%d))" >> "$PGCONF"
+        echo "max_connections = ${REQUIRED_MAX_CONN}" >> "$PGCONF"
+        
+        log_info "max_connectionsを${REQUIRED_MAX_CONN}に設定しました"
+        log_info "PostgreSQLを再起動します..."
+        
+        systemctl restart postgresql-15
+        
+        # PostgreSQLの起動を待機
+        WAIT_COUNT=0
+        while ! systemctl is-active --quiet postgresql-15 && [ $WAIT_COUNT -lt 30 ]; do
+            sleep 1
+            WAIT_COUNT=$((WAIT_COUNT + 1))
+        done
+        
+        if systemctl is-active --quiet postgresql-15; then
+            log_info "PostgreSQL再起動完了"
+        else
+            log_error "PostgreSQLの再起動に失敗しました"
+            exit 1
+        fi
+    else
+        log_info "max_connectionsは既に${REQUIRED_MAX_CONN}以上に設定されています"
+    fi
+else
+    log_warn "postgresql.confが見つかりません: $PGCONF"
+fi
+
 #####################################################################
 # Gitリポジトリ操作
 #####################################################################
