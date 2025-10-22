@@ -4,6 +4,17 @@
 
 このプロジェクトは Java Servlet ベースの Web アプリケーションで、VS Code での開発環境構築をサポートしています。
 
+## 目次
+
+-   [Part 1: Windows ローカル開発環境](#part-1-windows-ローカル開発環境)
+-   [Part 2: AlmaLinux 本番デプロイ](#part-2-almalinux-本番デプロイ)
+-   [技術スタック](#技術スタック)
+-   [更新履歴](#更新履歴)
+
+---
+
+# Part 1: Windows ローカル開発環境
+
 ## 前提条件
 
 以下のソフトウェアがインストール済みであることを確認してください：
@@ -34,9 +45,9 @@
     vscjava.vscode-java-pack
     ```
 
-2. **Tomcat for Java** (Wei Shen)
+2. **Java Server Pages** (Patrik Thorsson)
     ```
-    adashen.vscode-tomcat
+    pthorsson.vscode-jsp
     ```
 
 ## プロジェクト構成
@@ -64,6 +75,9 @@ hidariude/
 ### 1. プロジェクトのクローン・開始
 
 ```bash
+# リポジトリのクローン
+git clone https://github.com/jbn-komiyama/hidariude.git
+
 # プロジェクトディレクトリに移動
 cd hidariude
 
@@ -134,34 +148,132 @@ Tomcat Deploy
 Tomcat 起動後、以下の URL でアプリケーションにアクセスできます：
 
 ```
-http://localhost:8080/hidariude
+http://localhost:8080/hidariude/
 ```
 
 ## デバッグ
 
-### VS Code でのデバッグ
+### VS Code でのデバッグ（推奨方法）
 
-1. ターミナルでデバッグ用 Tomcat を起動：
+#### 方法 1: タスクからデバッグ起動（最も簡単）
+
+1. **Ctrl+Shift+P** → **Tasks: Run Task** → **Tomcat Debug Deploy** を選択
+2. ターミナルに `Listening for transport dt_socket at address: 8000` と表示されるまで待つ（約 10 秒）
+3. **F5** を押すか、**実行とデバッグ**ビュー（Ctrl+Shift+D）から **Debug (Attach)** を起動
+4. デバッガーが接続されると、VS Code のステータスバーがオレンジ色になります
+
+#### 方法 2: ターミナルから手動起動
+
+1. **新しいターミナル**を開く（Ctrl+Shift+`）
+2. 以下のコマンドを実行：
 
     ```bash
     mvnDebug cargo:run
     ```
 
-2. **F5** を押してデバッグを開始
-3. **Debug (Attach)** 設定が自動選択される
-4. ポート 8000 で Tomcat に接続
+3. `Listening for transport dt_socket at address: 8000` と表示されたら準備完了
+4. **F5** を押してデバッガーをアタッチ
 
 ### ブレークポイントの設定
 
-Java ファイルの行番号左側をクリックしてブレークポイントを設定できます。
+Java ファイルの行番号左側（左マージン）をクリックして赤丸のブレークポイントを設定できます。
+
+### デバッグが接続できない場合のチェックリスト
+
+#### 1. ポート 8000 が使用中
+
+```bash
+# Windowsの場合
+netstat -ano | findstr :8000
+
+# 使用中の場合、プロセスを終了
+taskkill /PID <プロセスID> /F
+```
+
+#### 2. Tomcat が完全に起動していない
+
+-   ターミナルに `Listening for transport dt_socket at address: 8000` が表示されるまで**必ず待つ**
+-   起動には 10〜30 秒かかる場合があります
+
+#### 3. デバッグ設定の確認
+
+`.vscode/launch.json` に以下の設定があることを確認：
+
+```json
+{
+    "type": "java",
+    "name": "Debug (Attach)",
+    "request": "attach",
+    "hostName": "localhost",
+    "port": 8000
+}
+```
+
+#### 4. Java プロセスの確認
+
+```bash
+# Windowsの場合
+jps -v | findstr 8000
+
+# 正常な場合、以下のような出力が表示されます：
+# 12345 Launcher -agentlib:jdwp=transport=dt_socket,server=y,suspend=y,address=*:8000
+```
+
+### デバッグセッションの終了
+
+1. デバッグツールバーの**停止**ボタン（赤い四角）をクリック
+2. またはターミナルで **Ctrl+C** を押して Tomcat を停止
+
+### 実際のデバッグ操作
+
+#### ブレークポイントで停止したら：
+
+-   **F10** (Step Over): 次の行へ
+-   **F11** (Step Into): メソッド内部へ
+-   **Shift+F11** (Step Out): メソッドから抜ける
+-   **F5** (Continue): 次のブレークポイントまで実行
+-   **変数ビュー**: 左側のパネルで変数の値を確認
+-   **デバッグコンソール**: 式を評価して値を確認
 
 ## データベース設定
 
 ### PostgreSQL セットアップ
 
-#### 事前準備
+#### 1. PostgreSQL ポート設定
 
-PostgreSQL で以下のデータベースとユーザーを作成してください：
+このプロジェクトは PostgreSQL のポート **5433** を使用します。デフォルトの 5432 から変更する場合は以下の手順で設定してください：
+
+##### Windows での設定手順
+
+1. `postgresql.conf` を開く（通常の場所）：
+
+    ```
+    C:\Program Files\PostgreSQL\15\data\postgresql.conf
+    ```
+
+2. `port` の設定を変更：
+
+    ```conf
+    # 変更前
+    #port = 5432
+
+    # 変更後
+    port = 5433
+    ```
+
+3. PostgreSQL サービスを再起動：
+
+    - **サービスアプリ**を開く（`services.msc`）
+    - **postgresql-x64-15** を右クリック → **再起動**
+
+4. ポート変更を確認：
+    ```bash
+    netstat -ano | findstr :5433
+    ```
+
+#### 2. データベースとユーザーの作成
+
+pgAdmin を起動し、以下の SQL を実行してデータベースとユーザーを作成してください：
 
 ```sql
 -- PostgreSQL に接続して実行
@@ -171,7 +283,25 @@ ALTER USER postgres WITH PASSWORD 'password';
 GRANT ALL PRIVILEGES ON DATABASE hidariude TO postgres;
 ```
 
-#### 接続設定
+#### 3. テーブル作成とダミーデータ投入
+
+**pgAdmin** で `hidariude` データベースに接続し、`src/main/sql/hoshiiro.sql` を実行してください：
+
+1. pgAdmin の左側ツリーで **Servers** → **PostgreSQL 15** → **Databases** → **hidariude** を選択
+2. 上部メニューから **Tools** → **Query Tool** を開く
+3. ファイルメニューから **Open File** を選択
+4. プロジェクトの `src/main/sql/hoshiiro.sql` を開く
+5. **実行ボタン**（▶ アイコン）をクリック
+
+このスクリプトは以下を実行します：
+
+-   全テーブルの作成（system_admins, secretaries, customers, assignments, tasks など）
+-   ダミーデータの投入（管理者 10 件、秘書 10 件、顧客 10 件など）
+-   過去 24 ヶ月分の月次サマリデータの生成
+
+**注意**: `hoshiiro.sql` は既存のテーブルを削除してから再作成するため、データがリセットされます。
+
+#### 4. 接続設定の確認
 
 データベース接続設定は `src/main/java/dao/TransactionManager.java` で管理されています：
 
@@ -186,18 +316,7 @@ private static final String DB_PASSWORD = "password";
 
 -   このプロジェクトはポート **5433** を使用します
 -   スキーマは **public** を使用します
--   データベース接続情報を変更する場合は `TransactionManager.java` を編集してください
-
-## 技術スタック
-
--   **Java 24** - プログラミング言語
--   **Jakarta Servlet 6.1.0** - Web フレームワーク
--   **Jakarta JSP 4.0.0** - ビューテクノロジー
--   **JSTL 3.0.1** - JSP 標準タグライブラリ
--   **PostgreSQL 42.6.0** - データベースドライバー
--   **Apache POI 5.4.1** - Excel ファイル処理
--   **Apache Maven** - ビルドツール
--   **Apache Tomcat** - アプリケーションサーバー
+-   ポートやユーザー名などを変更した場合は `TransactionManager.java` を編集してください
 
 ## トラブルシューティング
 
@@ -236,44 +355,48 @@ echo %PATH% # Windows
 
 ### PostgreSQL 接続エラー
 
--   PostgreSQL サービスが起動しているか確認
--   データベースとユーザーが作成されているか確認
--   **hidariude データベース**が作成されているか確認
--   **postgres ユーザー**が作成されているか確認
--   接続設定（ホスト、**ポート 5433**、認証情報）を確認
+アプリケーション起動時にデータベース接続エラーが発生する場合は、以下を確認してください：
 
-データベース作成コマンド：
+1. **PostgreSQL サービスが起動しているか確認**
 
-```sql
-CREATE DATABASE hidariude;
-CREATE USER postgres WITH PASSWORD 'password';
-GRANT ALL PRIVILEGES ON DATABASE hidariude TO postgres;
-```
+    ```bash
+    # Windowsの場合
+    sc query postgresql-x64-15
+    ```
 
-## 開発ガイドライン
+2. **ポート 5433 で稼働しているか確認**
 
-### ディレクトリ構成
+    ```bash
+    netstat -ano | findstr :5433
+    ```
 
--   **Java クラス**: `src/main/java/`
--   **JSP ファイル**: `src/main/webapp/`
--   **CSS/JS**: `src/main/webapp/assets/`
--   **設定ファイル**: `src/main/resources/`
+    ポートが異なる場合は、上記の「PostgreSQL ポート設定」を参照してください。
 
-### コーディング規約
+3. **データベースとユーザーが作成されているか確認**
 
--   エンコーディング: **UTF-8**
--   インデント: **スペース 4 個**
--   Java 命名規約に準拠
+    - pgAdmin で接続し、`hidariude` データベースが存在するか確認
+    - `postgres` ユーザーが存在し、パスワードが `password` であることを確認
 
-## ライセンス
+4. **テーブルが作成されているか確認**
 
-このプロジェクトは開発用テンプレートです。
+    - pgAdmin の Query Tool で以下を実行：
+
+    ```sql
+    SELECT table_name FROM information_schema.tables
+    WHERE table_schema = 'public'
+    ORDER BY table_name;
+    ```
+
+    テーブルが存在しない場合は、上記の「テーブル作成とダミーデータ投入」を参照して `hoshiiro.sql` を実行してください。
+
+5. **接続設定の確認**
+    - `src/main/java/dao/TransactionManager.java` のポート、ユーザー名、パスワードが正しいか確認
 
 ---
 
-## AlmaLinux 10 へのデプロイ
+# Part 2: AlmaLinux 本番デプロイ
 
-### 前提条件
+## 前提条件
 
 以下の環境が構築済みであること：
 
@@ -287,9 +410,9 @@ GRANT ALL PRIVILEGES ON DATABASE hidariude TO postgres;
     -   systemctl で自動起動設定済み
     -   TCP 接続（localhost:5433）が許可されていること（pg_hba.conf）
 
-### デプロイ手順
+## デプロイ手順
 
-#### 1. リポジトリのクローン
+### 1. リポジトリのクローン
 
 ```bash
 cd /opt
@@ -297,11 +420,17 @@ git clone <repository-url> hidariude
 cd hidariude
 ```
 
-#### 2. データベースの初期化
+### 2. データベースの初期化
 
-初回のみ、またはデータベースをリセットする場合に実行：
+初回のみ、またはデータベースをリセット(変更内容を反映)する場合に実行：
 
 ```bash
+# 更新内容を破棄して最新のコードを取得
+cd /opt/hidariude
+git restore . # 変更内容を破棄
+git pull origin deploy
+
+# データベースの初期化
 chmod +x init_database.sh
 ./init_database.sh
 ```
@@ -309,12 +438,17 @@ chmod +x init_database.sh
 このスクリプトは以下を実行します：
 
 -   既存テーブルの削除（確認プロンプトあり）
--   DDL の実行（テーブル作成）
--   ダミーデータの投入
+-   hoshiiro.sql の実行（テーブル作成, ダミーデータ投入）
 
-#### 3. アプリケーションのデプロイ
+### 3. アプリケーションのデプロイ
 
 ```bash
+# 更新内容を破棄して最新のコードを取得
+cd /opt/hidariude
+git restore . # 変更内容を破棄
+git pull origin deploy
+
+# アプリケーションのデプロイ
 chmod +x deploy.sh
 ./deploy.sh
 ```
@@ -328,7 +462,7 @@ chmod +x deploy.sh
 -   新しい WAR ファイルのデプロイ
 -   Tomcat の起動
 
-#### 4. アプリケーションへのアクセス
+### 4. アプリケーションへのアクセス
 
 デプロイ完了後、以下の URL でアクセス可能：
 
@@ -339,15 +473,15 @@ http://<サーバーのIPアドレス>:8080/hidariude
 curl -i http://localhost:8080/hidariude
 ```
 
-### トラブルシューティング（AlmaLinux）
+## トラブルシューティング
 
-#### デプロイスクリプトの実行権限エラー
+### デプロイスクリプトの実行権限エラー
 
 ```bash
 chmod +x deploy.sh init_database.sh
 ```
 
-#### Tomcat ログの確認
+### Tomcat ログの確認
 
 ```bash
 # リアルタイムログ
@@ -357,7 +491,7 @@ tail -f /opt/tomcat/apache-tomcat-10.1.46/logs/catalina.out
 tail -f /opt/tomcat/apache-tomcat-10.1.46/logs/catalina.$(date +%Y-%m-%d).log
 ```
 
-#### Tomcat の手動操作
+### Tomcat の手動操作
 
 ```bash
 # ステータス確認
@@ -373,7 +507,7 @@ systemctl stop tomcat
 systemctl restart tomcat
 ```
 
-#### PostgreSQL の確認
+### PostgreSQL の確認
 
 ```bash
 # ステータス確認
@@ -402,7 +536,7 @@ host    hidariude       postgres        127.0.0.1/32            scram-sha-256
 systemctl restart postgresql-15
 ```
 
-#### ポート開放（ファイアウォール）
+### ポート開放（ファイアウォール）
 
 外部からアクセスする場合：
 
@@ -415,7 +549,7 @@ firewall-cmd --permanent --add-port=8080/tcp
 firewall-cmd --reload
 ```
 
-#### デプロイ失敗時の対処
+### デプロイ失敗時の対処
 
 1. Tomcat ログを確認
 
@@ -440,313 +574,18 @@ systemctl status postgresql-15
 sudo -u postgres psql -p 5433 -d hidariude -c "SELECT 1;"
 ```
 
-### 自動デプロイ（オプション）
-
-cron で定期的にデプロイする場合：
-
-```bash
-# crontab編集
-crontab -e
-
-# 例：毎日深夜2時にデプロイ
-0 2 * * * /opt/hidariude/deploy.sh >> /var/log/hidariude-deploy.log 2>&1
-```
-
 ---
 
-## 本番環境への公開（重要）
-
-### ⚠️ 公開前の必須セキュリティ対策
-
-8080 ポートを外部公開する前に、以下のセキュリティ対策を**必ず**実施してください：
-
-#### 1. データベースパスワードの変更
-
-**現在のデフォルト設定：**
-
--   ユーザー: `postgres`
--   パスワード: `password` ⚠️ **絶対に変更必須！**
-
-**変更手順：**
-
-```bash
-# PostgreSQLに接続
-sudo -u postgres psql -p 5433
-
-# パスワード変更
-ALTER USER postgres WITH PASSWORD '強力なパスワード';
-\q
-```
-
-**アプリケーション側の設定変更：**
-
-`src/main/java/dao/TransactionManager.java` の 11 行目を変更：
-
-```java
-private static final String DB_PASSWORD = "新しい強力なパスワード";
-```
-
-変更後、再ビルド・再デプロイ：
-
-```bash
-cd /opt/hidariude
-./deploy.sh
-```
-
-#### 2. システム管理者の初期パスワード変更
-
-データベースに登録されている管理者アカウントもデフォルトパスワードです：
-
-```sql
--- 現在: password1, password2 など
--- これらを強力なパスワード（BCrypt ハッシュ）に変更してください
-```
-
-アプリケーションのログイン画面から初回ログイン後、すぐにパスワード変更してください。
-
-#### 3. ファイアウォール設定（Sakura VPS）
-
-**最小権限の原則で設定：**
-
-```bash
-# 現在のルール確認
-firewall-cmd --list-all
-
-# 必要なポートのみ開放
-firewall-cmd --permanent --add-service=ssh       # SSH（22）
-firewall-cmd --permanent --add-port=8080/tcp     # アプリケーション
-# firewall-cmd --permanent --add-port=443/tcp    # HTTPS（将来的に）
-
-# PostgreSQLポートは外部公開しない（デフォルトで閉じている）
-# 5433ポートは絶対に開放しないでください
-
-# 設定を反映
-firewall-cmd --reload
-
-# 確認
-firewall-cmd --list-all
-```
-
-#### 4. PostgreSQL の外部アクセス防止
-
-PostgreSQL（ポート 5433）は**絶対に外部公開しない**でください：
-
-```bash
-# pg_hba.confの確認
-sudo cat /var/lib/pgsql/15/data/pg_hba.conf
-
-# localhostからのみアクセス許可されていることを確認
-# host    hidariude    postgres    127.0.0.1/32    scram-sha-256
-# ↑ 127.0.0.1/32 = localhost のみ（正しい設定）
-
-# 以下のような設定は絶対にしない
-# host    all    all    0.0.0.0/0    trust  ← 危険！
-```
-
-#### 5. Tomcat のセキュリティ設定
-
-**管理画面の無効化または保護：**
-
-```bash
-# Tomcat管理画面（manager, host-manager）を使用しない場合は削除
-rm -rf /opt/tomcat/apache-tomcat-10.1.46/webapps/manager
-rm -rf /opt/tomcat/apache-tomcat-10.1.46/webapps/host-manager
-rm -rf /opt/tomcat/apache-tomcat-10.1.46/webapps/docs
-rm -rf /opt/tomcat/apache-tomcat-10.1.46/webapps/examples
-rm -rf /opt/tomcat/apache-tomcat-10.1.46/webapps/ROOT  # デフォルトページも削除可
-
-# Tomcat再起動
-systemctl restart tomcat
-```
-
-#### 6. HTTPS 化の検討（推奨）
-
-本番環境では HTTP（8080）ではなく HTTPS（443）を使用することを強く推奨します：
-
-**Let's Encrypt + Nginx リバースプロキシの例：**
-
-```bash
-# Nginx インストール
-dnf install -y nginx certbot python3-certbot-nginx
-
-# Nginx設定（/etc/nginx/conf.d/hidariude.conf）
-cat > /etc/nginx/conf.d/hidariude.conf << 'EOF'
-server {
-    listen 80;
-    server_name your-domain.com;
-
-    location / {
-        proxy_pass http://localhost:8080;
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
-    }
-}
-EOF
-
-# SSL証明書取得
-certbot --nginx -d your-domain.com
-
-# Nginx起動
-systemctl enable nginx
-systemctl start nginx
-```
-
-この場合、ファイアウォールは 80（HTTP）と 443（HTTPS）のみ開放し、8080 は閉じたままにします。
-
-#### 7. ログローテーション設定
-
-Tomcat ログが肥大化しないよう設定：
-
-```bash
-# /etc/logrotate.d/tomcat を作成
-cat > /etc/logrotate.d/tomcat << 'EOF'
-/opt/tomcat/apache-tomcat-10.1.46/logs/catalina.out {
-    daily
-    rotate 14
-    compress
-    missingok
-    notifempty
-    copytruncate
-}
-EOF
-```
-
-#### 8. 定期バックアップの設定
-
-```bash
-# バックアップディレクトリ作成
-mkdir -p /opt/backups
-
-# バックアップスクリプト作成
-cat > /opt/backups/backup.sh << 'EOF'
-#!/bin/bash
-DATE=$(date +%Y%m%d-%H%M%S)
-BACKUP_DIR="/opt/backups"
-
-# データベースバックアップ
-sudo -u postgres pg_dump -p 5433 hidariude | gzip > "$BACKUP_DIR/db-$DATE.sql.gz"
-
-# WARファイルバックアップ
-cp /opt/tomcat/apache-tomcat-10.1.46/webapps/hidariude.war "$BACKUP_DIR/war-$DATE.war"
-
-# 14日以上古いバックアップを削除
-find "$BACKUP_DIR" -name "*.gz" -mtime +14 -delete
-find "$BACKUP_DIR" -name "*.war" -mtime +14 -delete
-EOF
-
-chmod +x /opt/backups/backup.sh
-
-# cron設定（毎日深夜3時にバックアップ）
-crontab -e
-# 以下を追加
-# 0 3 * * * /opt/backups/backup.sh >> /var/log/backup.log 2>&1
-```
-
-#### 9. セキュリティアップデート
-
-```bash
-# 定期的にシステムを最新化
-dnf update -y
-
-# 自動セキュリティアップデートを有効化
-dnf install -y dnf-automatic
-systemctl enable --now dnf-automatic-install.timer
-```
-
-#### 10. アクセス制限（IP 制限）
-
-管理機能に IP 制限をかけることを検討：
-
-**Nginx の場合：**
-
-```nginx
-location /admin {
-    allow 203.0.113.0/24;  # 許可するIPアドレス範囲
-    deny all;
-    proxy_pass http://localhost:8080;
-}
-```
-
-**ファイアウォールの場合：**
-
-```bash
-# 特定のIPからのみ8080へのアクセスを許可
-firewall-cmd --permanent --add-rich-rule='rule family="ipv4" source address="203.0.113.10" port protocol="tcp" port="8080" accept'
-firewall-cmd --reload
-```
-
----
-
-### 🚀 公開手順（セキュリティ対策完了後）
-
-上記のセキュリティ対策を完了したら、ポートを開放します：
-
-#### パターン A: 直接公開（HTTP）
-
-```bash
-# 8080ポート開放
-firewall-cmd --permanent --add-port=8080/tcp
-firewall-cmd --reload
-
-# 外部からアクセステスト
-curl -i http://<サーバーIP>:8080/hidariude
-```
-
-#### パターン B: Nginx 経由（推奨）
-
-```bash
-# 80/443ポート開放
-firewall-cmd --permanent --add-service=http
-firewall-cmd --permanent --add-service=https
-firewall-cmd --reload
-
-# 8080は外部公開しない（Nginxからのみアクセス可）
-# 外部からアクセステスト
-curl -i http://<ドメイン名>/hidariude
-```
-
----
-
-### 📊 公開後の監視
-
-#### アクセスログの確認
-
-```bash
-# Tomcatアクセスログ
-tail -f /opt/tomcat/apache-tomcat-10.1.46/logs/localhost_access_log.$(date +%Y-%m-%d).txt
-
-# エラーログ
-tail -f /opt/tomcat/apache-tomcat-10.1.46/logs/catalina.out
-```
-
-#### リソース監視
-
-```bash
-# CPU/メモリ使用率
-top
-htop
-
-# ディスク使用量
-df -h
-
-# ネットワーク接続
-ss -tunlp | grep -E ':(8080|5433)'
-```
-
----
-
-### ⚠️ 重要な注意事項まとめ
-
-| 項目               | 現状       | 対策必須度  | 推奨対策               |
-| ------------------ | ---------- | ----------- | ---------------------- |
-| DB パスワード      | `password` | 🔴 **必須** | 強力なパスワードに変更 |
-| PostgreSQL 公開    | 閉じている | ✅ OK       | 絶対に開放しない       |
-| 管理者パスワード   | デフォルト | 🔴 **必須** | 初回ログイン後変更     |
-| HTTPS              | 未対応     | 🟡 推奨     | Let's Encrypt 導入     |
-| ログローテーション | 未設定     | 🟡 推奨     | logrotate 設定         |
-| バックアップ       | 未設定     | 🟡 推奨     | cron で自動化          |
+## 技術スタック
+
+-   **Java 24** - プログラミング言語
+-   **Jakarta Servlet 6.1.0** - Web フレームワーク
+-   **Jakarta JSP 4.0.0** - ビューテクノロジー
+-   **JSTL 3.0.1** - JSP 標準タグライブラリ
+-   **PostgreSQL 42.6.0** - データベースドライバー
+-   **Apache POI 5.4.1** - Excel ファイル処理
+-   **Apache Maven** - ビルドツール
+-   **Apache Tomcat** - アプリケーションサーバー
 
 ---
 
