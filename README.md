@@ -35,6 +35,226 @@
 -   Tomcat 10.1.x
 -   PostgreSQL 15.x（ポート 5433）
 
+---
+
+## 前提条件が整っていない場合：インストールと初期設定
+
+> ここから順番に実施してください。途中でエラーになったら、この章の最後にある「動作確認」のコマンドで確認しながら進めると安全です。
+
+### 0. 事前メモ
+
+-   以降、特に指定が無ければ **64bit Windows** を想定しています。
+-   **管理者権限**でインストーラの実行を推奨します。
+-   PATH（環境変数）を変更したら **一度ターミナル／VS Code を閉じて再起動**してください。
+
+### 1. Git をインストールする
+
+インストーラをダウンロードして実行：
+
+```
+https://github.com/git-for-windows/git/releases/download/v2.51.1.windows.1/Git-2.51.1-64-bit.exe
+```
+
+インストール後、動作確認（PowerShell または コマンドプロンプト）：
+
+```powershell
+git --version
+```
+
+### 2. VS Code をインストールする
+
+インストーラをダウンロードして実行：
+
+```
+https://go.microsoft.com/fwlink/p/?linkid=2216501&clcid=0x411
+```
+
+起動後、拡張機能から **Japanese Language Pack for Visual Studio Code** をインストールして日本語化しておくと便利です。
+
+### 3. 下記 4 つのツールを「ダウンロード」フォルダに保存する
+
+| ツール   | URL                                                                                                                                                                                                                       |
+| -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| postgres | https://sbp.enterprisedb.com/getfile.jsp?fileid=1259798&_gl=1*awj4kt*_gcl_au*MTM5NDc2Njc5Ni4xNzYxMDIzMDM5*_ga*MTE1NDgyMzI4LjE3NjEwMjMwMzk.*_ga_ND3EP1ME7G*czE3NjEwMjMwMzgkbzEkZzAkdDE3NjEwMjMwMzgkajYwJGwwJGgxNzUxMzM3NDE |
+| jdk      | https://download.oracle.com/java/24/archive/jdk-24.0.2_windows-x64_bin.exe                                                                                                                                                |
+| maven    | https://dlcdn.apache.org/maven/maven-3/3.9.11/binaries/apache-maven-3.9.11-bin.zip                                                                                                                                        |
+| tomcat   | https://dlcdn.apache.org/tomcat/tomcat-10/v10.1.48/bin/apache-tomcat-10.1.48.exe                                                                                                                                          |
+
+### 4. 4 つのファイルをインストールする
+
+-   **PostgreSQL**
+
+    -   セットアップ中の選択肢：
+        -   ポート番号：**5433**
+        -   スーパーユーザ（postgres）パスワード：**password**
+    -   インストール完了後、サービスが起動していることを確認してください。
+
+-   **JDK（Oracle JDK 24.0.2）**
+
+    -   既定パスにインストール（例：`C:\Program Files\Java\jdk-24`）
+
+-   **Maven**
+
+    -   ZIP を解凍して、**`C:\Program Files`** に展開  
+        例：`C:\Program Files\apache-maven-3.9.11`
+
+-   **Tomcat**
+    -   インストーラで **Tomcat 10.1.48** をインストール  
+        例：`C:\Program Files\Apache Software Foundation\Tomcat 10.1`
+
+### 5. 環境変数（Path など）の設定
+
+1. **Windows 検索** →「**システムの詳細設定の表示**」を開く
+2. **詳細設定**タブ → **環境変数(N)...** をクリック
+3. 下記を設定
+
+**(A) システム環境変数の Path に新規追加**
+
+-   `%CATALINA_HOME%\bin`
+-   `%JAVA_HOME%\bin`
+-   `C:\Program Files\apache-maven-3.9.11\bin`  
+    （※実際に展開した Maven のパスをコピーして貼り付け）
+
+**(B) システム環境変数に新規追加**
+
+-   変数名：`CATALINA_HOME`  
+    値：`C:\Program Files\Apache Software Foundation\Tomcat 10.1`
+
+-   変数名：`JAVA_HOME`  
+    値：`C:\Program Files\Java\jdk-24`
+
+### 6. 動作確認（必ず実行）
+
+Powershell を管理者として実行します。：
+
+> java の確認
+
+```powershell
+java -version
+```
+
+実行結果
+
+```powershell
+java version "24.0.2" 2025-07-15
+Java(TM) SE Runtime Environment (build 24.0.2+12-54)
+Java HotSpot(TM) 64-Bit Server VM (build 24.0.2+12-54, mixed mode, sharing)
+```
+
+---
+
+> maven の確認
+
+```powershell
+mvn -version
+```
+
+の実行結果
+
+```powershell
+Apache Maven 3.9.11 (3e54c93a704957b63ee3494413a2b544fd3d825b)
+Maven home: C:\Program Files\apache-maven-3.9.11
+Java version: 24.0.2, vendor: Oracle Corporation, runtime: C:\Program Files\Java\jdk-24
+Default locale: ja_JP, platform encoding: UTF-8
+OS name: "windows 11", version: "10.0", arch: "amd64", family: "windows"
+```
+
+---
+
+> Tomcat の確認
+
+```powershell
+version.bat
+```
+
+実行結果
+
+```powershell
+Using CATALINA_BASE:   "C:\Program Files\Apache Software Foundation\Tomcat 10.1"
+Using CATALINA_HOME:   "C:\Program Files\Apache Software Foundation\Tomcat 10.1"
+Using CATALINA_TMPDIR: "C:\Program Files\Apache Software Foundation\Tomcat 10.1\temp"
+Using JRE_HOME:        "C:\Program Files\Java\jdk-24"
+Using CLASSPATH:       "C:\Program Files\Apache Software Foundation\Tomcat 10.1\bin\bootstrap.jar;C:\Program Files\Apache Software Foundation\Tomcat 10.1\bin\tomcat-juli.jar"
+Using CATALINA_OPTS:   " -Dfile.encoding=UTF-8"
+Server version: Apache Tomcat/10.1.44
+Server built:   Aug 4 2025 13:14:17 UTC
+Server number:  10.1.44.0
+OS Name:        Windows 11
+OS Version:     10.0
+Architecture:   amd64
+JVM Version:    24.0.2+12-54
+JVM Vendor:     Oracle Corporation
+```
+
+-   いずれかで「コマンドが見つかりません」と出る場合、**環境変数 Path** の設定ミスか、**再起動忘れ**の可能性が高いです。
+
+### 7. PostgreSQL データベースセットアップ
+
+> PostgreSQL のインストールが完了したら、アプリケーション用のデータベースとユーザーを設定します。
+
+#### (1) ポート設定の確認
+
+このプロジェクトは PostgreSQL のポート **5433** を使用します。インストール時に 5433 を指定していれば、この手順はスキップできます。
+
+ポート設定を確認・変更する場合：
+
+1. `postgresql.conf` を開く（通常の場所）：
+
+    ```
+    C:\Program Files\PostgreSQL\15\data\postgresql.conf
+    ```
+
+2. `port` の設定を確認・変更：
+
+    ```conf
+    # 変更前
+    #port = 5432
+
+    # 変更後
+    port = 5433
+    ```
+
+3. PostgreSQL サービスを再起動：
+
+    - **サービスアプリ**を開く（`services.msc`）
+    - **postgresql-x64-15** を右クリック → **再起動**
+
+4. ポート変更を確認：
+    ```bash
+    netstat -ano | findstr :5433
+    ```
+
+#### (2) データベースとユーザーの作成
+
+pgAdmin を起動し、以下の SQL を実行してデータベースとユーザーを作成してください：
+
+```sql
+-- PostgreSQL に接続して実行
+CREATE DATABASE hidariude;
+CREATE USER postgres WITH PASSWORD 'password';
+ALTER USER postgres WITH PASSWORD 'password';
+GRANT ALL PRIVILEGES ON DATABASE hidariude TO postgres;
+```
+
+#### (3) 接続設定の確認
+
+データベース接続設定は `src/main/java/dao/TransactionManager.java` で管理されています：
+
+```java
+private static final String DB_URL = "jdbc:postgresql://localhost:5433/hidariude";
+private static final String SCHEMA = "?currentSchema=public";
+private static final String DB_USER = "postgres";
+private static final String DB_PASSWORD = "password";
+```
+
+> **注意**
+>
+> -   このプロジェクトはポート **5433** を使用します
+> -   スキーマは **public** を使用します
+> -   ポートやユーザー名などを変更した場合は `TransactionManager.java` を編集してください
+
+---
+
 ## VS Code 拡張機能
 
 以下の拡張機能をインストールしてください：
@@ -49,6 +269,8 @@
     ```
     pthorsson.vscode-jsp
     ```
+
+---
 
 ## プロジェクト構成
 
@@ -66,9 +288,11 @@ hidariude/
 │   ├── settings.json      # プロジェクト設定
 │   ├── launch.json        # デバッグ設定
 │   └── tasks.json         # Maven/Tomcat タスク
-├── pom.xml               # Maven 設定
-└── README.md            # このファイル
+├── pom.xml                # Maven 設定
+└── README.md              # このファイル
 ```
+
+---
 
 ## 開発環境セットアップ
 
@@ -102,6 +326,26 @@ Java: Reload Projects
 ```
 
 を実行してください。
+
+### 4. テーブル作成とダミーデータ投入
+
+**pgAdmin** で `hidariude` データベースに接続し、`src/main/sql/hoshiiro.sql` を実行してください：
+
+1. pgAdmin の左側ツリーで **Servers** → **PostgreSQL 15** → **Databases** → **hidariude** を選択
+2. 上部メニューから **Tools** → **Query Tool** を開く
+3. ファイルメニューから **Open File** を選択
+4. プロジェクトの `src/main/sql/hoshiiro.sql` を開く
+5. **実行ボタン**（▶ アイコン）をクリック
+
+このスクリプトは以下を実行します：
+
+-   全テーブルの作成（system_admins, secretaries, customers, assignments, tasks など）
+-   ダミーデータの投入（管理者 10 件、秘書 10 件、顧客 10 件など）
+-   過去 24 ヶ月分の月次サマリデータの生成
+
+> **注意**: `hoshiiro.sql` は既存のテーブルを削除してから再作成するため、データがリセットされます。
+
+---
 
 ## 使用方法
 
@@ -150,6 +394,8 @@ Tomcat 起動後、以下の URL でアプリケーションにアクセスで�
 ```
 http://localhost:8080/hidariude/
 ```
+
+---
 
 ## デバッグ
 
@@ -215,7 +461,7 @@ taskkill /PID <プロセスID> /F
 # Windowsの場合
 jps -v | findstr 8000
 
-# 正常な場合、以下のような出力が表示されます：
+# 正常な場合の例：
 # 12345 Launcher -agentlib:jdwp=transport=dt_socket,server=y,suspend=y,address=*:8000
 ```
 
@@ -226,8 +472,6 @@ jps -v | findstr 8000
 
 ### 実際のデバッグ操作
 
-#### ブレークポイントで停止したら：
-
 -   **F10** (Step Over): 次の行へ
 -   **F11** (Step Into): メソッド内部へ
 -   **Shift+F11** (Step Out): メソッドから抜ける
@@ -235,88 +479,7 @@ jps -v | findstr 8000
 -   **変数ビュー**: 左側のパネルで変数の値を確認
 -   **デバッグコンソール**: 式を評価して値を確認
 
-## データベース設定
-
-### PostgreSQL セットアップ
-
-#### 1. PostgreSQL ポート設定
-
-このプロジェクトは PostgreSQL のポート **5433** を使用します。デフォルトの 5432 から変更する場合は以下の手順で設定してください：
-
-##### Windows での設定手順
-
-1. `postgresql.conf` を開く（通常の場所）：
-
-    ```
-    C:\Program Files\PostgreSQL\15\data\postgresql.conf
-    ```
-
-2. `port` の設定を変更：
-
-    ```conf
-    # 変更前
-    #port = 5432
-
-    # 変更後
-    port = 5433
-    ```
-
-3. PostgreSQL サービスを再起動：
-
-    - **サービスアプリ**を開く（`services.msc`）
-    - **postgresql-x64-15** を右クリック → **再起動**
-
-4. ポート変更を確認：
-    ```bash
-    netstat -ano | findstr :5433
-    ```
-
-#### 2. データベースとユーザーの作成
-
-pgAdmin を起動し、以下の SQL を実行してデータベースとユーザーを作成してください：
-
-```sql
--- PostgreSQL に接続して実行
-CREATE DATABASE hidariude;
-CREATE USER postgres WITH PASSWORD 'password';
-ALTER USER postgres WITH PASSWORD 'password';
-GRANT ALL PRIVILEGES ON DATABASE hidariude TO postgres;
-```
-
-#### 3. テーブル作成とダミーデータ投入
-
-**pgAdmin** で `hidariude` データベースに接続し、`src/main/sql/hoshiiro.sql` を実行してください：
-
-1. pgAdmin の左側ツリーで **Servers** → **PostgreSQL 15** → **Databases** → **hidariude** を選択
-2. 上部メニューから **Tools** → **Query Tool** を開く
-3. ファイルメニューから **Open File** を選択
-4. プロジェクトの `src/main/sql/hoshiiro.sql` を開く
-5. **実行ボタン**（▶ アイコン）をクリック
-
-このスクリプトは以下を実行します：
-
--   全テーブルの作成（system_admins, secretaries, customers, assignments, tasks など）
--   ダミーデータの投入（管理者 10 件、秘書 10 件、顧客 10 件など）
--   過去 24 ヶ月分の月次サマリデータの生成
-
-**注意**: `hoshiiro.sql` は既存のテーブルを削除してから再作成するため、データがリセットされます。
-
-#### 4. 接続設定の確認
-
-データベース接続設定は `src/main/java/dao/TransactionManager.java` で管理されています：
-
-```java
-private static final String DB_URL = "jdbc:postgresql://localhost:5433/hidariude";
-private static final String SCHEMA = "?currentSchema=public";
-private static final String DB_USER = "postgres";
-private static final String DB_PASSWORD = "password";
-```
-
-**注意**:
-
--   このプロジェクトはポート **5433** を使用します
--   スキーマは **public** を使用します
--   ポートやユーザー名などを変更した場合は `TransactionManager.java` を編集してください
+---
 
 ## トラブルシューティング
 
@@ -338,8 +501,7 @@ Ctrl+Shift+P → "Java: Configure Java Runtime"
 mvn -version
 
 # PATH 環境変数の確認
-echo $PATH  # Linux/Mac
-echo %PATH% # Windows
+echo %PATH%   # Windows
 ```
 
 ### Tomcat ポートエラー
@@ -348,8 +510,8 @@ echo %PATH% # Windows
 
 ```xml
 <configuration>
-    <port>8081</port>  <!-- 8080から変更 -->
-    <path>/hidariude</path>
+  <port>8081</port>  <!-- 8080から変更 -->
+  <path>/hidariude</path>
 </configuration>
 ```
 
@@ -360,7 +522,6 @@ echo %PATH% # Windows
 1. **PostgreSQL サービスが起動しているか確認**
 
     ```bash
-    # Windowsの場合
     sc query postgresql-x64-15
     ```
 
@@ -370,16 +531,13 @@ echo %PATH% # Windows
     netstat -ano | findstr :5433
     ```
 
-    ポートが異なる場合は、上記の「PostgreSQL ポート設定」を参照してください。
-
 3. **データベースとユーザーが作成されているか確認**
 
-    - pgAdmin で接続し、`hidariude` データベースが存在するか確認
+    - pgAdmin で `hidariude` データベースが存在するか確認
     - `postgres` ユーザーが存在し、パスワードが `password` であることを確認
+    - 作成手順は「**7. PostgreSQL データベースセットアップ**」を参照
 
 4. **テーブルが作成されているか確認**
-
-    - pgAdmin の Query Tool で以下を実行：
 
     ```sql
     SELECT table_name FROM information_schema.tables
@@ -387,7 +545,7 @@ echo %PATH% # Windows
     ORDER BY table_name;
     ```
 
-    テーブルが存在しない場合は、上記の「テーブル作成とダミーデータ投入」を参照して `hoshiiro.sql` を実行してください。
+    - テーブルが存在しない場合は「**4. テーブル作成とダミーデータ投入**」を参照
 
 5. **接続設定の確認**
     - `src/main/java/dao/TransactionManager.java` のポート、ユーザー名、パスワードが正しいか確認
@@ -500,7 +658,7 @@ systemctl status tomcat
 # 起動
 systemctl start tomcat
 
-# 停止
+# 止める
 systemctl stop tomcat
 
 # 再起動
@@ -523,7 +681,7 @@ sudo -u postgres psql -p 5433 -d hidariude -c "\dt"
 PGPASSWORD=password psql -h localhost -p 5433 -U postgres -d hidariude -c "SELECT 1;"
 ```
 
-**注意**: Java アプリケーションは`localhost:5433`に TCP 接続します。`pg_hba.conf`で以下の設定が必要です：
+> **注意**: Java アプリケーションは `localhost:5433` に TCP 接続します。`pg_hba.conf` で以下の設定が必要です：
 
 ```
 # IPv4 local connections:
