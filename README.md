@@ -327,23 +327,27 @@ Java: Reload Projects
 
 を実行してください。
 
-### 4. テーブル作成とダミーデータ投入
+### 4. データベースの初期化
 
-**pgAdmin** で `hidariude` データベースに接続し、`src/main/sql/hoshiiro.sql` を実行してください：
+データベースのテーブル作成と初期データ投入は、**初回 Tomcat デプロイ時に自動的に実行されます**。
 
-1. pgAdmin の左側ツリーで **Servers** → **PostgreSQL 15** → **Databases** → **hidariude** を選択
-2. 上部メニューから **Tools** → **Query Tool** を開く
-3. ファイルメニューから **Open File** を選択
-4. プロジェクトの `src/main/sql/hoshiiro.sql` を開く
-5. **実行ボタン**（▶ アイコン）をクリック
-
-このスクリプトは以下を実行します：
+初回起動時に以下が自動実行されます：
 
 -   全テーブルの作成（system_admins, secretaries, customers, assignments, tasks など）
--   ダミーデータの投入（管理者 10 件、秘書 10 件、顧客 10 件など）
--   過去 24 ヶ月分の月次サマリデータの生成
+-   初期データの投入（管理者 10 件、秘書 10 件、顧客 10 件など）
+-   すべてのパスワードは BCrypt でハッシュ化されて保存されます
 
-> **注意**: `hoshiiro.sql` は既存のテーブルを削除してから再作成するため、データがリセットされます。
+**初期ログイン情報**:
+
+-   システム管理者: `admin1@example.com` / `Password1`
+-   秘書: `secretary1@example.com` / `Password1`
+-   顧客: `contact1@example.com` / `Password1`
+
+> **注意**:
+>
+> -   初期化は `system_admins` テーブルが存在しない場合のみ実行されます
+> -   データベースをリセットしたい場合は、pgAdmin で全テーブルを削除してから Tomcat を再起動してください
+> -   初期化処理の詳細は `src/main/java/listener/DatabaseInitListener.java` を参照してください
 
 ---
 
@@ -545,7 +549,8 @@ echo %PATH%   # Windows
     ORDER BY table_name;
     ```
 
-    - テーブルが存在しない場合は「**4. テーブル作成とダミーデータ投入**」を参照
+    - テーブルが存在しない場合は、Tomcat を起動すると自動的に作成されます
+    - または「**4. データベースの初期化**」を参照
 
 5. **接続設定の確認**
     - `src/main/java/dao/TransactionManager.java` のポート、ユーザー名、パスワードが正しいか確認
@@ -580,23 +585,25 @@ cd hidariude
 
 ### 2. データベースの初期化
 
-初回のみ、またはデータベースをリセット(変更内容を反映)する場合に実行：
+データベースのテーブル作成と初期データ投入は、**初回 Tomcat デプロイ時に自動的に実行されます**。
 
-```bash
-# 更新内容を破棄して最新のコードを取得
-cd /opt/hidariude
-git restore . # 変更内容を破棄
-git pull origin deploy
+初回起動時に以下が自動実行されます：
 
-# データベースの初期化
-chmod +x init_database.sh
-./init_database.sh
-```
+-   全テーブルの作成（system_admins, secretaries, customers, assignments, tasks など）
+-   初期データの投入（管理者 10 件、秘書 10 件、顧客 10 件など）
+-   すべてのパスワードは BCrypt でハッシュ化されて保存されます
 
-このスクリプトは以下を実行します：
+**初期ログイン情報**:
 
--   既存テーブルの削除（確認プロンプトあり）
--   hoshiiro.sql の実行（テーブル作成, ダミーデータ投入）
+-   システム管理者: `admin1@example.com` / `Password1`
+-   秘書: `secretary1@example.com` / `Password1`
+-   顧客: `contact1@example.com` / `Password1`
+
+> **注意**:
+>
+> -   初期化は `system_admins` テーブルが存在しない場合のみ実行されます
+> -   データベースをリセットしたい場合は、PostgreSQL で全テーブルを削除してから Tomcat を再起動してください
+> -   初期化処理は `DatabaseInitListener` により自動実行されます（`src/main/java/listener/DatabaseInitListener.java`）
 
 ### 3. アプリケーションのデプロイ
 
@@ -613,12 +620,15 @@ chmod +x deploy.sh
 
 このスクリプトは以下を実行します：
 
+-   PostgreSQL の接続設定確認と調整（max_connections）
 -   Git リポジトリの更新（git pull）
 -   Maven ビルド（clean package）
 -   Tomcat の停止
 -   既存 WAR ファイルの削除
 -   新しい WAR ファイルのデプロイ
 -   Tomcat の起動
+
+初回デプロイ時は、Tomcat 起動後に `DatabaseInitListener` が自動的にデータベースを初期化します。
 
 ### 4. アプリケーションへのアクセス
 
@@ -742,6 +752,7 @@ sudo -u postgres psql -p 5433 -d hidariude -c "SELECT 1;"
 -   **JSTL 3.0.1** - JSP 標準タグライブラリ
 -   **PostgreSQL 42.6.0** - データベースドライバー
 -   **Apache POI 5.4.1** - Excel ファイル処理
+-   **jBCrypt 0.4** - パスワードハッシュ化
 -   **Apache Maven** - ビルドツール
 -   **Apache Tomcat** - アプリケーションサーバー
 
