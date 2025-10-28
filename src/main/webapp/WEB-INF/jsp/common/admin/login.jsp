@@ -24,11 +24,11 @@
             <form method="post" action="<%=request.getContextPath()%>/admin/login">
               <div class="mb-3">
                 <label class="form-label">メールアドレス</label>
-                <input type="email" name="loginId" class="form-control" required value="admin1@example.com">
+                <input type="email" name="loginId" class="form-control" required>
               </div>
               <div class="mb-3">
                 <label class="form-label">パスワード</label>
-                <input type="password" name="password" class="form-control" required value="password1">
+                <input type="password" name="password" class="form-control" required>
               </div>
               <div class="d-grid">
                 <button type="submit" class="btn btn-primary">ログイン</button>

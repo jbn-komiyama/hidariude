@@ -10,11 +10,12 @@
 <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
 </head>
 <body class="bg-primary bg-opacity-10">
+  <%@ include file="/WEB-INF/jsp/_parts/admin/navbar.jspf" %>
   <div class="container py-4">
     <div class="d-flex align-items-center justify-content-between mb-3">
       <h1 class="h3 mb-0">システム管理者一覧</h1>
       <form method="post" action="<%= request.getContextPath() %>/admin/system_admin/register" class="m-0">
-        <button type="submit" class="btn btn-primary">新規作成</button>
+        <button type="submit" class="btn btn-primary">新規登録</button>
       </form>
     </div>
 
@@ -23,9 +24,8 @@
     </c:if>
 
     <div class="card shadow-sm">
-      <div class="card-body p-0">
-        <div class="table-responsive">
-          <table class="table table-hover table-bordered align-middle mb-0">
+      <div class="table-responsive">
+        <table class="table table-hover table-bordered align-middle mb-0">
             <thead class="table-primary">
               <tr>
                 <th style="width:72px;">No.</th>
@@ -64,11 +64,11 @@
             </tbody>
           </table>
         </div>
-      </div>
       <div class="card-footer text-end small text-muted">
         件数：<span class="fw-semibold"><c:out value="${fn:length(admins)}"/></span>
       </div>
     </div>
   </div>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>

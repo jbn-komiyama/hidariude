@@ -21,7 +21,9 @@
 				<li class="nav-item"><a class="nav-link"
 					href="<c:url value='/admin/customer'/>">顧客管理</a></li>
 				<li class="nav-item"><a class="nav-link"
-					href="<c:url value='/admin/mypage'/>">ID管理</a></li>
+					href="<c:url value='/admin/system_admin'/>">管理者管理</a></li>
+				<li class="nav-item"><a class="nav-link"
+					href="<c:url value='/admin/mypage'/>">マイページ</a></li>
 				<li class="nav-item"><a class="nav-link"
 					href="<c:url value='/admin/assignment'/>">アサイン管理</a></li>
 				<li class="nav-item"><a class="nav-link"

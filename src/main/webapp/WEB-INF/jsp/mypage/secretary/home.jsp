@@ -14,7 +14,7 @@
 
 <div class="container py-4">
   <div class="d-flex align-items-center justify-content-between mb-3">
-    <h1 class="h4 mb-0">ID管理</h1>
+    <h1 class="h4 mb-0">マイページ</h1>
     <a href="<%= request.getContextPath() %>/secretary/mypage/edit" class="btn btn-primary btn-sm">編集</a>
   </div>
 

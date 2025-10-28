@@ -17,6 +17,9 @@
 	<div class="container py-4">
 		<div class="d-flex align-items-center justify-content-between mb-3">
 			<h1 class="h3 mb-0">顧客一覧</h1>
+			<a href="<%= request.getContextPath() %>/admin/customer/register" class="btn btn-primary">
+				<i class="bi bi-plus-circle"></i> 新規登録
+			</a>
 		</div>
 
 		<div class="card shadow-sm">
