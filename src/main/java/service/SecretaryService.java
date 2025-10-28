@@ -742,13 +742,13 @@ public class SecretaryService extends BaseService {
             dto.setAddress2(address2);
             dto.setBuilding(building);
             dto.setPassword(notBlank(password) ? password : cur.getPassword());
-            dto.setBankName(bankName);
-            dto.setBankBranch(bankBranch);
-            dto.setBankType(bankType);
-            dto.setBankAccount(bankAccount);
-            dto.setBankOwner(bankOwner);
-            dao.updateWithBank(dto);
-            tm.commit();
+            // 口座情報：空文字列をNULLに変換してデータベースに保存
+            dto.setBankName(emptyToNull(bankName));
+            dto.setBankBranch(emptyToNull(bankBranch));
+            dto.setBankType(emptyToNull(bankType));
+            dto.setBankAccount(emptyToNull(bankAccount));
+            dto.setBankOwner(emptyToNull(bankOwner));
+            
             try {
                 dao.updateWithBank(dto);
             } catch (DAOException ex) {
@@ -797,6 +797,13 @@ public class SecretaryService extends BaseService {
 
     /** 文字列が null／空白でないか */
     private boolean notBlank(String s) { return s != null && !s.isBlank(); }
+    
+    /**
+     * 空文字列をNULLに変換（データベースの正規化用）
+     */
+    private String emptyToNull(String s) {
+        return (s == null || s.isBlank()) ? null : s;
+    }
 
     /**
      * 入力値を request に戻す（新規／編集：admin 用）

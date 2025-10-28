@@ -45,27 +45,30 @@ public class FrontController extends HttpServlet {
 	 */
     protected void adminExecute(HttpServletRequest req, HttpServletResponse res) throws ServletException, IOException {
     	switch(pathInfo){
-		/**
-		 * A01 共通
-		 */
-		case "/login"->{
-			nextPath = new CommonService(req, true).adminLogin();
-		}
-		case "/logout"->{
-			nextPath = new CommonService(req, false).adminLogout();
-		}
-		case "/home"->{
-			nextPath = new CommonService(req, false).adminHome();
-		}
-		case "/mypage"->{
-			nextPath = new CommonService(req, false).adminMyPage();
-		}
-		case "/id_edit"->{
-			nextPath = new CommonService(req, false).adminIdEditForm();
-		}
-		case "/id_edit_done"->{
-			nextPath = new CommonService(req, false).adminIdEditSubmit();
-		}
+	/**
+	 * A01 共通
+	 */
+	case "/login"->{
+		nextPath = new CommonService(req, true).adminLogin();
+	}
+	case "/logout"->{
+		nextPath = new CommonService(req, false).adminLogout();
+	}
+	case "/home"->{
+		nextPath = new CommonService(req, false).adminHome();
+	}
+	case "/mypage"->{
+		nextPath = new CommonService(req, false).adminMyPage();
+	}
+	case "/id_edit"->{
+		nextPath = new CommonService(req, false).adminIdEditForm();
+	}
+	case "/id_edit_done"->{
+		nextPath = new CommonService(req, false).adminIdEditSubmit();
+	}
+	case "/error"->{
+		nextPath = "common/admin/error";
+	}
 
 
 		/**
@@ -298,19 +301,22 @@ public class FrontController extends HttpServlet {
     protected void secretaryExecute(HttpServletRequest req, HttpServletResponse res) throws ServletException, IOException {
 
     	switch(pathInfo){
-			/**
-			 * A01 共通
-			 */
-		case "/login"->{
-			nextPath = new CommonService(req, true).secretaryLogin();
-		}
-		case "/logout"->{
-			nextPath = new CommonService(req, false).secretaryLogout();
-		}
-		
-		case "/home"->{
-			nextPath = new CommonService(req, true).secretaryHome();
-		}
+		/**
+		 * A01 共通
+		 */
+	case "/login"->{
+		nextPath = new CommonService(req, true).secretaryLogin();
+	}
+	case "/logout"->{
+		nextPath = new CommonService(req, false).secretaryLogout();
+	}
+	
+	case "/home"->{
+		nextPath = new CommonService(req, true).secretaryHome();
+	}
+	case "/error"->{
+		nextPath = "common/secretary/error";
+	}
 			
 
 			/**
@@ -412,19 +418,22 @@ public class FrontController extends HttpServlet {
     protected void customerExecute(HttpServletRequest req, HttpServletResponse res) throws ServletException, IOException {
 
     	switch(pathInfo){
-			/**
-			 * A01 共通
-			 */
-		case "/login"->{
-			nextPath = new CommonService(req, true).customerLogin();
-		}
-		case "/logout"->{
-			nextPath = new CommonService(req, false).customerLogout();
-		}
-		
-		case "/home"->{
-			nextPath = new CommonService(req, true).customerHome();
-		}
+		/**
+		 * A01 共通
+		 */
+	case "/login"->{
+		nextPath = new CommonService(req, true).customerLogin();
+	}
+	case "/logout"->{
+		nextPath = new CommonService(req, false).customerLogout();
+	}
+	
+	case "/home"->{
+		nextPath = new CommonService(req, true).customerHome();
+	}
+	case "/error"->{
+		nextPath = "common/customer/error";
+	}
 			
 			/**
 			 * A02 顧客担当者管理業務

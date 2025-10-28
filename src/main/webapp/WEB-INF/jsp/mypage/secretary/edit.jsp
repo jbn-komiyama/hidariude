@@ -196,11 +196,11 @@
 				</div>
 			</div>
 
-			<div class="mt-3 d-flex justify-content-end gap-2">
-				<a class="btn btn-outline-secondary"
-					href="<c:url value='/secretary/mypage'/>">戻る</a>
-				<button type="submit" class="btn btn-primary">確認へ</button>
-			</div>
+		<div class="mt-3 d-flex justify-content-end gap-2">
+			<a class="btn btn-outline-secondary"
+				href="<c:url value='/secretary/mypage/home'/>">戻る</a>
+			<button type="submit" class="btn btn-primary">確認へ</button>
+		</div>
 		</form>
 	</div>
 

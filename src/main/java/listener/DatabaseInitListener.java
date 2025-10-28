@@ -50,6 +50,8 @@ public class DatabaseInitListener implements ServletContextListener {
                     System.out.println("Database initialization completed successfully.");
                 } else {
                     System.out.println("Tables already exist. Skipping initialization.");
+                    // 既存の制約を修正（口座情報の空欄を許可）
+                    updateBankTypeConstraint(conn);
                 }
             }
             
@@ -64,6 +66,24 @@ public class DatabaseInitListener implements ServletContextListener {
     @Override
     public void contextDestroyed(ServletContextEvent sce) {
         // クリーンアップ処理が必要な場合はここに記述
+    }
+
+    /**
+     * 既存のbank_type制約を更新して、空欄を許可する
+     */
+    private void updateBankTypeConstraint(Connection conn) {
+        try (Statement stmt = conn.createStatement()) {
+            // 既存の制約を削除
+            stmt.execute("ALTER TABLE secretaries DROP CONSTRAINT IF EXISTS chk_secretaries_bank_type");
+            // 新しい制約を追加（空欄を許可）
+            stmt.execute("ALTER TABLE secretaries ADD CONSTRAINT chk_secretaries_bank_type " +
+                        "CHECK (bank_type IS NULL OR bank_type = '' OR bank_type IN ('普通', '当座'))");
+            conn.commit();
+            System.out.println("Updated bank_type constraint to allow empty values.");
+        } catch (SQLException e) {
+            System.err.println("Warning: Could not update bank_type constraint: " + e.getMessage());
+            // エラーが発生してもアプリケーションの起動は継続
+        }
     }
 
     /**
@@ -150,7 +170,7 @@ public class DatabaseInitListener implements ServletContextListener {
             "    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP," +
             "    deleted_at TIMESTAMP," +
             "    last_login_at TIMESTAMP," +
-            "    CONSTRAINT chk_secretaries_bank_type CHECK (bank_type IN ('普通', '当座'))" +
+            "    CONSTRAINT chk_secretaries_bank_type CHECK (bank_type IS NULL OR bank_type = '' OR bank_type IN ('普通', '当座'))" +
             ")"
         );
         
