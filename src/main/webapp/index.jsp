@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>秘書管理 - ログイン選択</title>
+    <title>BackDesk - ログイン選択</title>
     <style>
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
@@ -99,7 +99,7 @@
 </head>
 <body>
     <div class="container">
-        <div class="logo">秘書管理</div>
+        <div class="logo">BackDesk</div>
         <div class="subtitle">役割を選択してログインしてください</div>
         
         <div class="login-options">

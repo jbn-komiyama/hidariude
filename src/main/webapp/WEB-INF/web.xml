@@ -6,8 +6,8 @@
          version="6.0"
          metadata-complete="false">
 
-  <display-name>Hidariude Web Application</display-name>
-  <description>ヒダリウデWeb管理システム</description>
+  <display-name>BackDesk Web Application</display-name>
+  <description>BackDesk Web管理システム</description>
 
   <!-- Database Initialization Listener -->
   <listener>
