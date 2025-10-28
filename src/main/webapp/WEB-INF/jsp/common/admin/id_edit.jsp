@@ -51,6 +51,7 @@
     </div>
 
     <div class="mt-3 d-flex gap-2">
+      <a href="${pageContext.request.contextPath}/admin/mypage" class="btn btn-outline-secondary">戻る</a>
       <button type="submit" class="btn btn-primary">保存する</button>
     </div>
   </form>
