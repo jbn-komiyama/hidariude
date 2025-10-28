@@ -119,6 +119,9 @@ public class SecretaryDAO extends BaseDAO {
 	private static final String SQL_COUNT_BY_CODE_EXCEPT_ID = "SELECT COUNT(*) FROM secretaries WHERE secretary_code = ? AND id <> ?";
 	private static final String SQL_COUNT_BY_MAIL_EXCEPT_ID = "SELECT COUNT(*) FROM secretaries WHERE mail = ? AND id <> ?";
 
+	/** 最終ログイン時刻の更新 */
+	private static final String SQL_UPDATE_LAST_LOGIN_AT = "UPDATE secretaries SET last_login_at = CURRENT_TIMESTAMP WHERE id = ?";
+
 	// ========================
 	// ② フィールド／コンストラクタ
 	// ========================
@@ -623,6 +626,21 @@ public class SecretaryDAO extends BaseDAO {
 			return dto;
 		} catch (SQLException e) {
 			throw new DAOException("E:S52 ResultSet→SecretaryRankDTO 変換中に失敗しました。", e);
+		}
+	}
+
+	/**
+	 * 最終ログイン時刻を現在時刻で更新します。
+	 *
+	 * @param id 秘書ID
+	 * @throws DAOException 更新に失敗した場合
+	 */
+	public void updateLastLoginAt(UUID id) {
+		try (PreparedStatement ps = conn.prepareStatement(SQL_UPDATE_LAST_LOGIN_AT)) {
+			ps.setObject(1, id);
+			ps.executeUpdate();
+		} catch (SQLException e) {
+			throw new DAOException("E:S60 secretaries.last_login_at 更新に失敗しました。", e);
 		}
 	}
 }

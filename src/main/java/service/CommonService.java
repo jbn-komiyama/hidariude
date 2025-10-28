@@ -35,6 +35,7 @@ import dto.SystemAdminDTO;
 import dto.TaskDTO;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpSession;
+import util.PasswordUtil;
 
 /**
  * 共通サービス（admin / secretary / customer の横断機能）。
@@ -73,10 +74,13 @@ public class CommonService extends BaseService {
 
     // ---- Paths (forward / redirect) ----
     private static final String PATH_SECRETARY_LOGIN = "/secretary";
+    private static final String PATH_SECRETARY_LOGIN_FORM = "common/secretary/login";
     private static final String PATH_SECRETARY_HOME  = "/secretary/home";
     private static final String PATH_ADMIN_LOGIN     = "/admin";
+    private static final String PATH_ADMIN_LOGIN_FORM = "common/admin/login";
     private static final String PATH_ADMIN_HOME      = "/admin/home";
     private static final String PATH_CUSTOMER_LOGIN  = "/customer";
+    private static final String PATH_CUSTOMER_LOGIN_FORM = "common/customer/login";
     private static final String PATH_CUSTOMER_HOME   = "/customer/home";
     private static final String PATH_ADMIN_MYPAGE    = "common/admin/mypage";
     private static final String PATH_ADMIN_ID_EDIT   = "common/admin/id_edit";
@@ -128,13 +132,17 @@ public class CommonService extends BaseService {
         validation.isNull("パスワード", password);
         if (validation.hasErrorMsg()) {
             req.setAttribute("errorMsg", validation.getErrorMsg());
-            return req.getContextPath() + PATH_SECRETARY_LOGIN;
+            return PATH_SECRETARY_LOGIN_FORM;
         }
 
         try (TransactionManager tm = new TransactionManager()) {
             SecretaryDAO dao = new SecretaryDAO(tm.getConnection());
             SecretaryDTO dto = dao.selectByMail(loginId);
-            if (dto != null && safeEquals(dto.getPassword(), password)) {
+            if (dto != null && PasswordUtil.verifyPassword(password, dto.getPassword())) {
+                // 最終ログイン時刻を更新
+                dao.updateLastLoginAt(dto.getId());
+                tm.commit();
+                
                 // セッションへ格納（JSP は sessionScope.loginUser.secretary を参照）
                 LoginUser loginUser = new LoginUser();
                 Secretary sec = new Secretary();
@@ -146,9 +154,9 @@ public class CommonService extends BaseService {
                 putLoginUserToSession(loginUser);
                 return req.getContextPath() + PATH_SECRETARY_HOME;
             }
-            validation.addErrorMsg("正しいログインIDとパスワードを入力してください。");
+            validation.addErrorMsg("メールアドレス、パスワードの組み合わせが間違っています");
             req.setAttribute("errorMsg", validation.getErrorMsg());
-            return req.getContextPath() + PATH_SECRETARY_LOGIN;
+            return PATH_SECRETARY_LOGIN_FORM;
         } catch (RuntimeException e) {
             return req.getContextPath() + req.getServletPath() + "/error";
         }
@@ -171,13 +179,17 @@ public class CommonService extends BaseService {
         validation.isNull("パスワード", password);
         if (validation.hasErrorMsg()) {
             req.setAttribute("errorMsg", validation.getErrorMsg());
-            return req.getContextPath() + PATH_ADMIN_LOGIN;
+            return PATH_ADMIN_LOGIN_FORM;
         }
 
         try (TransactionManager tm = new TransactionManager()) {
             SystemAdminDAO dao = new SystemAdminDAO(tm.getConnection());
             SystemAdminDTO dto = dao.selectByMail(loginId);
-            if (dto != null && safeEquals(dto.getPassword(), password)) {
+            if (dto != null && PasswordUtil.verifyPassword(password, dto.getPassword())) {
+                // 最終ログイン時刻を更新
+                dao.updateLastLoginAt(dto.getId());
+                tm.commit();
+                
                 LoginUser loginUser = new LoginUser();
                 SystemAdmin admin = new SystemAdmin();
                 admin.setId(dto.getId());
@@ -193,9 +205,9 @@ public class CommonService extends BaseService {
                 putLoginUserToSession(loginUser);
                 return req.getContextPath() + PATH_ADMIN_HOME;
             }
-            validation.addErrorMsg("正しいログインIDとパスワードを入力してください。");
+            validation.addErrorMsg("メールアドレス、パスワードの組み合わせが間違っています");
             req.setAttribute("errorMsg", validation.getErrorMsg());
-            return req.getContextPath() + PATH_ADMIN_LOGIN;
+            return PATH_ADMIN_LOGIN_FORM;
         } catch (RuntimeException e) {
             return req.getContextPath() + req.getServletPath() + "/error";
         }
@@ -375,7 +387,17 @@ public class CommonService extends BaseService {
             SystemAdminDTO upd = new SystemAdminDTO();
             upd.setId(adminId);
             upd.setMail(mail);
-            upd.setPassword((password == null || password.isBlank()) ? current.getPassword() : password);
+            if (password != null && !password.isBlank()) {
+                // パスワード変更時は強度チェック
+                if (!validation.isStrongPassword(password)) {
+                    req.setAttribute("errorMsg", validation.getErrorMsg());
+                    req.setAttribute(ATTR_FORM, form);
+                    return PATH_ADMIN_ID_EDIT;
+                }
+                upd.setPassword(PasswordUtil.hashPassword(password));
+            } else {
+                upd.setPassword(current.getPassword());
+            }
             upd.setName(name);
             upd.setNameRuby(nameRuby);
 
@@ -391,9 +413,6 @@ public class CommonService extends BaseService {
             lu.getSystemAdmin().setMail(mail);
             lu.getSystemAdmin().setName(name);
             lu.getSystemAdmin().setNameRuby(nameRuby);
-            if (password != null && !password.isBlank()) {
-                lu.getSystemAdmin().setPassword(password);
-            }
             session.setAttribute(ATTR_LOGIN_USER, lu);
 
             req.setAttribute("successMsg", "アカウント情報を更新しました。");
@@ -500,7 +519,7 @@ public class CommonService extends BaseService {
         validation.isNull("パスワード", password);
         if (validation.hasErrorMsg()) {
             req.setAttribute("errorMsg", validation.getErrorMsg());
-            return req.getContextPath() + PATH_CUSTOMER_LOGIN;
+            return PATH_CUSTOMER_LOGIN_FORM;
         }
 
         try (TransactionManager tm = new TransactionManager()) {
@@ -508,7 +527,11 @@ public class CommonService extends BaseService {
             CustomerDAO cDao         = new CustomerDAO(tm.getConnection());
 
             CustomerContactDTO ccDto = ccDao.selectByMail(loginId);
-            if (ccDto != null && safeEquals(ccDto.getPassword(), password)) {
+            if (ccDto != null && PasswordUtil.verifyPassword(password, ccDto.getPassword())) {
+                // 最終ログイン時刻を更新
+                ccDao.updateLastLoginAt(ccDto.getId());
+                tm.commit();
+                
                 // 担当者 Domain
                 CustomerContact cc = conv.toDomain(ccDto);
 
@@ -520,7 +543,7 @@ public class CommonService extends BaseService {
                 if (customerId == null) {
                     validation.addErrorMsg("担当者に紐づく会社情報が見つかりません。");
                     req.setAttribute("errorMsg", validation.getErrorMsg());
-                    return req.getContextPath() + PATH_CUSTOMER_LOGIN;
+                    return PATH_CUSTOMER_LOGIN_FORM;
                 }
 
                 // 会社 Domain
@@ -536,12 +559,57 @@ public class CommonService extends BaseService {
 
                 return req.getContextPath() + PATH_CUSTOMER_HOME;
             }
-            validation.addErrorMsg("正しいログインIDとパスワードを入力してください。");
+            validation.addErrorMsg("メールアドレス、パスワードの組み合わせが間違っています");
             req.setAttribute("errorMsg", validation.getErrorMsg());
-            return req.getContextPath() + PATH_CUSTOMER_LOGIN;
+            return PATH_CUSTOMER_LOGIN_FORM;
         } catch (RuntimeException e) {
             return req.getContextPath() + req.getServletPath() + "/error";
         }
+    }
+
+    // =========================
+    // 「【admin】 機能：ログアウト」
+    // =========================
+    /**
+     * 管理者ログアウト。
+     * - セッションを無効化し、ログイン画面（/admin）へリダイレクト
+     */
+    public String adminLogout() {
+        HttpSession session = req.getSession(false);
+        if (session != null) {
+            session.invalidate();
+        }
+        return req.getContextPath() + PATH_ADMIN_LOGIN;
+    }
+
+    // =========================
+    // 「【secretary】 機能：ログアウト」
+    // =========================
+    /**
+     * 秘書ログアウト。
+     * - セッションを無効化し、ログイン画面（/secretary）へリダイレクト
+     */
+    public String secretaryLogout() {
+        HttpSession session = req.getSession(false);
+        if (session != null) {
+            session.invalidate();
+        }
+        return req.getContextPath() + PATH_SECRETARY_LOGIN;
+    }
+
+    // =========================
+    // 「【customer】 機能：ログアウト」
+    // =========================
+    /**
+     * 顧客ログアウト。
+     * - セッションを無効化し、ログイン画面（/customer）へリダイレクト
+     */
+    public String customerLogout() {
+        HttpSession session = req.getSession(false);
+        if (session != null) {
+            session.invalidate();
+        }
+        return req.getContextPath() + PATH_CUSTOMER_LOGIN;
     }
 
     // =========================

@@ -51,6 +51,9 @@ public class FrontController extends HttpServlet {
 		case "/login"->{
 			nextPath = new CommonService(req, true).adminLogin();
 		}
+		case "/logout"->{
+			nextPath = new CommonService(req, false).adminLogout();
+		}
 		case "/home"->{
 			nextPath = new CommonService(req, false).adminHome();
 		}
@@ -298,13 +301,16 @@ public class FrontController extends HttpServlet {
 			/**
 			 * A01 共通
 			 */
-			case "/login"->{
-				nextPath = new CommonService(req, true).secretaryLogin();
-			}
-			
-			case "/home"->{
-				nextPath = new CommonService(req, true).secretaryHome();
-			}
+		case "/login"->{
+			nextPath = new CommonService(req, true).secretaryLogin();
+		}
+		case "/logout"->{
+			nextPath = new CommonService(req, false).secretaryLogout();
+		}
+		
+		case "/home"->{
+			nextPath = new CommonService(req, true).secretaryHome();
+		}
 			
 
 			/**
@@ -409,13 +415,16 @@ public class FrontController extends HttpServlet {
 			/**
 			 * A01 共通
 			 */
-			case "/login"->{
-				nextPath = new CommonService(req, true).customerLogin();
-			}
-			
-			case "/home"->{
-				nextPath = new CommonService(req, true).customerHome();
-			}
+		case "/login"->{
+			nextPath = new CommonService(req, true).customerLogin();
+		}
+		case "/logout"->{
+			nextPath = new CommonService(req, false).customerLogout();
+		}
+		
+		case "/home"->{
+			nextPath = new CommonService(req, true).customerHome();
+		}
 			
 			/**
 			 * A02 顧客担当者管理業務
@@ -508,38 +517,47 @@ public class FrontController extends HttpServlet {
 		HttpSession session = ((HttpServletRequest)req).getSession(false);
 	    LoginUser loginUser = (session == null) ? null : (LoginUser) session.getAttribute("loginUser");
 	    
-	    boolean isAdminRoot = (pathInfo == null) || pathInfo.isEmpty() || "/".equals(pathInfo);
+	    // ルートパスまたはログインパスかどうかを判定
+	    boolean isRootPath = (pathInfo == null) || pathInfo.isEmpty() || "/".equals(pathInfo);
         boolean isLoginPath = "/login".equals(pathInfo);
 		
 	
        
 		switch(servletPath) {
 			case "/admin"->{
-				boolean loggedIn = (loginUser != null && loginUser.getAuthority() == 1);
-		        if (!loggedIn && (!isAdminRoot && !isLoginPath)) {
-		            res.sendRedirect(contextPath + "/admin");
-		            return;
+				// ログインチェック：ルートとログインパス以外は認証必須
+		        if (!isRootPath && !isLoginPath) {
+		            boolean loggedIn = (loginUser != null && loginUser.getAuthority() == 1);
+		            if (!loggedIn) {
+		                res.sendRedirect(contextPath + "/admin");
+		                return;
+		            }
 		        }
 		        
 		    	if(pathInfo == null)  nextPath = "common/admin/login";
 		    	else adminExecute(req, res);
 			}
 			case "/secretary"->{
-				boolean loggedIn = (loginUser != null && loginUser.getAuthority() == 2);
-		        if (!loggedIn && (!isAdminRoot && !isLoginPath)) {
-		            res.sendRedirect(contextPath + "/secretary");
-		            return;
+				// ログインチェック：ルートとログインパス以外は認証必須
+		        if (!isRootPath && !isLoginPath) {
+		            boolean loggedIn = (loginUser != null && loginUser.getAuthority() == 2);
+		            if (!loggedIn) {
+		                res.sendRedirect(contextPath + "/secretary");
+		                return;
+		            }
 		        }
 				
 				if(pathInfo == null)  nextPath = "common/secretary/login";
 		    	else secretaryExecute(req, res);
 			}
 			case "/customer"->{
-
-				boolean loggedIn = (loginUser != null && loginUser.getAuthority() == 3);
-		        if (!loggedIn && (!isAdminRoot && !isLoginPath)) {
-		            res.sendRedirect(contextPath + "/customer");
-		            return;
+				// ログインチェック：ルートとログインパス以外は認証必須
+		        if (!isRootPath && !isLoginPath) {
+		            boolean loggedIn = (loginUser != null && loginUser.getAuthority() == 3);
+		            if (!loggedIn) {
+		                res.sendRedirect(contextPath + "/customer");
+		                return;
+		            }
 		        }
 				
 				if(pathInfo == null)  nextPath = "common/customer/login";

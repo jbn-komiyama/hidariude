@@ -76,6 +76,10 @@ public class SystemAdminDAO extends BaseDAO {
     private static final String SQL_COUNT_BY_MAIL_EXCEPT_ID =
         "SELECT COUNT(*) FROM system_admins WHERE deleted_at IS NULL AND mail = ? AND id <> ?";
 
+    /** 最終ログイン時刻の更新 */
+    private static final String SQL_UPDATE_LAST_LOGIN_AT =
+        "UPDATE system_admins SET last_login_at = CURRENT_TIMESTAMP WHERE id = ?";
+
     // ========================
     // ② フィールド、コンストラクタ
     // ========================
@@ -265,6 +269,21 @@ public class SystemAdminDAO extends BaseDAO {
             }
         } catch (SQLException e) {
             throw new DAOException("E:A42 system_admins.mail(除外) 重複チェックに失敗しました。", e);
+        }
+    }
+
+    /**
+     * 最終ログイン時刻を現在時刻で更新します。
+     *
+     * @param id 管理者ID
+     * @throws DAOException 更新に失敗した場合
+     */
+    public void updateLastLoginAt(UUID id) {
+        try (PreparedStatement ps = conn.prepareStatement(SQL_UPDATE_LAST_LOGIN_AT)) {
+            ps.setObject(1, id);
+            ps.executeUpdate();
+        } catch (SQLException e) {
+            throw new DAOException("E:A43 system_admins.last_login_at 更新に失敗しました。", e);
         }
     }
 

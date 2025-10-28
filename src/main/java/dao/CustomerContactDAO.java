@@ -85,6 +85,10 @@ public class CustomerContactDAO extends BaseDAO {
     private static final String SQL_SET_PRIMARY_BY_ID =
         "UPDATE customer_contacts SET is_primary = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?";
 
+    /** 最終ログイン時刻の更新 */
+    private static final String SQL_UPDATE_LAST_LOGIN_AT =
+        "UPDATE customer_contacts SET last_login_at = CURRENT_TIMESTAMP WHERE id = ?";
+
     // ========================
     // ② フィールド、コンストラクタ
     // ========================
@@ -311,6 +315,21 @@ public class CustomerContactDAO extends BaseDAO {
             ps.executeUpdate();
         } catch (SQLException e) {
             throw new DAOException("E:CC52 主担当フラグの更新に失敗しました。", e);
+        }
+    }
+
+    /**
+     * 最終ログイン時刻を現在時刻で更新します。
+     *
+     * @param id 担当者ID
+     * @throws DAOException 更新に失敗した場合
+     */
+    public void updateLastLoginAt(UUID id) {
+        try (PreparedStatement ps = conn.prepareStatement(SQL_UPDATE_LAST_LOGIN_AT)) {
+            ps.setObject(1, id);
+            ps.executeUpdate();
+        } catch (SQLException e) {
+            throw new DAOException("E:CC53 customer_contacts.last_login_at 更新に失敗しました。", e);
         }
     }
 
