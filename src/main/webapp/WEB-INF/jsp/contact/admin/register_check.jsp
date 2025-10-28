@@ -54,7 +54,7 @@
 
         <div class="d-flex justify-content-end gap-2 mt-4">
           <!-- 戻る（入力値維持） -->
-          <form method="post" action="<%= request.getContextPath() %>/admin//contact/register" class="m-0">
+          <form method="post" action="<%= request.getContextPath() %>/admin/contact/register" class="m-0">
             <input type="hidden" name="customerId" value="${customer.id}">
             <input type="hidden" name="name" value="${name}">
             <input type="hidden" name="nameRuby" value="${nameRuby}">

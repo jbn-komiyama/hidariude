@@ -217,7 +217,7 @@ public class FrontController extends HttpServlet {
 			nextPath = new SystemAdminService(req, true).systemAdminRegister();
 		}
 		case "/system_admin/register_check"->{
-			nextPath = new SystemAdminService(req, true).systemAdminRegisterDone();
+			nextPath = new SystemAdminService(req, true).systemAdminRegisterCheck();
 		}
 		case "/system_admin/register_done"->{
 			nextPath = new SystemAdminService(req, true).systemAdminRegisterDone();

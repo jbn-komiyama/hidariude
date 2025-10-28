@@ -100,7 +100,7 @@
   <div class="card border-primary mb-4">
     <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
       <span>② 顧客の会社の担当者一覧</span>
-      <a class="btn btn-sm btn-light" href="${pageContext.request.contextPath}/admin/customer_contact/register?customerId=${cust.id}">担当者追加</a>
+      <a class="btn btn-sm btn-light" href="${pageContext.request.contextPath}/admin/contact/register?customerId=${cust.id}">担当者追加</a>
     </div>
     <div class="card-body bg-white">
       <c:choose>

@@ -19,7 +19,7 @@
           顧客：<span class="fw-semibold"><c:out value="${customer.companyName}"/></span>
         </div>
       </div>
-      <a href="<%= request.getContextPath() %>/admin/customer/contact?customerId=${customer.id}" class="btn btn-outline-secondary btn-sm">一覧へ戻る</a>
+      <a href="<%= request.getContextPath() %>/admin/contact?customerId=${customer.id}" class="btn btn-outline-secondary btn-sm">一覧へ戻る</a>
     </div>
 
     <c:if test="${not empty errorMsg}">

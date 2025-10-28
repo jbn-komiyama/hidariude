@@ -27,6 +27,7 @@ public class SystemAdminService extends BaseService {
     // ----- View names -----
     private static final String VIEW_HOME           = "systemadmin/admin/home";
     private static final String VIEW_REGISTER       = "systemadmin/admin/register";
+    private static final String VIEW_REGISTER_CHECK = "systemadmin/admin/register_check";
     private static final String VIEW_REGISTER_DONE  = "systemadmin/admin/register_done";
     private static final String VIEW_EDIT           = "systemadmin/admin/edit";
     private static final String VIEW_EDIT_CHECK     = "systemadmin/admin/edit_check";
@@ -99,6 +100,40 @@ public class SystemAdminService extends BaseService {
      */
     public String systemAdminRegister() {
         return VIEW_REGISTER;
+    }
+
+    /**
+     * 「管理者 新規登録」確認画面。
+     * <ul>
+     *   <li>受取param: {@code name, nameRuby, mail, password}</li>
+     *   <li>バリデーション: 必須（氏名/メール/パスワード）, メール形式, パスワード強度</li>
+     *   <li>成功: 入力値を設定し確認画面へ</li>
+     *   <li>失敗: エラー文言を {@code errorMsg}、入力値をそのまま属性に戻し登録画面へ</li>
+     * </ul>
+     * @return 確認ビュー or 入力ビュー
+     */
+    public String systemAdminRegisterCheck() {
+        final String mail = req.getParameter(P_MAIL);
+        final String password = req.getParameter(P_PASSWORD);
+        final String name = req.getParameter(P_NAME);
+        final String nameRuby = req.getParameter(P_NAME_RUBY);
+
+        // ---- 入力検証（ラベルはユーザ向け日本語で記載）----
+        validation.isNull("氏名", name);
+        validation.isNull("メールアドレス", mail);
+        validation.isNull("パスワード", password);
+        validation.isEmail(mail);
+        validation.isStrongPassword(password);
+
+        if (validation.hasErrorMsg()) {
+            req.setAttribute(A_ERROR, validation.getErrorMsg());
+            pushBack(name, nameRuby, mail, password);
+            return VIEW_REGISTER;
+        }
+
+        // 確認画面へ入力値を引き継ぐ
+        pushBack(name, nameRuby, mail, password);
+        return VIEW_REGISTER_CHECK;
     }
 
     /**

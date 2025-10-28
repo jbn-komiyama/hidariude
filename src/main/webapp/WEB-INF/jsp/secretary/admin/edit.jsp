@@ -140,7 +140,7 @@
 
 			<div class="mt-3 text-end">
 				<a href="<c:url value='/admin/secretary'/>"
-					class="btn btn-outline-secondary">戻る</a>
+					class="btn btn-outline-secondary">一覧へ戻る</a>
 				<button type="submit" class="btn btn-primary">確認へ</button>
 			</div>
 		</form>
