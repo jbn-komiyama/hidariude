@@ -26,7 +26,7 @@
 
     <div class="d-flex gap-2">
       <!-- 一覧へ戻る -->
-      <form method="get" action="<%=request.getContextPath()%>/secretary/task/list" class="m-0">
+      <form method="get" action="<%=request.getContextPath()%>/secretary/task/list_all" class="m-0">
         <input type="hidden" name="companyId" value="${companyId}">
         <input type="hidden" name="companyName" value="${fn:escapeXml(companyName)}">
         <input type="hidden" name="yearMonth" value="${yearMonth}">
@@ -164,13 +164,13 @@
         </div>
 
         <div class="mt-4 d-flex gap-2">
-				  <button type="submit" id="submitBtn" class="btn btn-primary btn-sm">更新する</button>
-				  <!-- ここは a に変更（フォームの入れ子をやめる） -->
-				  <a class="btn btn-outline-secondary btn-sm"
-				     href="<%=request.getContextPath()%>/secretary/task/list?companyId=${companyId}&companyName=${fn:escapeXml(companyName)}&yearMonth=${yearMonth}">
-				     キャンセル
-				  </a>
-				</div>
+			  <button type="submit" id="submitBtn" class="btn btn-primary btn-sm">更新する</button>
+			  <!-- ここは a に変更（フォームの入れ子をやめる） -->
+			  <a class="btn btn-outline-secondary btn-sm"
+			     href="<%=request.getContextPath()%>/secretary/task/list_all?companyId=${companyId}&companyName=${fn:escapeXml(companyName)}&yearMonth=${yearMonth}">
+			     キャンセル
+			  </a>
+			</div>
       </form>
     </div>
   </div>
