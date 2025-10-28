@@ -190,9 +190,11 @@ public class CustomerDAO extends BaseDAO {
 	public List<CustomerDTO> selectAll() {
 		Map<UUID, CustomerDTO> map = new LinkedHashMap<>();
 
+		// cc.deleted_at IS NULL の条件を JOIN の ON 句に移動することで、
+		// 担当者がいない（または全て削除された）顧客も一覧に表示されるようにする
 		final String sql = SQL_SELECT_BASIC
-				+ " WHERE c.deleted_at IS NULL "
 				+ "   AND cc.deleted_at IS NULL "
+				+ " WHERE c.deleted_at IS NULL "
 				+ " ORDER BY c.company_code, cc.name";
 
 		try (PreparedStatement ps = conn.prepareStatement(sql);
