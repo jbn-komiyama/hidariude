@@ -21,7 +21,7 @@
 
       <c:choose>
         <!-- 複数エラーメッセージ（List） -->
-        <c:when test="${errorMsg instanceof java.util.List}">
+        <c:when test="${not empty errorMsg and fn:length(errorMsg) > 0 and not empty errorMsg[0]}">
           <ul class="mb-0">
             <c:forEach var="msg" items="${errorMsg}">
               <li><c:out value="${msg}"/></li>
