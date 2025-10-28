@@ -14,13 +14,7 @@ import java.util.UUID;
  * <p>エラーメッセージは内部に蓄積され、{@link #hasErrorMsg()} と {@link #getErrorMsg()} で参照できます。</p>
  */
 public class Validation {
-	private List<String> errorMsg;
 	private final List<String> errors = new ArrayList<>();
-
-	public Validation() {
-		List<String> errorMsg = new ArrayList<>();
-		this.errorMsg = errorMsg;
-	}
 	
 	/**
      * 必須チェック。空／null ならエラーメッセージを積み、true を返します。
@@ -139,13 +133,13 @@ public class Validation {
 
 	public void length(String textName, String text, int min, int max) {
 		if (text == null || text.length() < min || text.length() > max) {
-			this.errorMsg.add(textName + "は、" + min + "文字以上、" + max + "文字以内で入力してください");
+			this.errors.add(textName + "は、" + min + "文字以上、" + max + "文字以内で入力してください");
 		}
 	}
 
 	public void length(String textName, String text, int max) {
 		if (text == null || text.length() > max) {
-			this.errorMsg.add(textName + "は、" + max + "文字以内で入力してください");
+			this.errors.add(textName + "は、" + max + "文字以内で入力してください");
 		}
 	}
 
@@ -155,7 +149,7 @@ public class Validation {
 			Long.parseLong(text);
 			flg = true;
 		} catch (NumberFormatException e) {
-			this.errorMsg.add(textName + "は数値を入力してください");
+			this.errors.add(textName + "は数値を入力してください");
 		}
 		return flg;
 	}
@@ -166,7 +160,7 @@ public class Validation {
 			Integer.parseInt(text);
 			flg = true;
 		} catch (NumberFormatException e) {
-			this.errorMsg.add(textName + "は数値を入力してください");
+			this.errors.add(textName + "は数値を入力してください");
 		}
 		return flg;
 	}
@@ -177,7 +171,7 @@ public class Validation {
 		if (text.matches("^\\d{7}$")) {
 			return true;
 		} else {
-			this.errorMsg.add("郵便番号の形式で入力してください");
+			this.errors.add("郵便番号の形式で入力してください");
 			return false;
 		}
 
@@ -191,7 +185,7 @@ public class Validation {
 		if (text.matches("^0\\d{1,4}-\\d{1,4}-\\d{3,4}$")) {
 			return true;
 		} else {
-			this.errorMsg.add("電話番号の形式で入力してください");
+			this.errors.add("電話番号の形式で入力してください");
 			return false;
 		}
 	}
@@ -202,7 +196,7 @@ public class Validation {
 		if (text.matches("^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}$")) {
 			return true;
 		} else {
-			this.errorMsg.add("メールアドレスの形式で入力してください");
+			this.errors.add("メールアドレスの形式で入力してください");
 			return false;
 		}
 	}
@@ -213,11 +207,42 @@ public class Validation {
 			SimpleDateFormat sdFormat = new SimpleDateFormat("yyyy-MM-dd");
 			date = sdFormat.parse(text);
 		} catch (ParseException e) {
-			this.errorMsg.add(textName + "は日付を(yyyy/MM/dd)の形式で入力してください");
+			this.errors.add(textName + "は日付を(yyyy/MM/dd)の形式で入力してください");
 		}
 		return date;
 	}
 
-
+	/**
+	 * パスワード強度チェック。
+	 *   ・8文字以上
+	 *   ・英大文字 (A-Z) 1文字以上
+	 *   ・英小文字 (a-z) 1文字以上
+	 *   ・数字 (0-9) 1文字以上
+	 * 
+	 * @param password パスワード
+	 * @return 強度要件を満たす場合true
+	 */
+	public boolean isStrongPassword(String password) {
+		if (isBlank(password)) {
+			errors.add("パスワードは必須です。");
+			return false;
+		}
+		
+		if (password.length() < 8) {
+			errors.add("パスワードは8文字以上で入力してください。");
+			return false;
+		}
+		
+		boolean hasUpperCase = password.chars().anyMatch(Character::isUpperCase);
+		boolean hasLowerCase = password.chars().anyMatch(Character::isLowerCase);
+		boolean hasDigit = password.chars().anyMatch(Character::isDigit);
+		
+		if (!hasUpperCase || !hasLowerCase || !hasDigit) {
+			errors.add("パスワードは8文字以上で、英大文字・英小文字・数字を含む必要があります。");
+			return false;
+		}
+		
+		return true;
+	}
 
 }

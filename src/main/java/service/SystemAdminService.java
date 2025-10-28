@@ -9,6 +9,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import dao.SystemAdminDAO;
 import dao.TransactionManager;
 import dto.SystemAdminDTO;
+import util.PasswordUtil;
 
 /**
  * システム管理者（system_admins）に関する画面遷移・ユースケースを担うサービス（admin用）。
@@ -121,6 +122,7 @@ public class SystemAdminService extends BaseService {
         validation.isNull("メールアドレス", mail);
         validation.isNull("パスワード", password);
         validation.isEmail(mail);
+        validation.isStrongPassword(password);
 
         if (validation.hasErrorMsg()) {
             req.setAttribute(A_ERROR, validation.getErrorMsg());
@@ -139,10 +141,10 @@ public class SystemAdminService extends BaseService {
                 return VIEW_REGISTER;
             }
 
-            // 登録
+            // 登録（パスワードをハッシュ化）
             SystemAdminDTO dto = new SystemAdminDTO();
             dto.setMail(mail);
-            dto.setPassword(password);
+            dto.setPassword(PasswordUtil.hashPassword(password));
             dto.setName(name);
             dto.setNameRuby(nameRuby);
 
@@ -291,7 +293,14 @@ public class SystemAdminService extends BaseService {
             dto.setName(name);
             dto.setNameRuby(nameRuby);
             if (password != null && !password.isBlank()) {
-                dto.setPassword(password);
+                // パスワード変更時は強度チェック
+                if (!validation.isStrongPassword(password)) {
+                    req.setAttribute(A_ERROR, validation.getErrorMsg());
+                    req.setAttribute(P_ID, idStr);
+                    pushBack(name, nameRuby, mail, password);
+                    return VIEW_EDIT;
+                }
+                dto.setPassword(PasswordUtil.hashPassword(password));
             }
 
             int num = dao.update(dto);

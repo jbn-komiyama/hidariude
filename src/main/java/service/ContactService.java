@@ -14,6 +14,7 @@ import dto.CustomerContactDTO;
 import dto.CustomerDTO;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpSession;
+import util.PasswordUtil;
 
 /**
  * 顧客担当者（CustomerContact）のユースケースサービス。
@@ -213,6 +214,7 @@ public class ContactService extends BaseService {
         validation.isNull("メール", mail);
         validation.isNull("パスワード", pass);
         validation.isEmail(mail);
+        validation.isStrongPassword(pass);
         if (notBlank(phone)) validation.isPhoneNumber(phone);
 
         if (validation.hasErrorMsg()) {
@@ -243,7 +245,7 @@ public class ContactService extends BaseService {
             dto.setNameRuby(req.getParameter(P_NAME_RUBY));
             dto.setDepartment(req.getParameter(P_DEPT));
             dto.setMail(mail);
-            dto.setPassword(pass);
+            dto.setPassword(PasswordUtil.hashPassword(pass));
             dto.setPhone(phone);
             dto.setPrimary("true".equalsIgnoreCase(isPrimary));
 

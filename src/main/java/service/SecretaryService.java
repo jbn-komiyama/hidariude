@@ -29,6 +29,7 @@ import dto.ProfileDTO;
 import dto.SecretaryDTO;
 import dto.SecretaryMonthlySummaryDTO;
 import dto.SecretaryRankDTO;
+import util.PasswordUtil;
 import dto.SecretaryTotalsDTO;
 
 /**
@@ -222,6 +223,7 @@ public class SecretaryService extends BaseService {
         if (!notBlank(param(P_SECRETARY_RANK))) {
             validation.addErrorMsg("秘書ランクを選択してください。");
         }
+        validation.isStrongPassword(param(P_PASSWORD));
         if (validation.hasErrorMsg()) {
             req.setAttribute(A_ERROR_MSG, validation.getErrorMsg());
             pushFormBackToRequest();
@@ -236,7 +238,7 @@ public class SecretaryService extends BaseService {
         dto.setName(param(P_NAME));
         dto.setNameRuby(param(P_NAME_RUBY));
         dto.setMail(param(P_MAIL));
-        dto.setPassword(param(P_PASSWORD));
+        dto.setPassword(PasswordUtil.hashPassword(param(P_PASSWORD)));
         dto.setPhone(param(P_PHONE));
         dto.setPostalCode(param(P_POSTAL_CODE));
         dto.setAddress1(param(P_ADDRESS1));
