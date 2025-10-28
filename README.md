@@ -572,6 +572,32 @@ echo %PATH%   # Windows
     -   ユーザー `postgres` / パスワード `password`
     -   systemctl で自動起動設定済み
     -   TCP 接続（localhost:5433）が許可されていること（pg_hba.conf）
+    -   **postgresql15-contrib パッケージ**がインストール済み（UUID 生成用の pgcrypto 拡張に必要）
+
+### PostgreSQL の追加設定（重要）
+
+AlmaLinux では、PostgreSQL の拡張機能パッケージを別途インストールする必要があります：
+
+```bash
+# postgresql-contrib パッケージをインストール
+sudo dnf install -y postgresql15-contrib
+
+# PostgreSQL を再起動
+sudo systemctl restart postgresql-15
+
+# pgcrypto 拡張が利用可能か確認
+sudo -u postgres psql -p 5433 -d hidariude -c "CREATE EXTENSION IF NOT EXISTS pgcrypto;"
+sudo -u postgres psql -p 5433 -d hidariude -c "SELECT gen_random_uuid();"
+```
+
+> **重要**: `postgresql15-contrib` がインストールされていないと、テーブル作成時に以下のエラーが発生します：
+>
+> ```
+> ERROR: extension "pgcrypto" is not available
+> Detail: Could not open extension control file "/usr/pgsql-15/share/extension/pgcrypto.control"
+> ```
+>
+> このエラーが発生した場合は、上記のコマンドで `postgresql15-contrib` をインストールしてください。
 
 ## デプロイ手順
 
@@ -723,6 +749,9 @@ firewall-cmd --reload
 
 ```bash
 tail -100 /opt/tomcat/apache-tomcat-10.1.46/logs/catalina.out
+
+# データベース初期化のログを確認
+tail -100 /opt/tomcat/apache-tomcat-10.1.46/logs/catalina.out | grep -A 20 "Database Initialization"
 ```
 
 2. ビルドログを確認（Maven エラー）
@@ -740,6 +769,22 @@ systemctl status postgresql-15
 
 # 接続テスト
 sudo -u postgres psql -p 5433 -d hidariude -c "SELECT 1;"
+```
+
+4. pgcrypto 拡張機能エラーの場合
+
+ログに `ERROR: extension "pgcrypto" is not available` が表示される場合：
+
+```bash
+# postgresql-contrib パッケージをインストール
+sudo dnf install -y postgresql15-contrib
+
+# PostgreSQL を再起動
+sudo systemctl restart postgresql-15
+
+# 再デプロイ
+cd /opt/hidariude
+./deploy.sh
 ```
 
 ---
@@ -766,3 +811,6 @@ sudo -u postgres psql -p 5433 -d hidariude -c "SELECT 1;"
 -   VS Code 開発環境対応
 -   Maven + Tomcat 統合設定
 -   AlmaLinux 10 デプロイスクリプト追加
+-   web.xml を Jakarta EE 10 (Servlet 6.0) 名前空間に更新
+-   DatabaseInitListener を web.xml に明示的に登録
+-   AlmaLinux 環境での postgresql-contrib インストール手順を追加
