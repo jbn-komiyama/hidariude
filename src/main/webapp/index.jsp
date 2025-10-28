@@ -8,7 +8,7 @@
     <style>
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
             margin: 0;
             padding: 0;
             min-height: 100vh;
@@ -17,23 +17,27 @@
             align-items: center;
         }
         .container {
-            background: white;
-            padding: 2rem;
-            border-radius: 15px;
-            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            background: rgba(26, 26, 46, 0.9);
+            backdrop-filter: blur(10px);
+            padding: 2.5rem;
+            border-radius: 20px;
+            box-shadow: 0 25px 50px rgba(0,0,0,0.5);
+            border: 1px solid rgba(255,255,255,0.1);
             text-align: center;
             max-width: 400px;
             width: 90%;
         }
         .logo {
-            font-size: 2rem;
-            font-weight: bold;
-            color: #333;
-            margin-bottom: 1rem;
+            font-size: 2.2rem;
+            font-weight: 700;
+            color: #e8e8e8;
+            margin-bottom: 0.5rem;
+            letter-spacing: 2px;
         }
         .subtitle {
-            color: #666;
-            margin-bottom: 2rem;
+            color: #b0b0b0;
+            margin-bottom: 2.5rem;
+            font-size: 0.95rem;
         }
         .login-options {
             display: flex;
@@ -43,33 +47,53 @@
         .login-btn {
             display: block;
             text-decoration: none;
-            padding: 1rem;
-            border-radius: 10px;
-            font-size: 1.1rem;
-            font-weight: 500;
+            padding: 1.2rem;
+            border-radius: 12px;
+            font-size: 1.05rem;
+            font-weight: 600;
             transition: all 0.3s ease;
-            color: white;
+            color: #f0f0f0;
+            position: relative;
+            overflow: hidden;
+            letter-spacing: 0.5px;
+        }
+        .login-btn::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(255,255,255,0.1);
+            transform: translateX(-100%);
+            transition: transform 0.3s ease;
+        }
+        .login-btn:hover::before {
+            transform: translateX(0);
         }
         .admin-btn {
-            background: linear-gradient(45deg, #ff6b6b, #ee5a52);
+            background: linear-gradient(135deg, #8b1a1a, #b91d1d);
+            box-shadow: 0 4px 15px rgba(139, 26, 26, 0.3);
         }
         .admin-btn:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 10px 20px rgba(255,107,107,0.3);
+            transform: translateY(-3px);
+            box-shadow: 0 12px 25px rgba(185, 29, 29, 0.4);
         }
         .secretary-btn {
-            background: linear-gradient(45deg, #4ecdc4, #44a08d);
+            background: linear-gradient(135deg, #1a5653, #1e7a76);
+            box-shadow: 0 4px 15px rgba(26, 86, 83, 0.3);
         }
         .secretary-btn:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 10px 20px rgba(78,205,196,0.3);
+            transform: translateY(-3px);
+            box-shadow: 0 12px 25px rgba(30, 122, 118, 0.4);
         }
         .customer-btn {
-            background: linear-gradient(45deg, #45b7d1, #96c93d);
+            background: linear-gradient(135deg, #1a4971, #1e5a8f);
+            box-shadow: 0 4px 15px rgba(26, 73, 113, 0.3);
         }
         .customer-btn:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 10px 20px rgba(69,183,209,0.3);
+            transform: translateY(-3px);
+            box-shadow: 0 12px 25px rgba(30, 90, 143, 0.4);
         }
     </style>
 </head>
