@@ -33,6 +33,119 @@ public class FrontController extends HttpServlet {
 	private static String servletPath;
 	private static String pathInfo;
 	private static String nextPath;
+
+	/**
+	 * GETメソッド
+	 * @param req
+	 * @param res
+	 * @throws ServletException
+	 * @throws IOException
+	 */
+	protected void doGet(HttpServletRequest req, HttpServletResponse res) throws ServletException, IOException {
+		execute(req, res);
+	}
+
+	/**
+	 * POSTメソッド
+	 * @param req
+	 * @param res
+	 * @throws ServletException
+	 * @throws IOException
+	 */
+	protected void doPost(HttpServletRequest req, HttpServletResponse res) throws ServletException, IOException {
+		execute(req, res);
+	}
+	
+	/**
+	 * executeメソッド
+	 * リクエストを受け取り、ロールに応じて処理を分岐する
+	 * @param req
+	 * @param res
+	 * @throws ServletException
+	 * @throws IOException
+	 */
+	protected void execute(HttpServletRequest req, HttpServletResponse res) throws ServletException, IOException {
+		req.setCharacterEncoding("UTF-8");
+		contextPath = req.getContextPath();
+		servletPath = req.getServletPath();
+		pathInfo = req.getPathInfo();
+		nextPath = "index";
+		
+		// 共通セッションチェック
+		HttpSession session = ((HttpServletRequest)req).getSession(false);
+	    LoginUser loginUser = (session == null) ? null : (LoginUser) session.getAttribute("loginUser");
+	    
+	    // ルートパスまたはログインパスかどうかを判定
+	    boolean isRootPath = (pathInfo == null) || pathInfo.isEmpty() || "/".equals(pathInfo);
+        boolean isLoginPath = "/login".equals(pathInfo);
+		
+		switch(servletPath) {
+			case "/admin"->{
+				// ログインチェック：ルートとログインパス以外は認証必須
+		        if (!isRootPath && !isLoginPath) {
+		            boolean loggedIn = (loginUser != null && loginUser.getAuthority() == 1);
+		            if (!loggedIn) {
+		                res.sendRedirect(contextPath + "/admin");
+		                return;
+		            }
+		        }
+		        
+		    	if(pathInfo == null)  nextPath = "common/admin/login";
+		    	else adminExecute(req, res);
+			}
+			case "/secretary"->{
+				// ログインチェック：ルートとログインパス以外は認証必須
+		        if (!isRootPath && !isLoginPath) {
+		            boolean loggedIn = (loginUser != null && loginUser.getAuthority() == 2);
+		            if (!loggedIn) {
+		                res.sendRedirect(contextPath + "/secretary");
+		                return;
+		            }
+		        }
+				
+				if(pathInfo == null)  nextPath = "common/secretary/login";
+		    	else secretaryExecute(req, res);
+			}
+			case "/customer"->{
+				// ログインチェック：ルートとログインパス以外は認証必須
+		        if (!isRootPath && !isLoginPath) {
+		            boolean loggedIn = (loginUser != null && loginUser.getAuthority() == 3);
+		            if (!loggedIn) {
+		                res.sendRedirect(contextPath + "/customer");
+		                return;
+		            }
+		        }
+				
+				if(pathInfo == null)  nextPath = "common/customer/login";
+		    	else customerExecute(req, res);
+			}
+		}
+		
+		// ページ遷移
+		if (res.isCommitted()) {   // ★ 追加：ファイルDLやsendErrorでレスポンスが確定していたら何もしない
+		    return;
+		}
+
+		// nextPath の null チェックと空文字チェック
+		if (nextPath == null || nextPath.isEmpty()) {
+			// デフォルトのエラーページにリダイレクト
+			nextPath = contextPath + servletPath + "/error";
+			res.sendRedirect(nextPath);
+			return;
+		}
+
+		// ページ遷移
+		char firstPath = nextPath.charAt(0);
+		if(firstPath == '/') {
+			// 先頭がスラッシュだとリダイレクト
+			res.sendRedirect(res.encodeRedirectURL(nextPath));
+		} else {
+
+			RequestDispatcher rd = req.getRequestDispatcher("/WEB-INF/jsp/" + nextPath + ".jsp");
+			rd.forward(req, res);
+
+		}
+	}
 	
 	/**
 	 * adminExecuteメソッド
@@ -285,6 +398,10 @@ public class FrontController extends HttpServlet {
 		case "/invoice/costs"->{
 			nextPath = new InvoiceService(req, true).secretaryInvoiceSummary();
 		}
+		default -> {
+			// 未定義のパスの場合はエラーページへ
+			nextPath = contextPath + "/admin/error";
+		}
 	}
     }
     
@@ -403,6 +520,10 @@ public class FrontController extends HttpServlet {
 			case "/profile/edit_done" -> {
 			    nextPath = new ProfileService(req, true).editDone();      // 変更実行
 			}
+			default -> {
+				// 未定義のパスの場合はエラーページへ
+				nextPath = contextPath + "/secretary/error";
+			}
     	}
 	}
     
@@ -503,93 +624,14 @@ public class FrontController extends HttpServlet {
 			case "/assignment/profile"->{
 				nextPath = new AssignmentService(req, true).secretaryProfile();
 			}
-			
+			default -> {
+				// 未定義のパスの場合はエラーページへ
+				nextPath = contextPath + "/customer/error";
+			}
+
     	}
 	}
     
-	protected void doGet(HttpServletRequest req, HttpServletResponse res) throws ServletException, IOException {
-		execute(req, res);
-	}
 
-	protected void doPost(HttpServletRequest req, HttpServletResponse res) throws ServletException, IOException {
-		execute(req, res);
-	}
-	
-	protected void execute(HttpServletRequest req, HttpServletResponse res) throws ServletException, IOException {
-		req.setCharacterEncoding("UTF-8");
-		contextPath = req.getContextPath();
-		servletPath = req.getServletPath();
-		pathInfo = req.getPathInfo();
-		nextPath = "index";
-		
-		// 共通セッションチェック
-		HttpSession session = ((HttpServletRequest)req).getSession(false);
-	    LoginUser loginUser = (session == null) ? null : (LoginUser) session.getAttribute("loginUser");
-	    
-	    // ルートパスまたはログインパスかどうかを判定
-	    boolean isRootPath = (pathInfo == null) || pathInfo.isEmpty() || "/".equals(pathInfo);
-        boolean isLoginPath = "/login".equals(pathInfo);
-		
-	
-       
-		switch(servletPath) {
-			case "/admin"->{
-				// ログインチェック：ルートとログインパス以外は認証必須
-		        if (!isRootPath && !isLoginPath) {
-		            boolean loggedIn = (loginUser != null && loginUser.getAuthority() == 1);
-		            if (!loggedIn) {
-		                res.sendRedirect(contextPath + "/admin");
-		                return;
-		            }
-		        }
-		        
-		    	if(pathInfo == null)  nextPath = "common/admin/login";
-		    	else adminExecute(req, res);
-			}
-			case "/secretary"->{
-				// ログインチェック：ルートとログインパス以外は認証必須
-		        if (!isRootPath && !isLoginPath) {
-		            boolean loggedIn = (loginUser != null && loginUser.getAuthority() == 2);
-		            if (!loggedIn) {
-		                res.sendRedirect(contextPath + "/secretary");
-		                return;
-		            }
-		        }
-				
-				if(pathInfo == null)  nextPath = "common/secretary/login";
-		    	else secretaryExecute(req, res);
-			}
-			case "/customer"->{
-				// ログインチェック：ルートとログインパス以外は認証必須
-		        if (!isRootPath && !isLoginPath) {
-		            boolean loggedIn = (loginUser != null && loginUser.getAuthority() == 3);
-		            if (!loggedIn) {
-		                res.sendRedirect(contextPath + "/customer");
-		                return;
-		            }
-		        }
-				
-				if(pathInfo == null)  nextPath = "common/customer/login";
-		    	else customerExecute(req, res);
-			}
-		}
-		
-		// ページ遷移
-		if (res.isCommitted()) {   // ★ 追加：ファイルDLやsendErrorでレスポンスが確定していたら何もしない
-		    return;
-		}
-		
-		// ページ遷移
-		char firstPath = nextPath.charAt(0);
-		if(firstPath == '/') {
-			// 先頭がスラッシュだとリダイレクト
-			res.sendRedirect(res.encodeRedirectURL(nextPath));
-		} else {
-			
-			RequestDispatcher rd = req.getRequestDispatcher("/WEB-INF/jsp/" + nextPath + ".jsp");
-			rd.forward(req, res);
-			
-		}
-	}
 
 }

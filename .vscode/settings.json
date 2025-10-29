@@ -1,8 +1,0 @@
-{
-    "java.configuration.updateBuildConfiguration": "interactive",
-    "java.compile.nullAnalysis.mode": "automatic",
-    "java.server.launchMode": "Standard",
-    "maven.executable.path": "mvn",
-    "tomcat.workspace": "${workspaceFolder}",
-    "files.encoding": "utf8"
-}

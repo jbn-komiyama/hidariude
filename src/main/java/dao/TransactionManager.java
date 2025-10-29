@@ -46,19 +46,29 @@ public class TransactionManager implements AutoCloseable{
 
 	@Override
 	public void close(){
-		try {
-			if(conn != null) {
+		if(conn != null) {
+			try {
+				// コミット/ロールバックを試行
 				if (isCommit) {
 					conn.commit();
 				} else {
 					conn.rollback();
 				}
-				conn.close();
-				conn = null;
+			} catch(SQLException e) {
+				// コミット/ロールバック失敗時もエラーログを出力
+				System.err.println("コミット/ロールバック中のエラー: " + e.getMessage());
+				// 接続は必ずクローズするため、ここでは例外を再スローしない
+			} finally {
+				// 常に接続をクローズする
+				try {
+					conn.close();
+				} catch (SQLException e) {
+					System.err.println("接続クローズ中のエラー: " + e.getMessage());
+					// クローズ失敗はログのみ記録し、アプリケーションは継続
+				} finally {
+					conn = null;
+				}
 			}
-		} catch(SQLException e) {
-			String message = "E:TM03 トランザクション終了中にエラーが発生しました";
-			throw new TransactionException(message, e);
 		}
 	}
 }

@@ -35,6 +35,7 @@ import dto.SystemAdminDTO;
 import dto.TaskDTO;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpSession;
+import util.ConvertUtil;
 import util.PasswordUtil;
 
 /**
@@ -82,8 +83,8 @@ public class CommonService extends BaseService {
     private static final String PATH_CUSTOMER_LOGIN  = "/customer";
     private static final String PATH_CUSTOMER_LOGIN_FORM = "common/customer/login";
     private static final String PATH_CUSTOMER_HOME   = "/customer/home";
-    private static final String PATH_ADMIN_MYPAGE    = "common/admin/mypage";
-    private static final String PATH_ADMIN_ID_EDIT   = "common/admin/id_edit";
+    private static final String PATH_ADMIN_MYPAGE    = "mypage/admin/home";
+    private static final String PATH_ADMIN_ID_EDIT   = "mypage/admin/edit";
 
     // ---- Attributes ----
     private static final String ATTR_LOGIN_USER = "loginUser";
@@ -99,7 +100,7 @@ public class CommonService extends BaseService {
     // =========================================================
 
     /** DTO ↔ Domain の変換器 */
-    private final Converter conv = new Converter();
+    private final ConvertUtil conv = new ConvertUtil();
 
     /**
      * コンストラクタ。
@@ -308,7 +309,7 @@ public class CommonService extends BaseService {
     }
 
     // =========================
-    // 「【admin】 機能：ID情報編集（画面）」
+    // 「【admin】 機能：マイページ編集（画面）」
     // =========================
     /**
      * 管理者ID編集フォーム表示。

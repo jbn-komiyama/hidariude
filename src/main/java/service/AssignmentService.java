@@ -19,7 +19,7 @@ import java.util.function.Predicate;
 
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpSession;
-
+import util.ConvertUtil;
 import dao.AssignmentDAO;
 import dao.CustomerDAO;
 import dao.ProfileDAO;
@@ -120,7 +120,7 @@ public class AssignmentService extends BaseService {
     private static final String A_H_BASE_SEC        = "h_basePaySecretary";
 
     // 変換（DTO→Domain）
-    private final Converter conv = new Converter();
+    private final ConvertUtil conv = new ConvertUtil();
 
     // =========================================================
     // ② フィールド・コンストラクタ
