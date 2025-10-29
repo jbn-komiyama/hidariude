@@ -53,6 +53,10 @@ public class DatabaseInitListener implements ServletContextListener {
                     // 既存の制約を修正（口座情報の空欄を許可）
                     updateBankTypeConstraint(conn);
                 }
+                
+                // マイグレーション実行
+                runMigrations(conn);
+                
             }
             
         } catch (Exception e) {
@@ -66,6 +70,114 @@ public class DatabaseInitListener implements ServletContextListener {
     @Override
     public void contextDestroyed(ServletContextEvent sce) {
         // クリーンアップ処理が必要な場合はここに記述
+    }
+
+    /**
+     * マイグレーション管理テーブルが存在するかチェック
+     */
+    private boolean migrationTableExists(Connection conn) throws SQLException {
+        return tableExists(conn, "schema_migrations");
+    }
+
+    /**
+     * マイグレーションが実行済みかチェック
+     */
+    private boolean isMigrationApplied(Connection conn, String migrationName) throws SQLException {
+        String sql = "SELECT COUNT(*) FROM schema_migrations WHERE migration_name = ?";
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setString(1, migrationName);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    return rs.getInt(1) > 0;
+                }
+            }
+        }
+        return false;
+    }
+
+    /**
+     * マイグレーション実行記録を保存
+     */
+    private void recordMigration(Connection conn, String migrationName) throws SQLException {
+        String sql = "INSERT INTO schema_migrations (migration_name) VALUES (?)";
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setString(1, migrationName);
+            ps.executeUpdate();
+        }
+    }
+
+    /**
+     * すべてのマイグレーションを実行
+     * 
+     * マイグレーション実行の判断基準:
+     *   ・listener パッケージ内の Migration インターフェースを実装したクラスを手動登録
+     *   ・クラス名の日付順（Migration_YYYYMMDD_*）にソートして実行
+     *   ・schema_migrations テーブルに記録がない場合のみ実行
+     *   ・実行成功後、schema_migrations テーブルにマイグレーション名と実行日時を記録
+     *   ・実行失敗時はロールバックされ、記録は残らない（次回起動時に再実行される）
+     */
+    private void runMigrations(Connection conn) throws SQLException {
+        System.out.println("Checking for pending migrations...");
+        
+        // Step 1: schema_migrations テーブルが存在しない場合は、最初に作成マイグレーションを実行
+        if (!migrationTableExists(conn)) {
+            System.out.println("Migration table not found. Creating...");
+            Migration initMigration = new Migration_20251029_CreateSchemaMigrations();
+            System.out.println("Applying migration: " + initMigration.getName());
+            System.out.println("  Description: " + initMigration.getDescription());
+            
+            try {
+                initMigration.up(conn);
+                recordMigration(conn, initMigration.getName());
+                conn.commit();
+                System.out.println("Migration applied successfully: " + initMigration.getName());
+            } catch (SQLException e) {
+                conn.rollback();
+                System.err.println("Migration failed: " + initMigration.getName());
+                throw e;
+            }
+        }
+        
+        // Step 2: 通常のマイグレーション一覧を定義（手動で追加）
+        // 新しいマイグレーションを追加する場合は、この配列に追加してください
+        List<Migration> migrations = new ArrayList<>();
+        migrations.add(new Migration_20251029_CreateSchemaMigrations()); // 初回以降はスキップされる
+        migrations.add(new Migration_20251029_UpdateSecretaryPayWithTax());
+        
+        // 今後のマイグレーションをここに追加
+        // migrations.add(new Migration_YYYYMMDD_YourMigrationName());
+        
+        // マイグレーション名順にソート（クラス名の日付部分でソート）
+        migrations.sort((m1, m2) -> m1.getClass().getSimpleName().compareTo(m2.getClass().getSimpleName()));
+        
+        int appliedCount = 0;
+        int skippedCount = 0;
+        
+        for (Migration migration : migrations) {
+            String migrationName = migration.getName();
+            
+            if (!isMigrationApplied(conn, migrationName)) {
+                System.out.println("Applying migration: " + migrationName);
+                System.out.println("  Description: " + migration.getDescription());
+                
+                try {
+                    migration.up(conn);
+                    recordMigration(conn, migrationName);
+                    conn.commit();
+                    System.out.println("Migration applied successfully: " + migrationName);
+                    appliedCount++;
+                } catch (SQLException e) {
+                    conn.rollback();
+                    System.err.println("Migration failed: " + migrationName);
+                    throw e;
+                }
+            } else {
+                System.out.println("Migration already applied (skipped): " + migrationName);
+                skippedCount++;
+            }
+        }
+        
+        System.out.println("Migration check completed: " + appliedCount + " applied, " + skippedCount + " skipped.");
     }
 
     /**
@@ -569,4 +681,3 @@ public class DatabaseInitListener implements ServletContextListener {
         System.out.println("Initial data insertion completed.");
     }
 }
-
