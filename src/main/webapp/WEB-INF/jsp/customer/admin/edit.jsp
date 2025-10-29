@@ -82,7 +82,7 @@
 
           <div class="mt-4 d-flex gap-2">
             <button type="submit" class="btn btn-primary">更新する</button>
-            <a class="btn btn-outline-secondary" href="<%= request.getContextPath() %>/admin/customer">キャンセル</a>
+            <a class="btn btn-outline-secondary" href="<%= request.getContextPath() %>/admin/customer">一覧へ戻る</a>
           </div>
         </form>
       </div>
