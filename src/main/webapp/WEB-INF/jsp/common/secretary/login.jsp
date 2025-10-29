@@ -16,7 +16,7 @@
     }
     body {
       font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-      background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+      background: linear-gradient(135deg, #e8f4f8 0%, #f0f8ff 50%, #e6f2ff 100%);
       min-height: 100vh;
       display: flex;
       justify-content: center;
@@ -24,27 +24,26 @@
       padding: 20px;
     }
     .login-container {
-      background: rgba(26, 26, 46, 0.9);
-      backdrop-filter: blur(10px);
+      background: #ffffff;
       padding: 2.5rem;
       border-radius: 20px;
-      box-shadow: 0 25px 50px rgba(0,0,0,0.5);
-      border: 1px solid rgba(255,255,255,0.1);
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
+      border: 1px solid rgba(0, 0, 0, 0.06);
       width: 100%;
       max-width: 420px;
     }
     .login-title {
       font-size: 2rem;
       font-weight: 700;
-      color: #e8e8e8;
+      color: #2c3e50;
       text-align: center;
       margin-bottom: 2rem;
       letter-spacing: 1px;
     }
     .role-badge {
       display: inline-block;
-      background: linear-gradient(135deg, #1a5653, #1e7a76);
-      color: #f0f0f0;
+      background: linear-gradient(135deg, #20c997, #17a589);
+      color: #ffffff;
       padding: 0.5rem 1.2rem;
       border-radius: 20px;
       font-size: 0.9rem;
@@ -53,9 +52,9 @@
       letter-spacing: 0.5px;
     }
     .error-message {
-      background: rgba(185, 29, 29, 0.2);
-      border: 1px solid rgba(185, 29, 29, 0.5);
-      color: #ff9999;
+      background: #f8d7da;
+      border: 1px solid #f5c2c7;
+      color: #842029;
       padding: 1rem;
       border-radius: 10px;
       margin-bottom: 1.5rem;
@@ -66,7 +65,7 @@
     }
     label {
       display: block;
-      color: #b0b0b0;
+      color: #495057;
       margin-bottom: 0.5rem;
       font-size: 0.95rem;
       font-weight: 500;
@@ -75,36 +74,36 @@
     input[type="password"] {
       width: 100%;
       padding: 0.9rem;
-      background: rgba(255, 255, 255, 0.05);
-      border: 1px solid rgba(255, 255, 255, 0.1);
+      background: #f8f9fa;
+      border: 1px solid #dee2e6;
       border-radius: 10px;
-      color: #e8e8e8;
+      color: #212529;
       font-size: 1rem;
       transition: all 0.3s ease;
     }
     input[type="email"]:focus,
     input[type="password"]:focus {
       outline: none;
-      border-color: rgba(30, 122, 118, 0.5);
-      background: rgba(255, 255, 255, 0.08);
-      box-shadow: 0 0 0 3px rgba(30, 122, 118, 0.1);
+      border-color: #20c997;
+      background: #ffffff;
+      box-shadow: 0 0 0 3px rgba(32, 201, 151, 0.15);
     }
     input::placeholder {
-      color: rgba(176, 176, 176, 0.5);
+      color: #adb5bd;
     }
     .submit-btn {
       width: 100%;
       padding: 1rem;
-      background: linear-gradient(135deg, #1a5653, #1e7a76);
+      background: linear-gradient(135deg, #20c997, #17a589);
       border: none;
       border-radius: 12px;
-      color: #f0f0f0;
+      color: #ffffff;
       font-size: 1.05rem;
       font-weight: 600;
       cursor: pointer;
       transition: all 0.3s ease;
       letter-spacing: 0.5px;
-      box-shadow: 0 4px 15px rgba(26, 86, 83, 0.3);
+      box-shadow: 0 4px 12px rgba(32, 201, 151, 0.25);
       position: relative;
       overflow: hidden;
     }
@@ -115,7 +114,7 @@
       left: 0;
       width: 100%;
       height: 100%;
-      background: rgba(255,255,255,0.1);
+      background: rgba(255,255,255,0.15);
       transform: translateX(-100%);
       transition: transform 0.3s ease;
     }
@@ -124,7 +123,7 @@
     }
     .submit-btn:hover {
       transform: translateY(-2px);
-      box-shadow: 0 8px 20px rgba(30, 122, 118, 0.4);
+      box-shadow: 0 8px 20px rgba(32, 201, 151, 0.35);
     }
     .submit-btn:active {
       transform: translateY(0);
@@ -134,13 +133,13 @@
       margin-top: 1.5rem;
     }
     .back-link a {
-      color: #b0b0b0;
+      color: #6c757d;
       text-decoration: none;
       font-size: 0.9rem;
       transition: color 0.3s ease;
     }
     .back-link a:hover {
-      color: #e8e8e8;
+      color: #495057;
     }
   </style>
 </head>
