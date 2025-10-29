@@ -29,6 +29,7 @@ import dto.ProfileDTO;
 import dto.SecretaryDTO;
 import dto.SecretaryMonthlySummaryDTO;
 import dto.SecretaryRankDTO;
+import util.ConvertUtil;
 import util.PasswordUtil;
 import dto.SecretaryTotalsDTO;
 
@@ -96,7 +97,7 @@ public class SecretaryService extends BaseService {
     private static final String A_ERROR_MSG   = "errorMsg"; // 既存JSP互換名
 
     /** 使い回し用コンバータ（毎回 new しない） */
-    private final Converter conv = new Converter();
+    private final ConvertUtil conv = new ConvertUtil();
 
     /**
      * コンストラクタ。

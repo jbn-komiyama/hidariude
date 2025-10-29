@@ -11,6 +11,7 @@ import domain.Profile;
 
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpSession;
+import util.ConvertUtil;
 
 /**
  * 【secretary】機能：プロフィール（稼働条件）サービス
@@ -69,7 +70,7 @@ public class ProfileService extends BaseService {
     private static final int HOURS_MAX_MONTH = 744;  // 31日×24h 想定上限
 
     // ----- Converter -----
-    private final Converter conv = new Converter();
+    private final ConvertUtil conv = new ConvertUtil();
 
     // =========================
     // ② フィールド、コンストラクタ

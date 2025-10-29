@@ -1,5 +1,5 @@
-// Converter.java
-package service;
+// ConvertUtil.java
+package util;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
@@ -35,7 +35,7 @@ import dto.TaskRankDTO;
  *  - 引数が null の場合は null を返す
  *  - 日付系はユーティリティ（ts2date / sql2date）に集約
  */
-public class Converter {
+public class ConvertUtil {
 
     // -------------------------
     // Customer

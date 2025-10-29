@@ -35,6 +35,7 @@ import dto.SystemAdminDTO;
 import dto.TaskDTO;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpSession;
+import util.ConvertUtil;
 import util.PasswordUtil;
 
 /**
@@ -99,7 +100,7 @@ public class CommonService extends BaseService {
     // =========================================================
 
     /** DTO ↔ Domain の変換器 */
-    private final Converter conv = new Converter();
+    private final ConvertUtil conv = new ConvertUtil();
 
     /**
      * コンストラクタ。

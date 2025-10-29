@@ -21,6 +21,7 @@ import java.util.stream.Collectors;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.servlet.http.HttpSession;
+import util.ConvertUtil;
 
 import org.apache.poi.ss.usermodel.Cell;
 import org.apache.poi.ss.usermodel.CellType;
@@ -98,7 +99,7 @@ public class InvoiceService extends BaseService {
     // =========================================================
 
     /** DTO⇔ドメインの相互変換ユーティリティ（都度 new を避ける） */
-    private final Converter conv = new Converter();
+    private final ConvertUtil conv = new ConvertUtil();
 
     /**
      * コンストラクタ。

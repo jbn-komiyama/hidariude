@@ -10,7 +10,7 @@ import java.util.Map;
 import java.util.UUID;
 
 import jakarta.servlet.http.HttpServletRequest;
-
+import util.ConvertUtil;
 import dao.AssignmentDAO;
 import dao.CustomerDAO;
 import dao.CustomerMonthlyInvoiceDAO;
@@ -83,7 +83,7 @@ public class CustomerService extends BaseService {
     private static final DateTimeFormatter F_YM = DateTimeFormatter.ofPattern("yyyy-MM");
 
     // ----- Converter（DTO → Domain 変換器） -----
-    private final Converter conv = new Converter();
+    private final ConvertUtil conv = new ConvertUtil();
 
     // =========================
     // ② フィールド、コンストラクタ

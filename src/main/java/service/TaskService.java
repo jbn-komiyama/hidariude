@@ -18,7 +18,7 @@ import java.util.UUID;
 
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpSession;
-
+import util.ConvertUtil;
 import dao.AssignmentDAO;
 import dao.TaskDAO;
 import dao.TransactionManager;
@@ -112,7 +112,7 @@ public class TaskService extends BaseService {
     // =========================================================
 
     // DTO→Domain 変換（共通コンバータ）
-    private final Converter conv = new Converter();
+    private final ConvertUtil conv = new ConvertUtil();
 
     public TaskService(HttpServletRequest req, boolean useDB) {
         super(req, useDB);
