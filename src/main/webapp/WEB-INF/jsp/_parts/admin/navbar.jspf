@@ -26,12 +26,14 @@
 					href="<c:url value='/admin/mypage'/>">マイページ</a></li>
 				<li class="nav-item"><a class="nav-link"
 					href="<c:url value='/admin/assignment'/>">アサイン管理</a></li>
-				<li class="nav-item"><a class="nav-link"
-					href="<c:url value='/admin/task/list_all'/>">タスク管理</a></li>
-				<li class="nav-item dropdown"><a
-					class="nav-link dropdown-toggle" href="#" id="costsDropdown"
-					role="button" data-bs-toggle="dropdown" aria-expanded="false">
-						コスト管理 </a>
+			<li class="nav-item"><a class="nav-link"
+				href="<c:url value='/admin/task/list_all'/>">タスク管理</a></li>
+			<li class="nav-item"><a class="nav-link"
+				href="<c:url value='/admin/master'/>">マスタ管理</a></li>
+			<li class="nav-item dropdown"><a
+				class="nav-link dropdown-toggle" href="#" id="costsDropdown"
+				role="button" data-bs-toggle="dropdown" aria-expanded="false">
+					コスト管理 </a>
 					<ul class="dropdown-menu" aria-labelledby="costsDropdown">
 						<li><a class="dropdown-item"
 							href="<c:url value='/admin/invoice/sales'/>">請求管理</a></li>

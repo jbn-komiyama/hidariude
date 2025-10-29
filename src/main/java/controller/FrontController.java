@@ -179,6 +179,9 @@ public class FrontController extends HttpServlet {
 	case "/id_edit_done"->{
 		nextPath = new CommonService(req, false).adminIdEditSubmit();
 	}
+	case "/master"->{
+		nextPath = new CommonService(req, true).adminMasterList();
+	}
 	case "/error"->{
 		nextPath = "common/admin/error";
 	}

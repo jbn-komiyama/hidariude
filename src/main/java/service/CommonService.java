@@ -215,6 +215,61 @@ public class CommonService extends BaseService {
     }
 
     // =========================
+    // 「【admin】 機能：マスタ管理」
+    // =========================
+    /**
+     * マスタ管理画面。
+     * - 表示用データ：業務ランク一覧、秘書ランク一覧
+     * - setAttribute:
+     *   'taskRanks', 'secretaryRanks'
+     */
+    public String adminMasterList() {
+        try (TransactionManager tm = new TransactionManager()) {
+            dao.TaskRankDAO taskRankDAO = new dao.TaskRankDAO(tm.getConnection());
+            dao.SecretaryDAO secretaryDAO = new dao.SecretaryDAO(tm.getConnection());
+
+            // 業務ランク一覧を取得
+            List<dto.TaskRankDTO> taskRankDTOs = taskRankDAO.selectAll();
+            List<domain.TaskRank> taskRanks = new ArrayList<>();
+            for (dto.TaskRankDTO dto : taskRankDTOs) {
+                domain.TaskRank taskRank = new domain.TaskRank();
+                taskRank.setId(dto.getId());
+                taskRank.setRankName(dto.getRankName());
+                taskRank.setBasePayCustomer(dto.getBasePayCustomer());
+                taskRank.setBasePaySecretary(dto.getBasePaySecretary());
+                taskRank.setCreatedAt(dto.getCreatedAt());
+                taskRank.setUpdatedAt(dto.getUpdatedAt());
+                taskRank.setDeletedAt(dto.getDeletedAt());
+                taskRanks.add(taskRank);
+            }
+
+            // 秘書ランク一覧を取得
+            List<dto.SecretaryRankDTO> secretaryRankDTOs = secretaryDAO.selectRankAll();
+            List<domain.SecretaryRank> secretaryRanks = new ArrayList<>();
+            for (dto.SecretaryRankDTO dto : secretaryRankDTOs) {
+                domain.SecretaryRank secretaryRank = new domain.SecretaryRank();
+                secretaryRank.setId(dto.getId());
+                secretaryRank.setRankName(dto.getRankName());
+                secretaryRank.setDescription(dto.getDescription());
+                secretaryRank.setIncreaseBasePayCustomer(dto.getIncreaseBasePayCustomer());
+                secretaryRank.setIncreaseBasePaySecretary(dto.getIncreaseBasePaySecretary());
+                secretaryRank.setCreatedAt(dto.getCreatedAt());
+                secretaryRank.setUpdatedAt(dto.getUpdatedAt());
+                secretaryRank.setDeletedAt(dto.getDeletedAt());
+                secretaryRanks.add(secretaryRank);
+            }
+
+            // JSP へ
+            req.setAttribute("taskRanks", taskRanks);
+            req.setAttribute("secretaryRanks", secretaryRanks);
+            return "master/admin/home";
+        } catch (RuntimeException e) {
+            e.printStackTrace();
+            return req.getContextPath() + req.getServletPath() + "/error";
+        }
+    }
+
+    // =========================
     // 「【admin】 機能：ホーム」
     // =========================
     /**
