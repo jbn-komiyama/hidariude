@@ -351,19 +351,37 @@ Java: Reload Projects
 
 ## 使用方法
 
-### 開発手順
+### 開発手順（推奨）
 
 VS Code 上でタスクを実行するだけで開発環境を構築できます。
 
-**Ctrl+Shift+P** → **Tasks: Run Task** から以下の手順でタスクを実行：
+#### 方法 1: ワンクリックでビルド＆デプロイ（最も簡単）
+
+**Ctrl+Shift+B** を押すだけで、以下の 3 つのタスクが自動的に順次実行されます：
 
 1. **Maven Clean** - ビルド成果物をクリーンアップ
 2. **Maven Package** - WAR ファイルを生成
 3. **Tomcat Deploy** - Tomcat サーバーで起動
 
+または、**Ctrl+Shift+P** → **Tasks: Run Task** → **Build and Deploy** を選択しても同じです。
+
+#### 方法 2: 個別タスクを手動実行
+
+**Ctrl+Shift+P** → **Tasks: Run Task** から各タスクを個別に実行することもできます。
+
 ### 各タスクの詳細
 
 **Ctrl+Shift+P** → **Tasks: Run Task** から以下のタスクを選択できます：
+
+#### Build and Deploy（推奨）
+
+```
+Build and Deploy
+```
+
+-   Maven Clean → Maven Package → Tomcat Deploy を自動的に順次実行
+-   **Ctrl+Shift+B** のショートカットキーで実行可能
+-   通常の開発ではこのタスクを使用することを推奨
 
 #### Maven Clean
 
