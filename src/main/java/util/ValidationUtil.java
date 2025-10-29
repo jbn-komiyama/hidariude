@@ -1,4 +1,4 @@
-package validation;
+package util;
 
 import java.math.BigDecimal;
 import java.text.ParseException;
@@ -13,7 +13,7 @@ import java.util.UUID;
  * 入力バリデーションのユーティリティ。
  * <p>エラーメッセージは内部に蓄積され、{@link #hasErrorMsg()} と {@link #getErrorMsg()} で参照できます。</p>
  */
-public class Validation {
+public class ValidationUtil {
 	private final List<String> errors = new ArrayList<>();
 	
 	/**

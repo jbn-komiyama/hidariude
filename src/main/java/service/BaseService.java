@@ -1,15 +1,14 @@
 package service;
 import java.sql.Connection;
 import jakarta.servlet.http.HttpServletRequest;
-
+import util.ValidationUtil;
 import dao.TransactionManager;
-import validation.Validation;
 
 public class BaseService {
 	protected HttpServletRequest req;
 	protected TransactionManager tm;
 	protected Connection conn;
-	protected Validation validation = new Validation();
+	protected ValidationUtil validation = new ValidationUtil();
     // ===== Error
     public static String REDIRECT_ERROR;
 	
