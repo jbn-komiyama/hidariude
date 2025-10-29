@@ -65,10 +65,10 @@
                   <td class="text-center">
                     <c:choose>
                       <c:when test="${ct.primary}">
-                        <span class="badge text-bg-success">主担当</span>
+                        <span class="badge bg-success">主担当</span>
                       </c:when>
                       <c:otherwise>
-                        <span class="badge text-bg-secondary">—</span>
+                        <span class="badge bg-secondary">—</span>
                       </c:otherwise>
                     </c:choose>
                   </td>
