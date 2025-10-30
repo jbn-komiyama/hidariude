@@ -277,18 +277,33 @@ private static final String DB_PASSWORD = "password";
 hidariude/
 ├── src/
 │   ├── main/
-│   │   ├── java/          # Java ソースコード
+│   │   ├── java/
+│   │   │   ├── controller/     # フロントコントローラー
+│   │   │   ├── dao/            # データアクセス層
+│   │   │   ├── domain/         # ドメインオブジェクト
+│   │   │   ├── dto/            # データ転送オブジェクト
+│   │   │   ├── filter/         # サーブレットフィルタ
+│   │   │   ├── listener/       # サーブレットリスナー・マイグレーション
+│   │   │   ├── service/        # ビジネスロジック
+│   │   │   └── util/           # ユーティリティクラス
 │   │   └── webapp/        # Web リソース (JSP, CSS, JS等)
 │   │       └── WEB-INF/
-│   │           └── web.xml
+│   │           ├── jsp/        # JSP ファイル
+│   │           └── web.xml     # Web アプリケーション設定
 │   └── test/
 │       └── java/          # テストコード
 ├── .vscode/               # VS Code 設定ファイル
 │   ├── settings.json      # プロジェクト設定
 │   ├── launch.json        # デバッグ設定
 │   └── tasks.json         # Maven/Tomcat タスク
+├── docs/                  # プロジェクトドキュメント
+│   ├── コード分析/        # Claude Code によるコード分析
+│   └── 機能定義/          # 機能仕様書
 ├── pom.xml                # Maven 設定
+├── CLAUDE.md              # Claude Code 向けガイド
+├── Git運用ルール.md        # Git 運用ルール
 └── README.md              # このファイル
+└── deploy.sh              # デプロイスクリプト
 ```
 
 ---

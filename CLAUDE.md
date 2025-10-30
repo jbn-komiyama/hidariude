@@ -96,7 +96,18 @@ Hidariude は秘書・顧客・アサイン・業務を管理するための Jav
     -   `hashPassword()`: 平文をハッシュ化（コストファクタ 10）
     -   `verifyPassword()`: 平文とハッシュの照合
 
-**6. リスナー層** (`listener/`):
+**6. フィルタ層** (`filter/`):
+
+-   `@WebFilter` アノテーションによる自動登録
+-   リクエスト前処理とレスポンス後処理
+-   主なフィルタ:
+    -   `AlertCountFilter`: 管理者画面でアラート件数を自動取得して request スコープにセット
+        -   URL パターン: `/admin/*`
+        -   管理者ログイン時のみ `TaskDAO.showAlert(false)` を実行
+        -   ナビバーのアラートバッジ表示に使用
+        -   エラー時も処理を継続（alertCount=0 をセット）
+
+**7. リスナー層** (`listener/`):
 
 -   `DatabaseInitListener`: アプリケーション起動時の DB 初期化
     -   `@WebListener` で自動実行
@@ -105,7 +116,7 @@ Hidariude は秘書・顧客・アサイン・業務を管理するための Jav
     -   初期データ: 管理者 10 件、秘書 10 件、顧客 10 件など
     -   マイグレーション自動実行
 
-**7. マイグレーション層** (`listener/Migration*.java`):
+**8. マイグレーション層** (`listener/Migration*.java`):
 
 -   `Migration` インターフェース: データベース変更の基底インターフェース
 -   マイグレーションファイル命名規則: `Migration_YYYYMMDD_DescriptiveName.java`
