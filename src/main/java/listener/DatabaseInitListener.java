@@ -143,6 +143,7 @@ public class DatabaseInitListener implements ServletContextListener {
         List<Migration> migrations = new ArrayList<>();
         migrations.add(new Migration_20251029_CreateSchemaMigrations()); // 初回以降はスキップされる
         migrations.add(new Migration_20251029_UpdateSecretaryPayWithTax());
+        migrations.add(new Migration_20251030_CreatePasswordResetTokens());
         
         // 今後のマイグレーションをここに追加
         // migrations.add(new Migration_YYYYMMDD_YourMigrationName());

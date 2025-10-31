@@ -643,4 +643,25 @@ public class SecretaryDAO extends BaseDAO {
 			throw new DAOException("E:S60 secretaries.last_login_at 更新に失敗しました。", e);
 		}
 	}
+
+	/**
+	 * パスワードのみを更新します（パスワードリセット用）。
+	 * <p>{@code updated_at} はサーバー時刻で更新されます。</p>
+	 * <p>論理削除済みのレコードは対象外です。</p>
+	 *
+	 * @param id             秘書ID（UUID）
+	 * @param hashedPassword ハッシュ化されたパスワード
+	 * @return 影響行数（通常 1。対象なしの場合は 0）
+	 * @throws DAOException UPDATE に失敗した場合
+	 */
+	public int updatePassword(UUID id, String hashedPassword) {
+		String sql = "UPDATE secretaries SET password = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ? AND deleted_at IS NULL";
+		try (PreparedStatement ps = conn.prepareStatement(sql)) {
+			ps.setString(1, hashedPassword);
+			ps.setObject(2, id);
+			return ps.executeUpdate();
+		} catch (SQLException e) {
+			throw new DAOException("E:S61 secretaries.password の更新に失敗しました。", e);
+		}
+	}
 }

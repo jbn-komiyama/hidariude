@@ -17,6 +17,7 @@ import service.CommonService;
 import service.ContactService;
 import service.CustomerService;
 import service.InvoiceService;
+import service.PasswordResetService;
 import service.ProfileService;
 import service.SalesCostSummaryService;
 import service.SecretaryService;
@@ -78,11 +79,12 @@ public class FrontController extends HttpServlet {
 	    // ルートパスまたはログインパスかどうかを判定
 	    boolean isRootPath = (pathInfo == null) || pathInfo.isEmpty() || "/".equals(pathInfo);
         boolean isLoginPath = "/login".equals(pathInfo);
+        boolean isPasswordResetPath = (pathInfo != null && pathInfo.startsWith("/password_reset"));
 		
 		switch(servletPath) {
 			case "/admin"->{
-				// ログインチェック：ルートとログインパス以外は認証必須
-		        if (!isRootPath && !isLoginPath) {
+				// ログインチェック：ルートとログインパス、パスワードリセット以外は認証必須
+		        if (!isRootPath && !isLoginPath && !isPasswordResetPath) {
 		            boolean loggedIn = (loginUser != null && loginUser.getAuthority() == 1);
 		            if (!loggedIn) {
 		                res.sendRedirect(contextPath + "/admin");
@@ -94,8 +96,8 @@ public class FrontController extends HttpServlet {
 		    	else adminExecute(req, res);
 			}
 			case "/secretary"->{
-				// ログインチェック：ルートとログインパス以外は認証必須
-		        if (!isRootPath && !isLoginPath) {
+				// ログインチェック：ルートとログインパス、パスワードリセット以外は認証必須
+		        if (!isRootPath && !isLoginPath && !isPasswordResetPath) {
 		            boolean loggedIn = (loginUser != null && loginUser.getAuthority() == 2);
 		            if (!loggedIn) {
 		                res.sendRedirect(contextPath + "/secretary");
@@ -107,8 +109,8 @@ public class FrontController extends HttpServlet {
 		    	else secretaryExecute(req, res);
 			}
 			case "/customer"->{
-				// ログインチェック：ルートとログインパス以外は認証必須
-		        if (!isRootPath && !isLoginPath) {
+				// ログインチェック：ルートとログインパス、パスワードリセット以外は認証必須
+		        if (!isRootPath && !isLoginPath && !isPasswordResetPath) {
 		            boolean loggedIn = (loginUser != null && loginUser.getAuthority() == 3);
 		            if (!loggedIn) {
 		                res.sendRedirect(contextPath + "/customer");
@@ -184,6 +186,22 @@ public class FrontController extends HttpServlet {
 	}
 	case "/error"->{
 		nextPath = "common/admin/error";
+	}
+
+	/**
+	 * A01_93 パスワードリセット
+	 */
+	case "/password_reset"->{
+		nextPath = new PasswordResetService(req, false).showResetRequestForm("admin");
+	}
+	case "/password_reset/request"->{
+		nextPath = new PasswordResetService(req, true).processResetRequest("admin");
+	}
+	case "/password_reset/form"->{
+		nextPath = new PasswordResetService(req, true).showResetForm("admin");
+	}
+	case "/password_reset/reset"->{
+		nextPath = new PasswordResetService(req, true).processPasswordReset("admin");
 	}
 
 
@@ -437,7 +455,22 @@ public class FrontController extends HttpServlet {
 	case "/error"->{
 		nextPath = "common/secretary/error";
 	}
-			
+	
+	/**
+	 * パスワードリセット
+	 */
+	case "/password_reset"->{
+		nextPath = new PasswordResetService(req, false).showResetRequestForm("secretary");
+	}
+	case "/password_reset/request"->{
+		nextPath = new PasswordResetService(req, true).processResetRequest("secretary");
+	}
+	case "/password_reset/form"->{
+		nextPath = new PasswordResetService(req, true).showResetForm("secretary");
+	}
+	case "/password_reset/reset"->{
+		nextPath = new PasswordResetService(req, true).processPasswordReset("secretary");
+	}
 
 			/**
 			 * A02 業務管理業務
@@ -557,6 +590,22 @@ public class FrontController extends HttpServlet {
 	}
 	case "/error"->{
 		nextPath = "common/customer/error";
+	}
+	
+	/**
+	 * パスワードリセット
+	 */
+	case "/password_reset"->{
+		nextPath = new PasswordResetService(req, false).showResetRequestForm("customer");
+	}
+	case "/password_reset/request"->{
+		nextPath = new PasswordResetService(req, true).processResetRequest("customer");
+	}
+	case "/password_reset/form"->{
+		nextPath = new PasswordResetService(req, true).showResetForm("customer");
+	}
+	case "/password_reset/reset"->{
+		nextPath = new PasswordResetService(req, true).processPasswordReset("customer");
 	}
 			
 			/**

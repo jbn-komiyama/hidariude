@@ -7,7 +7,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>顧客ログイン</title>
+  <title>パスワードリセット申請</title>
   <style>
     * {
       margin: 0;
@@ -23,32 +23,39 @@
       align-items: center;
       padding: 20px;
     }
-    .login-container {
+    .reset-container {
       background: #ffffff;
       padding: 2.5rem;
       border-radius: 20px;
       box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
       border: 1px solid rgba(0, 0, 0, 0.06);
       width: 100%;
-      max-width: 420px;
+      max-width: 480px;
     }
-    .login-title {
-      font-size: 2rem;
+    .reset-title {
+      font-size: 1.8rem;
       font-weight: 700;
       color: #2c3e50;
       text-align: center;
+      margin-bottom: 1rem;
+      letter-spacing: 0.5px;
+    }
+    .reset-description {
+      color: #6c757d;
+      text-align: center;
       margin-bottom: 2rem;
-      letter-spacing: 1px;
+      font-size: 0.95rem;
+      line-height: 1.6;
     }
     .role-badge {
       display: inline-block;
-      background: linear-gradient(135deg, #0d6efd, #0b5ed7);
+      background: linear-gradient(135deg, #007bff, #0056b3);
       color: #ffffff;
-      padding: 0.5rem 1.2rem;
+      padding: 0.4rem 1rem;
       border-radius: 20px;
-      font-size: 0.9rem;
+      font-size: 0.85rem;
       font-weight: 600;
-      margin-bottom: 2rem;
+      margin-bottom: 1.5rem;
       letter-spacing: 0.5px;
     }
     .error-message {
@@ -70,8 +77,7 @@
       font-size: 0.95rem;
       font-weight: 500;
     }
-    input[type="email"],
-    input[type="password"] {
+    input[type="email"] {
       width: 100%;
       padding: 0.9rem;
       background: #f8f9fa;
@@ -81,12 +87,11 @@
       font-size: 1rem;
       transition: all 0.3s ease;
     }
-    input[type="email"]:focus,
-    input[type="password"]:focus {
+    input[type="email"]:focus {
       outline: none;
-      border-color: #0d6efd;
+      border-color: #007bff;
       background: #ffffff;
-      box-shadow: 0 0 0 3px rgba(13, 110, 253, 0.15);
+      box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.15);
     }
     input::placeholder {
       color: #adb5bd;
@@ -94,7 +99,7 @@
     .submit-btn {
       width: 100%;
       padding: 1rem;
-      background: linear-gradient(135deg, #0d6efd, #0b5ed7);
+      background: linear-gradient(135deg, #007bff, #0056b3);
       border: none;
       border-radius: 12px;
       color: #ffffff;
@@ -103,27 +108,11 @@
       cursor: pointer;
       transition: all 0.3s ease;
       letter-spacing: 0.5px;
-      box-shadow: 0 4px 12px rgba(13, 110, 253, 0.25);
-      position: relative;
-      overflow: hidden;
-    }
-    .submit-btn::before {
-      content: '';
-      position: absolute;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      background: rgba(255,255,255,0.15);
-      transform: translateX(-100%);
-      transition: transform 0.3s ease;
-    }
-    .submit-btn:hover::before {
-      transform: translateX(0);
+      box-shadow: 0 4px 12px rgba(0, 123, 255, 0.25);
     }
     .submit-btn:hover {
       transform: translateY(-2px);
-      box-shadow: 0 8px 20px rgba(13, 110, 253, 0.35);
+      box-shadow: 0 8px 20px rgba(0, 123, 255, 0.35);
     }
     .submit-btn:active {
       transform: translateY(0);
@@ -141,69 +130,48 @@
     .back-link a:hover {
       color: #495057;
     }
-    .password-reset-section {
-      text-align: center;
-      margin-top: 1.5rem;
-      padding: 1.2rem;
-      background: #e7f3ff;
-      border-radius: 12px;
-      border: 1px solid #bddeff;
-    }
-    .password-reset-link {
-      display: inline-flex;
-      align-items: center;
-      gap: 0.5rem;
-      color: #0d6efd;
-      text-decoration: none;
-      font-size: 0.95rem;
-      font-weight: 600;
-      transition: all 0.3s ease;
-      padding: 0.5rem 1rem;
-      border-radius: 8px;
-    }
-    .password-reset-link:hover {
-      background: #ffffff;
-      color: #0b5ed7;
-      transform: translateY(-1px);
-    }
-    .password-reset-icon {
-      font-size: 1.1rem;
-    }
   </style>
 </head>
 <body>
-  <div class="login-container">
-    <div class="login-title">
+  <div class="reset-container">
+    <div style="text-align: center;">
       <div class="role-badge">顧客</div>
-      <div>ログイン</div>
+    </div>
+    
+    <h1 class="reset-title">パスワードリセット</h1>
+    
+    <div class="reset-description">
+      登録済みのメールアドレスを入力してください。<br>
+      パスワードリセット用のリンクをメールでお送りします。
     </div>
 
     <c:if test="${not empty errorMsg}">
       <div class="error-message">${errorMsg}</div>
     </c:if>
 
-    <form method="post" action="<%=request.getContextPath()%>/customer/login">
+    <form method="post" action="<%=request.getContextPath()%>/customer/password_reset/request" id="resetForm">
       <div class="form-group">
         <label>メールアドレス</label>
-        <input type="email" name="loginId" required>
+        <input type="email" name="email" value="${email}" placeholder="example@example.com" required>
       </div>
-      <div class="form-group">
-        <label>パスワード</label>
-        <input type="password" name="password" required>
-      </div>
-      <button type="submit" class="submit-btn">ログイン</button>
+      <button type="submit" class="submit-btn" id="submitBtn">リセットリンクを送信</button>
     </form>
 
-    <div class="password-reset-section">
-      <a href="<%=request.getContextPath()%>/customer/password_reset" class="password-reset-link">
-        <span class="password-reset-icon">🔑</span>
-        <span>パスワードをお忘れの方はこちら</span>
-      </a>
-    </div>
-
-    <div class="back-link" style="margin-top: 1rem;">
-      <a href="<%=request.getContextPath()%>/">← ログイン選択に戻る</a>
+    <div class="back-link">
+      <a href="<%=request.getContextPath()%>/customer">← ログイン画面に戻る</a>
     </div>
   </div>
+
+  <script>
+    // 二重送信防止
+    document.getElementById('resetForm').addEventListener('submit', function() {
+      var btn = document.getElementById('submitBtn');
+      btn.disabled = true;
+      btn.textContent = '送信中...';
+      btn.style.opacity = '0.6';
+      btn.style.cursor = 'not-allowed';
+    });
+  </script>
 </body>
 </html>
+

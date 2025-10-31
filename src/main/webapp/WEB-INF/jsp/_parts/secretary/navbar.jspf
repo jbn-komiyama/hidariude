@@ -8,14 +8,14 @@
 .navbar-modern {
 	background: linear-gradient(135deg, #2563EB 0%, #64748B 100%);
 	box-shadow: 0 2px 15px rgba(0,0,0,0.1);
-	padding: 0.8rem 0;
+	padding: 0.5rem 0;
 }
 
 .navbar-modern .navbar-brand {
 	color: #fff !important;
 	font-weight: 700;
-	font-size: 1.5rem;
-	letter-spacing: 0.5px;
+	font-size: 1.2rem;
+	letter-spacing: 0.3px;
 	transition: transform 0.2s;
 }
 
@@ -26,9 +26,10 @@
 .navbar-modern .nav-link {
 	color: rgba(255,255,255,0.9) !important;
 	font-weight: 500;
-	padding: 0.5rem 0.8rem !important;
-	margin: 0 0.1rem;
-	border-radius: 8px;
+	font-size: 0.9rem;
+	padding: 0.4rem 0.5rem !important;
+	margin: 0 0.05rem;
+	border-radius: 6px;
 	transition: all 0.3s ease;
 	white-space: nowrap;
 }
@@ -48,9 +49,10 @@
 }
 
 .navbar-modern .dropdown-item {
-	padding: 0.6rem 1.5rem;
+	padding: 0.5rem 1.2rem;
 	transition: all 0.2s;
 	font-weight: 500;
+	font-size: 0.9rem;
 }
 
 .navbar-modern .dropdown-item:hover {
@@ -63,14 +65,15 @@
 	background: rgba(255,255,255,0.2);
 	border: 2px solid rgba(255,255,255,0.3);
 	color: #fff !important;
-	width: 38px;
-	height: 38px;
+	width: 34px;
+	height: 34px;
 	border-radius: 50%;
 	display: flex;
 	align-items: center;
 	justify-content: center;
 	transition: all 0.3s ease;
 	cursor: pointer;
+	font-size: 1rem;
 }
 
 .navbar-modern .btn-user-icon:hover {
@@ -119,7 +122,7 @@
 <nav class="navbar navbar-expand-lg navbar-modern">
   <div class="container">
     <a class="navbar-brand" href="<c:url value='/secretary/home'/>">
-      <i class="bi bi-briefcase-fill me-2"></i>BackDesk
+      <i class="bi bi-briefcase-fill me-1"></i>BackDesk
     </a>
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navMain">

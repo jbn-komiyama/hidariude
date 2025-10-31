@@ -80,6 +80,12 @@ public class SystemAdminDAO extends BaseDAO {
     private static final String SQL_UPDATE_LAST_LOGIN_AT =
         "UPDATE system_admins SET last_login_at = CURRENT_TIMESTAMP WHERE id = ?";
 
+    /** パスワードのみ更新（パスワードリセット用） */
+    private static final String SQL_UPDATE_PASSWORD =
+        "UPDATE system_admins " +
+        "   SET password = ?, updated_at = CURRENT_TIMESTAMP " +
+        " WHERE id = ? AND deleted_at IS NULL";
+
     // ========================
     // ② フィールド、コンストラクタ
     // ========================
@@ -284,6 +290,26 @@ public class SystemAdminDAO extends BaseDAO {
             ps.executeUpdate();
         } catch (SQLException e) {
             throw new DAOException("E:A43 system_admins.last_login_at 更新に失敗しました。", e);
+        }
+    }
+
+    /**
+     * パスワードのみを更新します（パスワードリセット用）。
+     * <p>{@code updated_at} はサーバー時刻で更新されます。</p>
+     * <p>論理削除済みのレコードは対象外です。</p>
+     *
+     * @param id             管理者ID（UUID）
+     * @param hashedPassword ハッシュ化されたパスワード
+     * @return 影響行数（通常 1。対象なしの場合は 0）
+     * @throws DAOException UPDATE に失敗した場合
+     */
+    public int updatePassword(UUID id, String hashedPassword) {
+        try (PreparedStatement ps = conn.prepareStatement(SQL_UPDATE_PASSWORD)) {
+            ps.setString(1, hashedPassword);
+            ps.setObject(2, id);
+            return ps.executeUpdate();
+        } catch (SQLException e) {
+            throw new DAOException("E:A25 system_admins.password の更新に失敗しました。", e);
         }
     }
 
