@@ -5,6 +5,9 @@ import java.math.BigDecimal;
 import java.sql.Timestamp;
 import java.util.UUID;
 
+/**
+ * 顧客月次請求（customer_monthly_invoices）テーブルのDTO
+ */
 public class CustomerMonthlyInvoiceDTO  implements Serializable {
     private static final long serialVersionUID = 1L;
     

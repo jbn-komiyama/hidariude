@@ -16,33 +16,38 @@ import util.ConvertUtil;
 /**
  * 【secretary】機能：プロフィール（稼働条件）サービス
  *
- * <p>ルーティング（FrontController）：</p>
- * <ul>
- *   <li>/secretary/profile               → {@link #view()}（表示）</li>
- *   <li>/secretary/profile/register      → {@link #register()}（登録フォーム）</li>
- *   <li>/secretary/profile/register_done → {@link #registerDone()}（登録実行：UPSERT）</li>
- *   <li>/secretary/profile/edit          → {@link #edit()}（変更フォーム）</li>
- *   <li>/secretary/profile/edit_done     → {@link #editDone()}（変更実行：UPSERT）</li>
- * </ul>
+ * ルーティング（FrontController）:
+ * - /secretary/profile               → {@link #view()}（表示）
+ * - /secretary/profile/register      → {@link #register()}（登録フォーム）
+ * - /secretary/profile/register_done → {@link #registerDone()}（登録実行：UPSERT）
+ * - /secretary/profile/edit          → {@link #edit()}（変更フォーム）
+ * - /secretary/profile/edit_done     → {@link #editDone()}（変更実行：UPSERT）
  *
- * <p>バリデーションは {@link BaseService#validation} を用い、DBアクセスは {@link TransactionManager} 経由。</p>
+ * バリデーションは {@link BaseService#validation} を用い、DBアクセスは {@link TransactionManager} 経由。
  */
 public class ProfileService extends BaseService {
 
-    // =========================
-    // ① 定数・共通化（パラメータ名／パス／フォーマッタ／コンバータ）
-    // =========================
+    /**
+     * ① 定数・共通化（パラメータ名／パス／フォーマッタ／コンバータ）
+     */
 
-    // ----- View paths -----
+    /**
+     * View paths
+     */
     private static final String VIEW_HOME     = "profile/secretary/home";
     private static final String VIEW_REGISTER = "profile/secretary/register";
     private static final String VIEW_EDIT     = "profile/secretary/edit";
 
-    // ----- Attribute keys -----
+    /**
+     * Attribute keys
+     * 既存JSPが参照しているキー名は不変
+     */
     private static final String A_PROFILE = "profile";
-    private static final String A_ERROR   = "errorMsg"; // 既存JSPが参照しているキー名は不変
+    private static final String A_ERROR   = "errorMsg";
 
-    // ----- Request parameter keys -----
+    /**
+     * Request parameter keys
+     */
     private static final String P_WM = "weekdayMorning";
     private static final String P_WD = "weekdayDaytime";
     private static final String P_WN = "weekdayNight";
@@ -64,17 +69,23 @@ public class ProfileService extends BaseService {
     private static final String P_ACADEMIC = "academicBackground";
     private static final String P_SELF     = "selfIntroduction";
 
-    // ----- Validation ranges -----
+    /**
+     * Validation ranges
+     * 1日の上限: 24時間
+     * 31日×24h 想定上限: 744時間
+     */
     private static final int HOURS_MIN = 0;
-    private static final int HOURS_MAX_DAILY = 24;   // 1日の上限
-    private static final int HOURS_MAX_MONTH = 744;  // 31日×24h 想定上限
+    private static final int HOURS_MAX_DAILY = 24;
+    private static final int HOURS_MAX_MONTH = 744;
 
-    // ----- Converter -----
+    /**
+     * Converter
+     */
     private final ConvertUtil conv = new ConvertUtil();
 
-    // =========================
-    // ② フィールド、コンストラクタ
-    // =========================
+    /**
+     * ② フィールド、コンストラクタ
+     */
 
     /**
      * コンストラクタ。
@@ -85,20 +96,19 @@ public class ProfileService extends BaseService {
         super(req, useDB);
     }
 
-    // =========================
-    // ③ メソッド（コントローラ呼び出しメソッド：secretary用）→ ④ヘルパー
-    // =========================
+    /**
+     * ③ メソッド（コントローラ呼び出しメソッド：secretary用）→ ④ヘルパー
+     */
 
-    // ------------------------------------------------------------------
-    // 「【secretary】機能：プロフィール表示」
-    // ------------------------------------------------------------------
+    /**
+     * 「【secretary】機能：プロフィール表示」
+     */
 
     /**
      * 「プロフィール表示」
-     * <ul>
-     *   <li>セッション中の秘書IDを取得し、該当プロフィールを取得して {@code profile} としてJSPに渡す。</li>
-     *   <li>認証情報が無い場合は共通エラーへ遷移。</li>
-     * </ul>
+     * - セッション中の秘書IDを取得し、該当プロフィールを取得して {@code profile} としてJSPに渡す。
+     * - 認証情報が無い場合は共通エラーへ遷移。
+     *
      * @return 表示ビュー（/WEB-INF/jsp/profile/secretary/home.jsp）
      */
     public String view() {
@@ -117,16 +127,15 @@ public class ProfileService extends BaseService {
         }
     }
 
-    // ------------------------------------------------------------------
-    // 「【secretary】機能：プロフィール登録（フォーム表示→登録実行）」
-    // ------------------------------------------------------------------
+    /**
+     * 「【secretary】機能：プロフィール登録（フォーム表示→登録実行）」
+     */
 
     /**
      * 「プロフィール登録フォーム」表示。
-     * <ul>
-     *   <li>未ログインなら共通エラーへ。</li>
-     *   <li>フォーム戻し用に、直前の入力値（パラメータ）を同名属性で詰め替える。</li>
-     * </ul>
+     * - 未ログインなら共通エラーへ。
+     * - フォーム戻し用に、直前の入力値（パラメータ）を同名属性で詰め替える。
+     *
      * @return 登録ビュー（/WEB-INF/jsp/profile/secretary/register.jsp）
      */
     public String register() {
@@ -138,11 +147,10 @@ public class ProfileService extends BaseService {
 
     /**
      * 「プロフィール登録」実行（UPSERT）。
-     * <ul>
-     *   <li>request param からDTOを組み立て、可否(0/1/2)と就業時間の妥当性を検証。</li>
-     *   <li>エラー時は {@code errorMsg} とフォーム値を戻して登録画面へ。</li>
-     *   <li>成功時は UPSERT → コミット → {@code /secretary/profile} にリダイレクト。</li>
-     * </ul>
+     * - request param からDTOを組み立て、可否(0/1/2)と就業時間の妥当性を検証。
+     * - エラー時は {@code errorMsg} とフォーム値を戻して登録画面へ。
+     * - 成功時は UPSERT → コミット → {@code /secretary/profile} にリダイレクト。
+     *
      * @return リダイレクト先 または 登録ビュー
      */
     public String registerDone() {
@@ -169,16 +177,15 @@ public class ProfileService extends BaseService {
         }
     }
 
-    // ------------------------------------------------------------------
-    // 「【secretary】機能：プロフィール編集（フォーム表示→変更実行）」
-    // ------------------------------------------------------------------
+    /**
+     * 「【secretary】機能：プロフィール編集（フォーム表示→変更実行）」
+     */
 
     /**
      * 「プロフィール編集フォーム」表示。
-     * <ul>
-     *   <li>該当プロフィールを取得して {@code profile} として渡し、加えてフォーム戻し値も詰める。</li>
-     *   <li>未ログインなら共通エラーへ。</li>
-     * </ul>
+     * - 該当プロフィールを取得して {@code profile} として渡し、加えてフォーム戻し値も詰める。
+     * - 未ログインなら共通エラーへ。
+     *
      * @return 編集ビュー（/WEB-INF/jsp/profile/secretary/edit.jsp）
      */
     public String edit() {
@@ -199,11 +206,10 @@ public class ProfileService extends BaseService {
 
     /**
      * 「プロフィール変更」実行（UPSERT）。
-     * <ul>
-     *   <li>request param からDTOを構築→妥当性検証→UPSERT。</li>
-     *   <li>エラー時は {@code errorMsg} とフォーム値を戻して編集画面へ。</li>
-     *   <li>成功時はコミット後、{@code /secretary/profile} にリダイレクト。</li>
-     * </ul>
+     * - request param からDTOを構築→妥当性検証→UPSERT。
+     * - エラー時は {@code errorMsg} とフォーム値を戻して編集画面へ。
+     * - 成功時はコミット後、{@code /secretary/profile} にリダイレクト。
+     *
      * @return リダイレクト先 または 編集ビュー
      */
     public String editDone() {
@@ -230,13 +236,14 @@ public class ProfileService extends BaseService {
         }
     }
 
-    // =========================
-    // ④ ヘルパー
-    // =========================
+    /**
+     * ④ ヘルパー
+     */
 
     /**
      * リクエストパラメータから {@link ProfileDTO} を構築する。
-     * <p>数値項目は安全にパースし、エラーは {@code validation} に積み上げる。</p>
+     * 数値項目は安全にパースし、エラーは {@code validation} に積み上げる。
+     *
      * @param myId セッション中の秘書ID
      * @return 構築済み DTO
      */
@@ -244,7 +251,7 @@ public class ProfileService extends BaseService {
         ProfileDTO d = new ProfileDTO();
         d.setSecretaryId(myId);
 
-        // 稼働可否（0:不可 / 1:可 / 2:応相談）を想定
+        /** 稼働可否（0:不可 / 1:可 / 2:応相談）を想定 */
         d.setWeekdayMorning(i(P_WM));
         d.setWeekdayDaytime(i(P_WD));
         d.setWeekdayNight(i(P_WN));
@@ -255,13 +262,13 @@ public class ProfileService extends BaseService {
         d.setSundayDaytime(i(P_UD));
         d.setSundayNight(i(P_UN));
 
-        // 就業可能時間（h）
+        /** 就業可能時間（h） */
         d.setWeekdayWorkHours(dec(P_WH_WD));
         d.setSaturdayWorkHours(dec(P_WH_ST));
         d.setSundayWorkHours(dec(P_WH_SU));
         d.setMonthlyWorkHours(dec(P_MONTH));
 
-        // フリーテキスト系
+        /** フリーテキスト系 */
         d.setRemark(req.getParameter(P_REMARK));
         d.setQualification(req.getParameter(P_QUALI));
         d.setWorkHistory(req.getParameter(P_WORK));
@@ -371,7 +378,7 @@ public class ProfileService extends BaseService {
 
     /**
      * 直前のフォーム入力値を、同名の属性として詰め直す（JSPでの再表示用）。
-     * <p>属性キー名はパラメータ名と同一で、既存JSPの参照を壊さない。</p>
+     * 属性キー名はパラメータ名と同一で、既存JSPの参照を壊さない。
      */
     private void pushFormBackToRequest() {
         String[] names = {

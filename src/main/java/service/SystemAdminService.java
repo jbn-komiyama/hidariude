@@ -13,18 +13,19 @@ import util.PasswordUtil;
 
 /**
  * システム管理者（system_admins）に関する画面遷移・ユースケースを担うサービス（admin用）。
- * <p>
- * 入力値の検証は {@link BaseService#validation} を利用し、DBアクセスは {@link TransactionManager} 経由で行う。<br>
+ *
+ * 入力値の検証は {@link BaseService#validation} を利用し、DBアクセスは {@link TransactionManager} 経由で行う。
  * 例外発生時はエラーメッセージを {@code errorMsg} に格納し、共通エラーページへ遷移する。
- * </p>
  */
 public class SystemAdminService extends BaseService {
 
-    // =========================
-    // ① 定数・共通化（View / Attr / Param）
-    // =========================
+    /**
+     * ① 定数・共通化（View / Attr / Param）
+     */
 
-    // ----- View names -----
+    /**
+     * View names
+     */
     private static final String VIEW_HOME           = "systemadmin/admin/home";
     private static final String VIEW_REGISTER       = "systemadmin/admin/register";
     private static final String VIEW_REGISTER_CHECK = "systemadmin/admin/register_check";
@@ -33,22 +34,26 @@ public class SystemAdminService extends BaseService {
     private static final String VIEW_EDIT_CHECK     = "systemadmin/admin/edit_check";
     private static final String VIEW_EDIT_DONE      = "systemadmin/admin/edit_done";
 
-    // ----- Attribute keys (JSPへ渡すキー名) -----
+    /**
+     * Attribute keys (JSPへ渡すキー名)
+     */
     private static final String A_ADMINS  = "admins";
     private static final String A_ADMIN   = "admin";
     private static final String A_ERROR   = "errorMsg";
     private static final String A_MESSAGE = "message";
 
-    // ----- Request parameter keys（JSP→Controller/Service） -----
+    /**
+     * Request parameter keys（JSP→Controller/Service）
+     */
     private static final String P_ID        = "id";
     private static final String P_MAIL      = "mail";
     private static final String P_PASSWORD  = "password";
     private static final String P_NAME      = "name";
     private static final String P_NAME_RUBY = "nameRuby";
 
-    // =========================
-    // ② フィールド／コンストラクタ
-    // =========================
+    /**
+     * ② フィールド／コンストラクタ
+     */
 
     /**
      * コンストラクタ。
@@ -59,27 +64,26 @@ public class SystemAdminService extends BaseService {
         super(req, useDB);
     }
 
-    // =========================
-    // ③ メソッド（admin用：FrontController から呼び出される想定順）
-    // =========================
+    /**
+     * ③ メソッド（admin用：FrontController から呼び出される想定順）
+     */
 
-    // -------------------------
-    // 一覧
-    // -------------------------
+    /**
+     * 一覧
+     */
 
     /**
      * 「管理者一覧」表示。
-     * <ul>
-     *   <li>取得データは {@code admins} として JSP へ渡す。</li>
-     *   <li>例外時は {@code errorMsg} を設定し共通エラーへ。</li>
-     * </ul>
+     * - 取得データは {@code admins} として JSP へ渡す。
+     * - 例外時は {@code errorMsg} を設定し共通エラーへ。
+     *
      * @return 一覧ビュー（/WEB-INF/jsp/systemadmin/admin/home.jsp）
      */
     public String systemAdminList() {
         try (TransactionManager tm = new TransactionManager()) {
             SystemAdminDAO dao = new SystemAdminDAO(tm.getConnection());
             List<SystemAdminDTO> list = dao.selectAll();
-            // JSP 側で安全に扱えるよう ArrayList で渡す
+            /** JSP 側で安全に扱えるよう ArrayList で渡す */
             req.setAttribute(A_ADMINS, new ArrayList<>(list));
             return VIEW_HOME;
         } catch (RuntimeException e) {
@@ -89,13 +93,14 @@ public class SystemAdminService extends BaseService {
         }
     }
 
-    // -------------------------
-    // 新規登録（入力→確定）
-    // -------------------------
+    /**
+     * 新規登録（入力→確定）
+     */
 
     /**
      * 「管理者 新規登録」入力画面表示。
-     * <p>入力フォームを表示するのみ（DBアクセスなし）。</p>
+     * 入力フォームを表示するのみ（DBアクセスなし）。
+     *
      * @return 登録ビュー（/WEB-INF/jsp/systemadmin/admin/register.jsp）
      */
     public String systemAdminRegister() {
@@ -104,12 +109,11 @@ public class SystemAdminService extends BaseService {
 
     /**
      * 「管理者 新規登録」確認画面。
-     * <ul>
-     *   <li>受取param: {@code name, nameRuby, mail, password}</li>
-     *   <li>バリデーション: 必須（氏名/メール/パスワード）, メール形式, パスワード強度</li>
-     *   <li>成功: 入力値を設定し確認画面へ</li>
-     *   <li>失敗: エラー文言を {@code errorMsg}、入力値をそのまま属性に戻し登録画面へ</li>
-     * </ul>
+     * - 受取param: {@code name, nameRuby, mail, password}
+     * - バリデーション: 必須（氏名/メール/パスワード）, メール形式, パスワード強度
+     * - 成功: 入力値を設定し確認画面へ
+     * - 失敗: エラー文言を {@code errorMsg}、入力値をそのまま属性に戻し登録画面へ
+     *
      * @return 確認ビュー or 入力ビュー
      */
     public String systemAdminRegisterCheck() {
@@ -131,19 +135,18 @@ public class SystemAdminService extends BaseService {
             return VIEW_REGISTER;
         }
 
-        // 確認画面へ入力値を引き継ぐ
+        /** 確認画面へ入力値を引き継ぐ */
         pushBack(name, nameRuby, mail, password);
         return VIEW_REGISTER_CHECK;
     }
 
     /**
      * 「管理者 新規登録」確定。
-     * <ul>
-     *   <li>受取param: {@code name, nameRuby, mail, password}</li>
-     *   <li>バリデーション: 必須（氏名/メール/パスワード）, メール形式, メール重複チェック</li>
-     *   <li>成功: 登録し {@code message} 設定、登録完了ビューへ</li>
-     *   <li>失敗: エラー文言を {@code errorMsg}、入力値をそのまま属性に戻し登録画面へ</li>
-     * </ul>
+     * - 受取param: {@code name, nameRuby, mail, password}
+     * - バリデーション: 必須（氏名/メール/パスワード）, メール形式, メール重複チェック
+     * - 成功: 登録し {@code message} 設定、登録完了ビューへ
+     * - 失敗: エラー文言を {@code errorMsg}、入力値をそのまま属性に戻し登録画面へ
+     *
      * @return 完了ビュー or 入力ビュー
      */
     public String systemAdminRegisterDone() {
@@ -176,7 +179,7 @@ public class SystemAdminService extends BaseService {
                 return VIEW_REGISTER;
             }
 
-            // 登録（パスワードをハッシュ化）
+            /** 登録（パスワードをハッシュ化） */
             SystemAdminDTO dto = new SystemAdminDTO();
             dto.setMail(mail);
             dto.setPassword(PasswordUtil.hashPassword(password));
@@ -195,17 +198,16 @@ public class SystemAdminService extends BaseService {
         }
     }
 
-    // -------------------------
-    // 編集（入力→確認→確定）
-    // -------------------------
+    /**
+     * 編集（入力→確認→確定）
+     */
 
     /**
      * 「管理者 編集」入力画面表示。
-     * <ul>
-     *   <li>受取param: {@code id}</li>
-     *   <li>該当データを {@code admin} に詰めて編集ビューへ</li>
-     *   <li>不正IDや例外時は共通エラーへ</li>
-     * </ul>
+     * - 受取param: {@code id}
+     * - 該当データを {@code admin} に詰めて編集ビューへ
+     * - 不正IDや例外時は共通エラーへ
+     *
      * @return 編集ビュー（/WEB-INF/jsp/systemadmin/admin/edit.jsp）
      */
     public String systemAdminEdit() {
@@ -229,12 +231,11 @@ public class SystemAdminService extends BaseService {
 
     /**
      * 「管理者 編集」確認。
-     * <ul>
-     *   <li>受取param: {@code id, name, nameRuby, mail, password}</li>
-     *   <li>バリデーション: 必須（ID/氏名/メール）, メール形式, メール重複（自ID除外）</li>
-     *   <li>成功: 入力値を戻し用属性に格納し、確認ビューへ</li>
-     *   <li>失敗: エラー文言・入力値を保持し編集ビューへ</li>
-     * </ul>
+     * - 受取param: {@code id, name, nameRuby, mail, password}
+     * - バリデーション: 必須（ID/氏名/メール）, メール形式, メール重複（自ID除外）
+     * - 成功: 入力値を戻し用属性に格納し、確認ビューへ
+     * - 失敗: エラー文言・入力値を保持し編集ビューへ
+     *
      * @return 確認ビュー or 編集ビュー
      */
     public String systemAdminEditCheck() {
@@ -263,7 +264,8 @@ public class SystemAdminService extends BaseService {
 
         if (validation.hasErrorMsg()) {
             req.setAttribute(A_ERROR, validation.getErrorMsg());
-            // ID は hidden で戻すため、個別に詰める
+
+            /** ID は hidden で戻すため、個別に詰める */
             req.setAttribute(P_ID, idStr);
             pushBack(name, nameRuby, mail, password);
             return VIEW_EDIT;
@@ -276,12 +278,11 @@ public class SystemAdminService extends BaseService {
 
     /**
      * 「管理者 編集」確定。
-     * <ul>
-     *   <li>受取param: {@code id, name, nameRuby, mail, password(空なら据え置き)}</li>
-     *   <li>バリデーション: 必須（ID/氏名/メール）, メール形式, メール重複（自ID除外）</li>
-     *   <li>成功: 更新し {@code message} を設定、編集完了ビューへ</li>
-     *   <li>失敗: エラー文言・入力値を保持し編集ビューへ</li>
-     * </ul>
+     * - 受取param: {@code id, name, nameRuby, mail, password(空なら据え置き)}
+     * - バリデーション: 必須（ID/氏名/メール）, メール形式, メール重複（自ID除外）
+     * - 成功: 更新し {@code message} を設定、編集完了ビューへ
+     * - 失敗: エラー文言・入力値を保持し編集ビューへ
+     *
      * @return 完了ビュー or 編集ビュー
      */
     public String systemAdminEditDone() {
@@ -307,7 +308,7 @@ public class SystemAdminService extends BaseService {
             UUID id = UUID.fromString(idStr);
             SystemAdminDAO dao = new SystemAdminDAO(tm.getConnection());
 
-            // メール重複チェック（自ID除外）
+            /** メール重複チェック（自ID除外） */
             if (dao.mailExistsExceptId(mail, id)) {
                 validation.addErrorMsg("そのメールアドレスは既に登録済みです。");
                 req.setAttribute(A_ERROR, validation.getErrorMsg());
@@ -323,12 +324,12 @@ public class SystemAdminService extends BaseService {
                 return req.getContextPath() + req.getServletPath() + "/error";
             }
 
-            // 値を上書き（パスワードは空なら現状維持）
+            /** 値を上書き（パスワードは空なら現状維持） */
             dto.setMail(mail);
             dto.setName(name);
             dto.setNameRuby(nameRuby);
             if (password != null && !password.isBlank()) {
-                // パスワード変更時は強度チェック
+                /** パスワード変更時は強度チェック */
                 if (!validation.isStrongPassword(password)) {
                     req.setAttribute(A_ERROR, validation.getErrorMsg());
                     req.setAttribute(P_ID, idStr);
@@ -354,17 +355,16 @@ public class SystemAdminService extends BaseService {
         }
     }
 
-    // -------------------------
-    // 論理削除
-    // -------------------------
+    /**
+     * 論理削除
+     */
 
     /**
      * 「管理者 論理削除」実行。
-     * <ul>
-     *   <li>受取param: {@code id}</li>
-     *   <li>成功: 一覧へリダイレクト（{@code /admin/system_admin}）</li>
-     *   <li>失敗: 共通エラーページへ</li>
-     * </ul>
+     * - 受取param: {@code id}
+     * - 成功: 一覧へリダイレクト（{@code /admin/system_admin}）
+     * - 失敗: 共通エラーページへ
+     *
      * @return リダイレクト先 or エラーページ
      */
     public String systemAdminDelete() {
@@ -374,7 +374,7 @@ public class SystemAdminService extends BaseService {
             SystemAdminDAO dao = new SystemAdminDAO(tm.getConnection());
             dao.delete(id);
             tm.commit();
-            // 一覧へ戻る（FrontController が redirect を解釈）
+            /** 一覧へ戻る（FrontController が redirect を解釈） */
             return req.getContextPath() + "/admin/system_admin";
         } catch (RuntimeException e) {
             validation.addErrorMsg("データベースに不正な操作が行われました");
@@ -383,13 +383,14 @@ public class SystemAdminService extends BaseService {
         }
     }
 
-    // =========================
-    // ④ ヘルパー
-    // =========================
+    /**
+     * ④ ヘルパー
+     */
 
     /**
      * 入力値をそのまま JSP に戻すための属性詰め直し。
-     * <p>属性キーは JSP の参照名と一致（パラメータ名と同名）。</p>
+     * 属性キーは JSP の参照名と一致（パラメータ名と同名）。
+     *
      * @param name      氏名
      * @param nameRuby  氏名（ふりがな）
      * @param mail      メールアドレス

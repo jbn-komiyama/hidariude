@@ -1,4 +1,3 @@
-// ConvertUtil.java
 package util;
 
 import java.math.BigDecimal;
@@ -37,9 +36,9 @@ import dto.TaskRankDTO;
  */
 public class ConvertUtil {
 
-    // -------------------------
-    // Customer
-    // -------------------------
+    /**
+     * Customer
+     */
 	public Customer toDomain(CustomerDTO dto) {
         if (dto == null) return null;
 
@@ -90,9 +89,9 @@ public class ConvertUtil {
 	    return customerContact;
 	}
 
-    // -------------------------
-    // Secretary / Rank
-    // -------------------------
+    /**
+     * Secretary / Rank
+     */
 	public Secretary toDomain(SecretaryDTO dto) {
         if (dto == null) return null;
 
@@ -137,9 +136,9 @@ public class ConvertUtil {
         return rank;
     }
 
-    // -------------------------
-    // Assignment / TaskRank
-    // -------------------------
+    /**
+     * Assignment / TaskRank
+     */
 	public Assignment toDomain(AssignmentDTO dto) {
 		if (dto == null) return null;
 
@@ -167,14 +166,14 @@ public class ConvertUtil {
         assignment.setSecretaryName(dto.getSecretaryName());
         assignment.setConsecutiveMonths(dto.getConsecutiveMonths());
 
-        // Customer (summary)
+        /** Customer (summary) */
         Customer customer = new Customer();
         customer.setId(dto.getCustomerId());
         customer.setCompanyCode(dto.getCustomerCompanyCode());
         customer.setCompanyName(dto.getCustomerCompanyName());
         assignment.setCustomer(customer);
 
-        // Secretary (summary)
+        /** Secretary (summary) */
         Secretary secretary = new Secretary();
         secretary.setId(dto.getSecretaryId());
         secretary.setName(dto.getSecretaryName());
@@ -184,8 +183,10 @@ public class ConvertUtil {
         secretary.setSecretaryRank(sr);
         assignment.setSecretary(secretary);
         
-        // ===== ここから hourlyPay のフォールバック補完 =====
-        // Customer側：hourlyPayCustomer が null なら base+inc+cont を合算（全部nullなら未設定のまま）
+        /**
+         * ここから hourlyPay のフォールバック補完
+         * Customer側：hourlyPayCustomer が null なら base+inc+cont を合算（全部nullなら未設定のまま）
+         */
         if (assignment.getHourlyPayCustomer() == null) {
             boolean hasAny =
                 dto.getBasePayCustomer() != null ||
@@ -201,7 +202,9 @@ public class ConvertUtil {
             }
         }
 
-        // Secretary側：hourlyPaySecretary が null なら base+inc+cont を合算（全部nullなら未設定のまま）
+        /**
+         * Secretary側：hourlyPaySecretary が null なら base+inc+cont を合算（全部nullなら未設定のまま）
+         */
         if (assignment.getHourlyPaySecretary() == null) {
             boolean hasAny =
                 dto.getBasePaySecretary() != null ||
@@ -216,7 +219,9 @@ public class ConvertUtil {
                 );
             }
         }
-        // ===== hourlyPay フォールバックここまで =====
+        /**
+         * hourlyPay フォールバックここまで
+         */
         
 
         return assignment;
@@ -236,16 +241,16 @@ public class ConvertUtil {
 	    return taskRank;
 	}
 
-    // -------------------------
-    // ★ Task (NEW)
-    // -------------------------
+    /**
+     * Task (NEW)
+     */
     public Task toDomain(TaskDTO dto) {
         if (dto == null) return null;
 
         Task t = new Task();
         t.setId(dto.getId());
 
-        // assignments.* を含んだ AssignmentDTO を詰め替え
+        /** assignments.* を含んだ AssignmentDTO を詰め替え */
         if (dto.getAssignment() != null) {
             t.setAssignment(toDomain(dto.getAssignment()));
         }
@@ -260,10 +265,14 @@ public class ConvertUtil {
         t.setHourFeeCustomer(t.getAssignment().getHourlyPayCustomer());
 
         if (dto.getApprovedBy() != null) {
-            t.setApprovedBy(toDomain(dto.getApprovedBy())); // idのみでもOK
+            t.setApprovedBy(toDomain(dto.getApprovedBy()));
+
+            /** idのみでもOK */
         }
 
-        // ※ 月次請求/サマリは Domain クラス定義に合わせて必要なら後で拡張
+        /**
+         * 月次請求/サマリは Domain クラス定義に合わせて必要なら後で拡張
+         */
         t.setCreatedAt(ts2date(dto.getCreatedAt()));
         t.setUpdatedAt(ts2date(dto.getUpdatedAt()));
         t.setDeletedAt(ts2date(dto.getDeletedAt()));
@@ -289,7 +298,7 @@ public class ConvertUtil {
 	        Task t = new Task();
 	        t.setId(dto.getId());
 	
-	        // assignments.* を含んだ AssignmentDTO を詰め替え
+	        /** assignments.* を含んだ AssignmentDTO を詰め替え */
 	        if (dto.getAssignment() != null) {
 	            t.setAssignment(toDomain(dto.getAssignment()));
 	        }
@@ -304,10 +313,14 @@ public class ConvertUtil {
 	        t.setHourFeeCustomer(t.getAssignment().getHourlyPayCustomer());
 	        
 	        if (dto.getApprovedBy() != null) {
-	            t.setApprovedBy(toDomain(dto.getApprovedBy())); // idのみでもOK
+	            t.setApprovedBy(toDomain(dto.getApprovedBy()));
+
+	            /** idのみでもOK */
 	        }
 	
-	        // ※ 月次請求/サマリは Domain クラス定義に合わせて必要なら後で拡張
+	        /**
+	         * 月次請求/サマリは Domain クラス定義に合わせて必要なら後で拡張
+	         */
 	        t.setCreatedAt(ts2date(dto.getCreatedAt()));
 	        t.setUpdatedAt(ts2date(dto.getUpdatedAt()));
 	        t.setDeletedAt(ts2date(dto.getDeletedAt()));
@@ -361,7 +374,7 @@ public class ConvertUtil {
             inv.setTargetYM(d.getTargetYM());
             inv.setTaskRankName(d.getTaskRankName());
             if (d.getFee() != null) {
-                // Domain Invoice#setFee() 内で totalFee に加算される設計
+                /** Domain Invoice#setFee() 内で totalFee に加算される設計 */
                 inv.setFee(d.getFee());
             }
             list.add(inv);
@@ -373,7 +386,9 @@ public class ConvertUtil {
         if (d == null) return null;
         SecretaryMonthlySummary s = new SecretaryMonthlySummary();
         s.setId(d.getId());
-        // s.setSecretary(...); // 必要なら secretary を別途セット
+        // s.setSecretary(...);
+
+        /** 必要なら secretary を別途セット */
         s.setTargetYearMonth(d.getTargetYearMonth());
         s.setTotalSecretaryAmount(d.getTotalSecretaryAmount());
         s.setTotalTasksCount(d.getTotalTasksCount());
@@ -395,9 +410,9 @@ public class ConvertUtil {
         return s;
     }
 
-    // -------------------------
-    // Utilities
-    // -------------------------
+    /**
+     * Utilities
+     */
 	private Date ts2date(java.sql.Timestamp ts) {
         return ts == null ? null : new Date(ts.getTime());
     }

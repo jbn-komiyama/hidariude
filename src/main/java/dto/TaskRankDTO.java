@@ -4,10 +4,13 @@ import java.math.BigDecimal;
 import java.sql.Timestamp;
 import java.util.UUID;
 
+/**
+ * タスクランク（task_rank）テーブルのDTO
+ */
 public class TaskRankDTO implements Serializable {
 	private static final long serialVersionUID = 1L;
 	
-	// customers
+	/** customers */
     private UUID id;  
     private String rankName;
     private BigDecimal basePayCustomer;

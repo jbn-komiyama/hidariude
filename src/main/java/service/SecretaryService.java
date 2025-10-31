@@ -35,24 +35,21 @@ import dto.SecretaryTotalsDTO;
 
 /**
  * 秘書（Secretary）に関するサービス。
- * <p>
- * 役割別（admin / secretary）に公開メソッドを配置。<br>
- * Controller からの入口であり、必要に応じ {@link TransactionManager} によりトランザクション境界を張る。
- * </p>
  *
- * <h2>クラス構成</h2>
- * <ol>
- *   <li>定数・共通化（パラメータ名／パス／フォーマッタ／コンバータ）</li>
- *   <li>フィールド、コンストラクタ</li>
- *   <li>コントローラ呼び出しメソッド（admin → secretary の順）</li>
- *   <li>プライベート・ヘルパー</li>
- * </ol>
+ * 役割別（admin / secretary）に公開メソッドを配置。
+ * Controller からの入口であり、必要に応じ {@link TransactionManager} によりトランザクション境界を張る。
+ *
+ * クラス構成:
+ * - 定数・共通化（パラメータ名／パス／フォーマッタ／コンバータ）
+ * - フィールド、コンストラクタ
+ * - コントローラ呼び出しメソッド（admin → secretary の順）
+ * - プライベート・ヘルパー
  */
 public class SecretaryService extends BaseService {
 
-    // ==============================
-    // ビュー名（散在回避のため定数化）
-    // ==============================
+    /**
+     * ビュー名（散在回避のため定数化）
+     */
     private static final String VIEW_HOME               = "secretary/admin/home";
     private static final String VIEW_REGISTER           = "secretary/admin/register";
     private static final String VIEW_REGISTER_CHECK     = "secretary/admin/register_check";
@@ -64,9 +61,9 @@ public class SecretaryService extends BaseService {
     private static final String VIEW_MYPAGE_EDIT        = "mypage/secretary/edit";
     private static final String VIEW_MYPAGE_EDIT_CHECK  = "mypage/secretary/edit_check";
 
-    // ==============================
-    // リクエスト・パラメータ名
-    // ==============================
+    /**
+     * リクエスト・パラメータ名
+     */
     private static final String P_ID             = "id";
     private static final String P_SECRETARY_CODE = "secretaryCode";
     private static final String P_NAME           = "name";
@@ -87,14 +84,15 @@ public class SecretaryService extends BaseService {
     private static final String P_BANK_ACCOUNT   = "bankAccount";
     private static final String P_BANK_OWNER     = "bankOwner";
 
-    // ==============================
-    // 属性名（JSPへ渡すキー）
-    // ==============================
+    /**
+     * 属性名（JSPへ渡すキー）
+     * 既存JSP互換名
+     */
     private static final String A_SECRETARIES = "secretaries";
     private static final String A_RANKS       = "ranks";
     private static final String A_SECRETARY   = "secretary";
     private static final String A_MESSAGE     = "message";
-    private static final String A_ERROR_MSG   = "errorMsg"; // 既存JSP互換名
+    private static final String A_ERROR_MSG   = "errorMsg";
 
     /** 使い回し用コンバータ（毎回 new しない） */
     private final ConvertUtil conv = new ConvertUtil();
@@ -108,23 +106,18 @@ public class SecretaryService extends BaseService {
         super(req, useDB);
     }
 
-    // =========================================================
-    // Admin（管理者）向け機能
-    // =========================================================
+    /**
+     * Admin（管理者）向け機能
+     */
 
     /**
      * 「【admin】機能：秘書一覧」
      *
-     * <p>秘書の全件を取得して一覧画面へ。</p>
+     * 秘書の全件を取得して一覧画面へ。
      *
-     * <ul>
-     *   <li>JSP属性:
-     *      <ul>
-     *        <li>{@code secretaries}: List&lt;Secretary&gt;</li>
-     *      </ul>
-     *   </li>
-     *   <li>エラー時: {@code errorMsg} を設定し /error へ</li>
-     * </ul>
+     * JSP属性:
+     * - {@code secretaries}: List&lt;Secretary&gt;
+     * - エラー時: {@code errorMsg} を設定し /error へ
      *
      * @return 遷移先JSPパス
      */
@@ -149,11 +142,9 @@ public class SecretaryService extends BaseService {
     /**
      * 「【admin】機能：秘書新規登録（入力画面）」
      *
-     * <p>秘書ランク一覧をロードし、入力画面を表示。</p>
-     * <ul>
-     *   <li>セッション属性: {@code ranks} に List&lt;SecretaryRank&gt;</li>
-     *   <li>入力値の再描画サポート: {@link #pushFormBackToRequest()}</li>
-     * </ul>
+     * 秘書ランク一覧をロードし、入力画面を表示。
+     * - セッション属性: {@code ranks} に List&lt;SecretaryRank&gt;
+     * - 入力値の再描画サポート: {@link #pushFormBackToRequest()}
      */
     public String secretaryRegister() {
         try (TransactionManager tm = new TransactionManager()) {
@@ -177,12 +168,10 @@ public class SecretaryService extends BaseService {
     /**
      * 「【admin】機能：秘書新規登録（確認画面）」
      *
-     * <p>入力検証のみ。DBアクセスなし。</p>
-     * <ul>
-     *   <li>必須: {@code name}, {@code mail}, {@code password}, {@code secretaryRankId}</li>
-     *   <li>任意形式チェック: 郵便番号、電話番号、メール形式</li>
-     *   <li>エラー時: {@code errorMsg} を設定し入力画面へ戻す</li>
-     * </ul>
+     * 入力検証のみ。DBアクセスなし。
+     * - 必須: {@code name}, {@code mail}, {@code password}, {@code secretaryRankId}
+     * - 任意形式チェック: 郵便番号、電話番号、メール形式
+     * - エラー時: {@code errorMsg} を設定し入力画面へ戻す
      */
     public String secretaryRegisterCheck() {
         validation.isNull("名前", param(P_NAME));
@@ -207,14 +196,12 @@ public class SecretaryService extends BaseService {
     /**
      * 「【admin】機能：秘書新規登録（確定）」
      *
-     * <p>重複（メール／秘書コード）をチェックし、問題なければ INSERT。</p>
-     * <ul>
-     *   <li>エラー時: {@code errorMsg} を設定し入力画面へ戻る</li>
-     *   <li>成功時: 完了画面へ</li>
-     * </ul>
+     * 重複（メール／秘書コード）をチェックし、問題なければ INSERT。
+     * - エラー時: {@code errorMsg} を設定し入力画面へ戻る
+     * - 成功時: 完了画面へ
      */
     public String secretaryRegisterDone() {
-        // 再検証（確認画面スキップ対策）
+        /** 再検証（確認画面スキップ対策） */
         validation.isNull("名前", param(P_NAME));
         validation.isNull("メールアドレス", param(P_MAIL));
         validation.isNull("パスワード", param(P_PASSWORD));
@@ -251,7 +238,7 @@ public class SecretaryService extends BaseService {
         try (TransactionManager tm = new TransactionManager()) {
             SecretaryDAO dao = new SecretaryDAO(tm.getConnection());
 
-            // 重複チェック
+            /** 重複チェック */
             if (dao.mailCheck(dto.getMail())) {
                 validation.addErrorMsg("登録いただいたメールアドレスはすでに使われています。");
             }
@@ -278,17 +265,12 @@ public class SecretaryService extends BaseService {
     /**
      * 「【admin】機能：秘書詳細」
      *
-     * <p>基本情報、当月アサイン、遡りアサイン、12ヶ月サマリー等を表示。</p>
-     * <ul>
-     *   <li>必須 param: {@code id}（UUID）</li>
-     *   <li>JSP属性:
-     *     <ul>
-     *       <li>{@code secretary}, {@code profile}, {@code yearMonth}</li>
-     *       <li>{@code assignThisMonth}, {@code assignUptoMonth}</li>
-     *       <li>{@code totals}, {@code last12}</li>
-     *     </ul>
-     *   </li>
-     * </ul>
+     * 基本情報、当月アサイン、遡りアサイン、12ヶ月サマリー等を表示。
+     * - 必須 param: {@code id}（UUID）
+     * - JSP属性:
+     *   - {@code secretary}, {@code profile}, {@code yearMonth}
+     *   - {@code assignThisMonth}, {@code assignUptoMonth}
+     *   - {@code totals}, {@code last12}
      */
     public String secretaryDetail() {
         final String idStr = req.getParameter(P_ID);
@@ -306,20 +288,20 @@ public class SecretaryService extends BaseService {
         try (TransactionManager tm = new TransactionManager()) {
             UUID secId = UUID.fromString(idStr);
 
-            // ① 秘書情報
+            /** ① 秘書情報 */
             SecretaryDAO sdao = new SecretaryDAO(tm.getConnection());
             SecretaryDTO sDto = sdao.selectByUUId(secId);
             Secretary secretary = conv.toDomain(sDto);
             req.setAttribute(A_SECRETARY, secretary);
             req.setAttribute("yearMonth", ym);
 
-            // ①-2 プロフィール
+            /** ①-2 プロフィール */
             ProfileDAO pdao = new ProfileDAO(tm.getConnection());
             ProfileDTO pDto = pdao.selectBySecretaryId(secId); // null 可
             Profile profile = conv.toDomain(pDto);
             req.setAttribute("profile", profile);
 
-            // ② 今月アサイン（継続月数付き）
+            /** ② 今月アサイン（継続月数付き） */
             AssignmentDAO adao = new AssignmentDAO(tm.getConnection());
             Map<UUID, Integer> contMap = new HashMap<>();
             List<AssignmentDTO> assignThisMonth =
@@ -327,21 +309,25 @@ public class SecretaryService extends BaseService {
             System.out.println(assignThisMonth.size());
             req.setAttribute("assignThisMonth", assignThisMonth);
 
-            // ④ 過去アサイン（最大24ヶ月遡り）
+            /** ④ 過去アサイン（最大24ヶ月遡り） */
             List<AssignmentDTO> uptoList = new ArrayList<>();
             LocalDate cursor = today;
             for (int i = 0; i < 24; i++) {
                 String ymLoop = cursor.format(DateTimeFormatter.ofPattern("yyyy-MM"));
                 List<AssignmentDTO> rows = adao.selectAssignmentsForMonthWithCont(ymLoop, secId, null, null, false, null);
                 if (rows != null && !rows.isEmpty()) {
-                    uptoList.addAll(rows); // 最新→過去の降順で追加
+                    uptoList.addAll(rows);
+
+                    /** 最新→過去の降順で追加 */
                 }
                 cursor = cursor.minusMonths(1);
-                if (cursor.isBefore(today.minusYears(5))) break; // 安全停止
+                if (cursor.isBefore(today.minusYears(5))) break;
+
+                /** 安全停止 */
             }
             req.setAttribute("assignUptoMonth", uptoList);
 
-            // ③ + ⑤ 12ヶ月集計
+            /** ③ + ⑤ 12ヶ月集計 */
             SecretaryMonthlySummaryDAO smdao = new SecretaryMonthlySummaryDAO(tm.getConnection());
 
             SecretaryTotalsDTO totalsDto = smdao.selectTotals(secId);
@@ -398,7 +384,7 @@ public class SecretaryService extends BaseService {
     /**
      * 「【admin】機能：秘書編集（確認画面）」
      *
-     * <p>自ID除外の重複（メール／秘書コード）をチェック。</p>
+     * 自ID除外の重複（メール／秘書コード）をチェック。
      */
     public String secretaryEditCheck() {
         final String idStr           = param(P_ID);
@@ -408,14 +394,14 @@ public class SecretaryService extends BaseService {
         final String phone           = param(P_PHONE);
         final String postalCode      = param(P_POSTAL_CODE);
 
-        // 必須・形式
+        /** 必須・形式 */
         validation.isNull("名前", name);
         validation.isNull("メールアドレス", mail);
         if (notBlank(postalCode)) validation.isPostalCode(postalCode);
         if (notBlank(phone))      validation.isPhoneNumber(phone);
         if (notBlank(mail))       validation.isEmail(mail);
 
-        // 重複チェック（自ID除外）
+        /** 重複チェック（自ID除外） */
         if (!validation.hasErrorMsg() && validation.isUuid(idStr)) {
             try (TransactionManager tm = new TransactionManager()) {
                 SecretaryDAO dao = new SecretaryDAO(tm.getConnection());
@@ -477,7 +463,7 @@ public class SecretaryService extends BaseService {
             SecretaryDAO dao = new SecretaryDAO(tm.getConnection());
             UUID id = UUID.fromString(idStr);
 
-            // 念のため再チェック
+            /** 念のため再チェック */
             if (notBlank(mail) && dao.mailCheckExceptId(mail, id)) {
                 validation.addErrorMsg("登録いただいたメールアドレスはすでに使われています。");
             }
@@ -521,11 +507,9 @@ public class SecretaryService extends BaseService {
     /**
      * 「【admin】機能：秘書論理削除」
      *
-     * <p>param {@code id}（UUID）を検証の上、論理削除。</p>
-     * <ul>
-     *   <li>成功時: 秘書一覧へリダイレクト</li>
-     *   <li>エラー時: {@code errorMsg} を設定し /error へ</li>
-     * </ul>
+     * param {@code id}（UUID）を検証の上、論理削除。
+     * - 成功時: 秘書一覧へリダイレクト
+     * - エラー時: {@code errorMsg} を設定し /error へ
      */
     public String secretaryDelete() {
         final String idStr = req.getParameter(P_ID);
@@ -547,14 +531,14 @@ public class SecretaryService extends BaseService {
         }
     }
 
-    // =========================================================
-    // Secretary（秘書本人）向け機能（マイページ）
-    // =========================================================
+    /**
+     * Secretary（秘書本人）向け機能（マイページ）
+     */
 
     /**
      * 「【secretary】機能：マイページ（表示）」
      *
-     * <p>セッションのログイン秘書IDから自身の情報（口座含む）を取得して表示。</p>
+     * セッションのログイン秘書IDから自身の情報（口座含む）を取得して表示。
      */
     public String myPageList() {
         UUID myId = currentSecretaryId();
@@ -613,7 +597,7 @@ public class SecretaryService extends BaseService {
     /**
      * 「【secretary】機能：マイページ編集（確認画面）」
      *
-     * <p>本人更新可能項目のバリデーションおよびメール重複（自ID除外）を実施。</p>
+     * 本人更新可能項目のバリデーションおよびメール重複（自ID除外）を実施。
      */
     public String myPageEditCheck() {
         UUID myId = currentSecretaryId();
@@ -629,7 +613,7 @@ public class SecretaryService extends BaseService {
         final String phone      = req.getParameter(P_PHONE);
         final String postalCode = req.getParameter(P_POSTAL_CODE);
 
-        // 必須＆形式
+        /** 必須＆形式 */
         validation.isNull("氏名", name);
         validation.isNull("メールアドレス", mail);
         if (notBlank(mail))       validation.isEmail(mail);
@@ -639,7 +623,7 @@ public class SecretaryService extends BaseService {
             validation.addErrorMsg("パスワードは8文字以上で入力してください。");
         }
 
-        // メール重複（自分以外）
+        /** メール重複（自分以外） */
         if (!validation.hasErrorMsg()) {
             try (TransactionManager tm = new TransactionManager()) {
                 SecretaryDAO dao = new SecretaryDAO(tm.getConnection());
@@ -665,8 +649,8 @@ public class SecretaryService extends BaseService {
     /**
      * 「【secretary】機能：マイページ編集（確定）」
      *
-     * <p>本人が編集可能な範囲のみ上書き。非編集の項目は現行値を維持。</p>
-     * <p>更新後、セッション内の {@code loginUser} も更新。</p>
+     * 本人が編集可能な範囲のみ上書き。非編集の項目は現行値を維持。
+     * 更新後、セッション内の {@code loginUser} も更新。
      */
     public String myPageEditDone() {
         UUID myId = currentSecretaryId();
@@ -691,7 +675,7 @@ public class SecretaryService extends BaseService {
         final String bankAccount = req.getParameter(P_BANK_ACCOUNT);
         final String bankOwner   = req.getParameter(P_BANK_OWNER);
 
-        // 入力検証
+        /** 入力検証 */
         validation.isNull("氏名", name);
         validation.isNull("メールアドレス", mail);
         if (notBlank(mail))       validation.isEmail(mail);
@@ -709,17 +693,19 @@ public class SecretaryService extends BaseService {
         try (TransactionManager tm = new TransactionManager()) {
             SecretaryDAO dao = new SecretaryDAO(tm.getConnection());
 
-            // 現行データ
+            /** 現行データ */
             SecretaryDTO cur = dao.selectByUUId(myId);
-            if (cur == null || cur.getId() == null) { // ← 空DTO対策
+            if (cur == null || cur.getId() == null) {
+
+                /** 空DTO対策 */
             	System.out.println("アカウント情報が取得できませんでした。");
                 validation.addErrorMsg("アカウント情報が取得できませんでした。");
                 req.setAttribute(A_ERROR_MSG, validation.getErrorMsg());
                 return req.getContextPath() + req.getServletPath() + "/error";
             }
 
-            // 自ID除外のメール重複
-            // メール重複（論理削除含め全件を対象）
+            /** 自ID除外のメール重複 */
+            /** メール重複（論理削除含め全件を対象） */
             if (notBlank(mail) && dao.mailCheckExceptId(mail, cur.getId())) {
             	System.out.println("登録いただいたメールアドレスはすでに使われています。");
             	validation.addErrorMsg("登録いただいたメールアドレスはすでに使われています。");
@@ -728,12 +714,18 @@ public class SecretaryService extends BaseService {
                 return VIEW_MYPAGE_EDIT;
             }
 
-            // DTO 組み立て（非編集項目は現行値）
+            /** DTO 組み立て（非編集項目は現行値） */
             SecretaryDTO dto = new SecretaryDTO();
             dto.setId(cur.getId());
-            dto.setSecretaryCode(cur.getSecretaryCode());     // 非編集
-            dto.setPmSecretary(cur.isPmSecretary());          // 非編集
-            dto.setSecretaryRankId(cur.getSecretaryRankId()); // 非編集
+            dto.setSecretaryCode(cur.getSecretaryCode());
+
+            /** 非編集 */
+            dto.setPmSecretary(cur.isPmSecretary());
+
+            /** 非編集 */
+            dto.setSecretaryRankId(cur.getSecretaryRankId());
+
+            /** 非編集 */
             dto.setName(name);
             dto.setNameRuby(nameRuby);
             dto.setMail(mail);
@@ -743,7 +735,8 @@ public class SecretaryService extends BaseService {
             dto.setAddress2(address2);
             dto.setBuilding(building);
             dto.setPassword(notBlank(password) ? password : cur.getPassword());
-            // 口座情報：空文字列をNULLに変換してデータベースに保存
+
+            /** 口座情報：空文字列をNULLに変換してデータベースに保存 */
             dto.setBankName(emptyToNull(bankName));
             dto.setBankBranch(emptyToNull(bankBranch));
             dto.setBankType(emptyToNull(bankType));
@@ -753,7 +746,7 @@ public class SecretaryService extends BaseService {
             try {
                 dao.updateWithBank(dto);
             } catch (DAOException ex) {
-                // 23505 = unique_violation (PostgreSQL)
+                /** 23505 = unique_violation (PostgreSQL) */
                 Throwable cause = ex.getCause();
                 if (cause instanceof java.sql.SQLException sqlEx && "23505".equals(sqlEx.getSQLState())) {
                     System.out.println("登録いただいたメールアドレスはすでに使われています。");
@@ -777,11 +770,11 @@ public class SecretaryService extends BaseService {
                 }
             }
 
-            // 最新表示のためマイページへ
+            /** 最新表示のためマイページへ */
             return req.getContextPath() + "/secretary/mypage/home";
 
         } catch (RuntimeException e) {
-            // ここに来るのは主に DB/DAO のその他例外
+            /** ここに来るのは主に DB/DAO のその他例外 */
             validation.addErrorMsg("処理中にエラーが発生しました。再度お試しください。");
             req.setAttribute(A_ERROR_MSG, validation.getErrorMsg());
             System.out.println("処理中にエラーが発生しました。再度お試しください。");
@@ -789,9 +782,9 @@ public class SecretaryService extends BaseService {
         }
     }
 
-	// =========================================================
-    // Private helpers
-    // =========================================================
+    /**
+     * Private helpers
+     */
 
     /** request param のショートカット */
     private String param(String name) { return req.getParameter(name); }
@@ -808,14 +801,16 @@ public class SecretaryService extends BaseService {
 
     /**
      * 入力値を request に戻す（新規／編集：admin 用）
-     * <p>画面再描画で入力値を保持する。</p>
+     * 画面再描画で入力値を保持する。
      */
     private void pushFormBackToRequest() {
         req.setAttribute(P_SECRETARY_CODE,  req.getParameter(P_SECRETARY_CODE));
         req.setAttribute(P_NAME,            req.getParameter(P_NAME));
         req.setAttribute(P_NAME_RUBY,       req.getParameter(P_NAME_RUBY));
         req.setAttribute(P_MAIL,            req.getParameter(P_MAIL));
-        req.setAttribute(P_PASSWORD,        req.getParameter(P_PASSWORD)); // register_check 用
+        req.setAttribute(P_PASSWORD,        req.getParameter(P_PASSWORD));
+
+        /** register_check 用 */
         req.setAttribute(P_PHONE,           req.getParameter(P_PHONE));
         req.setAttribute(P_POSTAL_CODE,     req.getParameter(P_POSTAL_CODE));
         req.setAttribute(P_ADDRESS1,        req.getParameter(P_ADDRESS1));
@@ -838,7 +833,8 @@ public class SecretaryService extends BaseService {
         req.setAttribute(P_ADDRESS1,     req.getParameter(P_ADDRESS1));
         req.setAttribute(P_ADDRESS2,     req.getParameter(P_ADDRESS2));
         req.setAttribute(P_BUILDING,     req.getParameter(P_BUILDING));
-        // 口座系
+
+        /** 口座系 */
         req.setAttribute(P_BANK_NAME,    req.getParameter(P_BANK_NAME));
         req.setAttribute(P_BANK_BRANCH,  req.getParameter(P_BANK_BRANCH));
         req.setAttribute(P_BANK_TYPE,    req.getParameter(P_BANK_TYPE));

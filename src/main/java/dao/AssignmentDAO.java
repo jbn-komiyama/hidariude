@@ -15,9 +15,9 @@ import dto.CustomerDTO;
 
 public class AssignmentDAO extends BaseDAO {
 
-	// ========================
-	// SQL 定義
-	// ========================
+	/** ========================
+	 * SQL 定義
+	 * ======================== */
 
 	/** 指定月の customers + assignments + task_rank + secretaries + secretary_rank をまとめて取得 */
 	private static final String SQL_SELECT_BY_MONTH = "WITH eff AS ( "
@@ -132,7 +132,7 @@ public class AssignmentDAO extends BaseDAO {
 			+ "  tr.rank_no NULLS LAST, "
 			+ "  a.created_at NULLS LAST";
 
-	// 指定月の一覧（フィルタ付き）
+	/** 指定月の一覧（フィルタ付き） */
 	private static final String SQL_SELECT_BY_MONTH_FILTERED = "WITH eff AS ( "
 			+ "  SELECT "
 			+ "    CASE "
@@ -242,7 +242,7 @@ public class AssignmentDAO extends BaseDAO {
 			+ "  tr.rank_no NULLS LAST, "
 			+ "  a.created_at NULLS LAST";
 
-	// 指定月の一覧（継続月数の高い順）
+	/** 指定月の一覧（継続月数の高い順） */
 	private static final String SQL_SELECT_BY_MONTH_ORDERBY_CONT_DESC = "WITH eff AS ( "
 			+ "  SELECT "
 			+ "    CASE "
@@ -419,7 +419,7 @@ public class AssignmentDAO extends BaseDAO {
 			+ "   AND deleted_at IS NULL"
 			+ " LIMIT 1";
 
-	// assignments の UPDATE（id指定、論理削除済みは対象外）
+	/** assignments の UPDATE（id指定、論理削除済みは対象外） */
 	private static final String SQL_UPDATE = "UPDATE assignments "
 			+ "   SET secretary_id = ?, "
 			+ "       task_rank_id = ?, "
@@ -435,7 +435,7 @@ public class AssignmentDAO extends BaseDAO {
 			+ " WHERE id = ? "
 			+ "   AND deleted_at IS NULL";
 
-	// assignments の 論理DELETE（id指定）
+	/** assignments の 論理DELETE（id指定） */
 	private static final String SQL_DELETE_LOGICAL = "UPDATE assignments "
 			+ "   SET deleted_at = CURRENT_TIMESTAMP "
 			+ " WHERE id = ? "
@@ -467,10 +467,10 @@ public class AssignmentDAO extends BaseDAO {
 			"  AND a.target_year_month = ? " +
 			"ORDER BY c.company_name, tr.rank_name NULLS LAST, a.created_at";
 
-	// 指定月(yyyy-MM)のアサイン（当月分のみ）＋継続月数を算出。
-	// フィルタ：顧客名キーワード・秘書ID・継続月数≧N
-	// ソート：sortByMonthsDesc=true のとき継続月数DESC、それ以外は会社名→秘書名→rank_no→作成日時
-	// 指定月(yyyy-MM)のアサイン（当月分のみ）＋継続月数。フィルタ＆任意で継続月数DESC
+	/** 指定月(yyyy-MM)のアサイン（当月分のみ）＋継続月数を算出。
+	 * フィルタ：顧客名キーワード・秘書ID・継続月数≧N
+	 * ソート：sortByMonthsDesc=true のとき継続月数DESC、それ以外は会社名→秘書名→rank_no→作成日時
+	 * 指定月(yyyy-MM)のアサイン（当月分のみ）＋継続月数。フィルタ＆任意で継続月数DESC */
 	private static final String SQL_SELECT_ASSIGNMENTS_FOR_MONTH_WITH_CONT = "WITH eff AS ( "
 			+ "  SELECT "
 			+ "    CASE "
@@ -569,7 +569,7 @@ public class AssignmentDAO extends BaseDAO {
 			+ "  tr.rank_no NULLS LAST, "
 			+ "  a.created_at NULLS LAST";
 
-	// 先月→対象月で “未登録のものだけ” 候補に出す
+	/** 先月→対象月で "未登録のものだけ" 候補に出す */
 	private static final String SQL_SELECT_CARRYOVER_CANDIDATES = "SELECT " +
 			"  a.id AS a_id, " +
 			"  a.customer_id, c.company_name AS c_company_name, " +
@@ -585,18 +585,18 @@ public class AssignmentDAO extends BaseDAO {
 			"LEFT JOIN secretary_rank sr ON sr.id = s.secretary_rank_id " +
 			"LEFT JOIN task_rank tr ON tr.id = a.task_rank_id " +
 			"WHERE a.deleted_at IS NULL " +
-			"  AND a.target_year_month = ? " + // fromYM
+			"  AND a.target_year_month = ? " + /** fromYM */
 			"  AND NOT EXISTS ( " +
 			"    SELECT 1 FROM assignments b " +
 			"     WHERE b.deleted_at IS NULL " +
-			"       AND b.target_year_month = ? " + // toYM
+			"       AND b.target_year_month = ? " + /** toYM */
 			"       AND b.customer_id  = a.customer_id " +
 			"       AND b.secretary_id = a.secretary_id " +
 			"       AND b.task_rank_id = a.task_rank_id " +
 			"  ) " +
 			"ORDER BY c.company_name, s.name, tr.rank_name NULLS LAST, a.created_at";
 
-	// 継続月数カウント用：秘書×顧客の存在月（fromYM まで）を降順で返す
+	/** 継続月数カウント用：秘書×顧客の存在月（fromYM まで）を降順で返す */
 	private static final String SQL_SELECT_MONTHS_FOR_PAIR_UPTO = "SELECT target_year_month " +
 			"  FROM assignments " +
 			" WHERE deleted_at IS NULL " +
@@ -606,7 +606,7 @@ public class AssignmentDAO extends BaseDAO {
 			" GROUP BY target_year_month " +
 			" ORDER BY target_year_month DESC";
 
-	// 変更画面用：1件取得（名称付き）
+	/** 変更画面用：1件取得（名称付き） */
 	private static final String SQL_SELECT_ONE_WITH_NAMES = "SELECT a.id, a.customer_id, a.secretary_id, a.task_rank_id, a.target_year_month, "
 			+
 			"       a.base_pay_customer, a.base_pay_secretary, " +
@@ -619,7 +619,7 @@ public class AssignmentDAO extends BaseDAO {
 			"  LEFT JOIN task_rank  tr ON tr.id = a.task_rank_id " +
 			" WHERE a.id = ? AND a.deleted_at IS NULL";
 
-	// 変更適用：顧客×秘書×年月 で継続単価を一括更新（他の列は触らない）
+	/** 変更適用：顧客×秘書×年月 で継続単価を一括更新（他の列は触らない） */
 	private static final String SQL_UPDATE_INCENTIVES_BY_PAIR_MONTH = "UPDATE assignments a "
 			+ "   SET customer_based_incentive_for_customer = ?, "
 			+ "       customer_based_incentive_for_secretary = ?, "
@@ -632,17 +632,17 @@ public class AssignmentDAO extends BaseDAO {
 			+ "   AND a.secretary_id = ? "
 			+ "   AND a.target_year_month = ?";
 
-	// 削除可否判定：当該アサインに紐づくタスク件数（0 なら削除OK）
-	// ※ tasks テーブル名・カラム名はプロジェクトに合わせて変更してください
+	/** 削除可否判定：当該アサインに紐づくタスク件数（0 なら削除OK）
+	 * 注意: tasks テーブル名・カラム名はプロジェクトに合わせて変更してください */
 	private static final String SQL_COUNT_TASKS_BY_ASSIGNMENT = "SELECT COUNT(1) FROM tasks t WHERE t.deleted_at IS NULL AND t.assignment_id = ?";
 
-	// 単体取得（主キー）
+	/** 単体取得（主キー） */
 	private static final String SQL_SELECT_ONE_MINIMAL = "SELECT id, customer_id, secretary_id, task_rank_id, target_year_month, "
 			+
 			"       customer_based_incentive_for_customer, customer_based_incentive_for_secretary " +
 			"  FROM assignments WHERE id = ? AND deleted_at IS NULL";
 
-	// ④ 今月まで（<= uptoYM）のアサインを取得。月の新しい順 → 会社名 → rank_no → 作成日時
+	/** 今月まで（<= uptoYM）のアサインを取得。月の新しい順 → 会社名 → rank_no → 作成日時 */
 	private static final String SQL_SELECT_BY_SECRETARY_UPTO_MONTH_ORDER_BY_YM_DESC = "WITH eff AS ( " +
 			"  SELECT ? AS upto_ym " +
 			"), a_upto AS ( " +
@@ -779,7 +779,7 @@ public class AssignmentDAO extends BaseDAO {
 //    	    " ORDER BY a.target_year_month DESC, tr.rank_no NULLS LAST, s.name NULLS LAST, a.created_at";
     
     	
-    	//秘書プロフィール取得
+    	/** 秘書プロフィール取得 */
         private static final String SQL_SELECT_PROFILE_BY_SECRETARY_ID =
         	    "SELECT id, secretary_id, " +
         	    " weekday_morning, weekday_daytime, weekday_night, " +
@@ -792,7 +792,7 @@ public class AssignmentDAO extends BaseDAO {
         	    "FROM profiles " +
         	    "WHERE deleted_at IS NULL AND secretary_id = ?";
         
-        // 秘書の基本情報（氏名/フリガナ）のみ取得
+        /** 秘書の基本情報（氏名/フリガナ）のみ取得 */
         private static final String SQL_SELECT_SECRETARY_NAME_BY_ID =
             "SELECT name, name_ruby FROM secretaries WHERE deleted_at IS NULL AND id = ?";
         
@@ -806,9 +806,9 @@ public class AssignmentDAO extends BaseDAO {
 		super(conn);
 	}
 
-	// ========================
-	// SELECT
-	// ========================
+	/** ========================
+	 * SELECT
+	 * ======================== */
 
 	/**
 	 * 指定年月（yyyy-MM）のアサイン一覧を顧客ごとに取得。
@@ -818,7 +818,7 @@ public class AssignmentDAO extends BaseDAO {
 	 */
 	public List<CustomerDTO> selectAllByMonth(String yearMonth) {
 		try (PreparedStatement ps = conn.prepareStatement(SQL_SELECT_BY_MONTH)) {
-			// クランプ用に同じ値を2回渡す（SQL側で比較して選択）
+			/** クランプ用に同じ値を2回渡す（SQL側で比較して選択） */
 			ps.setString(1, yearMonth);
 			ps.setString(2, yearMonth);
 
@@ -828,7 +828,7 @@ public class AssignmentDAO extends BaseDAO {
 				while (rs.next()) {
 					int i = 1;
 
-					// customers
+					/** customers */
 					UUID cId = rs.getObject(i++, UUID.class);
 					CustomerDTO c = customerMap.get(cId);
 					if (c == null) {
@@ -849,7 +849,7 @@ public class AssignmentDAO extends BaseDAO {
 						c.setAssignmentDTOs(new ArrayList<>());
 						customerMap.put(cId, c);
 					} else {
-						i += 12; // 既読分スキップ
+						i += 12; /** 既読分スキップ */
 					}
 
 					UUID aId = rs.getObject(i++, UUID.class);
@@ -871,17 +871,17 @@ public class AssignmentDAO extends BaseDAO {
 						ad.setAssignmentUpdatedAt(rs.getTimestamp(i++));
 						ad.setAssignmentDeletedAt(rs.getTimestamp(i++));
 
-						ad.setTaskRankName(rs.getString(i++)); // tr.rank_name
-						i++; // tr.rank_no 読み飛ばし（必要ならDTOへ）
+						ad.setTaskRankName(rs.getString(i++)); /** tr.rank_name */
+						i++; /** tr.rank_no 読み飛ばし（必要ならDTOへ） */
 
 						ad.setSecretaryId(rs.getObject(i++, UUID.class));
 						ad.setSecretaryRankId(rs.getObject(i++, UUID.class));
 						ad.setSecretaryName(rs.getString(i++));
 						ad.setSecretaryRankName(rs.getString(i++));
 
-						// 継続月数
+						/** 継続月数 */
 						Integer cont = (Integer) rs.getObject(i++);
-						ad.setConsecutiveMonths(cont); // ← DTOに追加（後述）
+						ad.setConsecutiveMonths(cont); /** DTOに追加 */
 
 						c.getAssignmentDTOs().add(ad);
 					}
@@ -913,11 +913,11 @@ public class AssignmentDAO extends BaseDAO {
 		try (PreparedStatement ps = conn.prepareStatement(SQL_SELECT_ASSIGNMENTS_FOR_MONTH_WITH_CONT)) {
 			int p = 1;
 
-			// 年月（クランプ用に2回）
+			/** 年月（クランプ用に2回） */
 			ps.setString(p++, yearMonth);
 			ps.setString(p++, yearMonth);
 
-			// 顧客名（WHEREで2回）
+			/** 顧客名（WHEREで2回） */
 			if (qCustomer == null || qCustomer.isBlank()) {
 				ps.setNull(p++, java.sql.Types.VARCHAR);
 				ps.setNull(p++, java.sql.Types.VARCHAR);
@@ -926,7 +926,7 @@ public class AssignmentDAO extends BaseDAO {
 				ps.setString(p++, qCustomer);
 			}
 
-			// 秘書ID（WHEREで2回）
+			/** 秘書ID（WHEREで2回） */
 			if (filterSecretaryId == null) {
 				ps.setNull(p++, java.sql.Types.OTHER);
 				ps.setNull(p++, java.sql.Types.OTHER);
@@ -935,7 +935,7 @@ public class AssignmentDAO extends BaseDAO {
 				ps.setObject(p++, filterSecretaryId);
 			}
 
-			// 継続月数min（WHEREで2回）
+			/** 継続月数min（WHEREで2回） */
 			if (minMonths == null) {
 				ps.setNull(p++, java.sql.Types.INTEGER);
 				ps.setNull(p++, java.sql.Types.INTEGER);
@@ -944,7 +944,7 @@ public class AssignmentDAO extends BaseDAO {
 				ps.setInt(p++, minMonths);
 			}
 
-			// 継続月数の降順ソートフラグ（ORDER BY の CASE WHEN ? THEN ...）
+			/** 継続月数の降順ソートフラグ（ORDER BY の CASE WHEN ? THEN ...） */
 			ps.setBoolean(p++, sortByMonthsDesc);
 
 			List<AssignmentDTO> list = new ArrayList<>();
@@ -953,41 +953,41 @@ public class AssignmentDAO extends BaseDAO {
 					int i = 1;
 
 					AssignmentDTO ad = new AssignmentDTO();
-					ad.setAssignmentId(rs.getObject(i++, UUID.class)); // a_id
-					ad.setAssignmentCustomerId(rs.getObject(i++, UUID.class)); // a_customer_id
-					ad.setAssignmentSecretaryId(rs.getObject(i++, UUID.class)); // a_secretary_id
-					ad.setTaskRankId(rs.getObject(i++, UUID.class)); // a_task_rank_id
-					ad.setTargetYearMonth(rs.getString(i++)); // a_target_year_month
+					ad.setAssignmentId(rs.getObject(i++, UUID.class)); /** a_id */
+					ad.setAssignmentCustomerId(rs.getObject(i++, UUID.class)); /** a_customer_id */
+					ad.setAssignmentSecretaryId(rs.getObject(i++, UUID.class)); /** a_secretary_id */
+					ad.setTaskRankId(rs.getObject(i++, UUID.class)); /** a_task_rank_id */
+					ad.setTargetYearMonth(rs.getString(i++)); /** a_target_year_month */
 					ad.setBasePayCustomer(rs.getBigDecimal(i++));
 					ad.setBasePaySecretary(rs.getBigDecimal(i++));
 					ad.setIncreaseBasePayCustomer(rs.getBigDecimal(i++));
 					ad.setIncreaseBasePaySecretary(rs.getBigDecimal(i++));
 					ad.setCustomerBasedIncentiveForCustomer(rs.getBigDecimal(i++));
 					ad.setCustomerBasedIncentiveForSecretary(rs.getBigDecimal(i++));
-					ad.setAssignmentStatus(rs.getString(i++)); // a_status
-					ad.setAssignmentCreatedAt(rs.getTimestamp(i++)); // a_created_at
-					ad.setAssignmentUpdatedAt(rs.getTimestamp(i++)); // a_updated_at
-					ad.setAssignmentDeletedAt(rs.getTimestamp(i++)); // a_deleted_at
+					ad.setAssignmentStatus(rs.getString(i++)); /** a_status */
+					ad.setAssignmentCreatedAt(rs.getTimestamp(i++)); /** a_created_at */
+					ad.setAssignmentUpdatedAt(rs.getTimestamp(i++)); /** a_updated_at */
+					ad.setAssignmentDeletedAt(rs.getTimestamp(i++)); /** a_deleted_at */
 
-					ad.setCustomerCompanyName(rs.getString(i++)); // c_company_name
+					ad.setCustomerCompanyName(rs.getString(i++)); /** c_company_name */
 
 					ad.setTaskRankName(rs.getString(i++));
-					// tr_rank_name
-					/* int rankNo = */ rs.getInt(i++); // tr_rank_no（必要ならDTOに保持）
+					/** tr_rank_name */
+					rs.getInt(i++); /** tr_rank_no（必要ならDTOに保持） */
 
-					UUID sId = rs.getObject(i++, UUID.class); // s_id
-					ad.setSecretaryId(sId); // ★ これが必須（Converter が見るのはこっち）
-					ad.setSecretaryName(rs.getString(i++)); // s_name
+					UUID sId = rs.getObject(i++, UUID.class); /** s_id */
+					ad.setSecretaryId(sId); /** これが必須（Converter が見るのはこっち） */
+					ad.setSecretaryName(rs.getString(i++)); /** s_name */
 					ad.setSecretaryRankId(rs.getObject(i++, UUID.class));
-					ad.setSecretaryRankName(rs.getString(i++)); // sr_rank_name
+					ad.setSecretaryRankName(rs.getString(i++)); /** sr_rank_name */
 
 					Number contNum = (Number) rs.getObject(i++);
 					Integer cont = (contNum == null) ? null : contNum.intValue();
 					ad.setConsecutiveMonths(cont);
 					if (outContMonths != null && ad.getAssignmentId() != null) {
 						outContMonths.put(ad.getAssignmentId(), cont == null ? 0 : cont);
-					} // cont_months
-					ad.setConsecutiveMonths(cont); // DTOに追加済み想定
+					} /** cont_months */
+					ad.setConsecutiveMonths(cont); /** DTOに追加済み想定 */
 
 					list.add(ad);
 
@@ -1017,7 +1017,7 @@ public class AssignmentDAO extends BaseDAO {
 			ps.setString(p++, yearMonth);
 			ps.setString(p++, yearMonth);
 
-			// keyword は2回使う
+			/** keyword は2回使う */
 			if (keyword == null || keyword.isBlank()) {
 				ps.setNull(p++, java.sql.Types.VARCHAR);
 				ps.setNull(p++, java.sql.Types.VARCHAR);
@@ -1026,7 +1026,7 @@ public class AssignmentDAO extends BaseDAO {
 				ps.setString(p++, keyword);
 			}
 
-			// secretaryId は2回使う
+			/** secretaryId は2回使う */
 			if (secretaryId == null) {
 				ps.setNull(p++, java.sql.Types.OTHER);
 				ps.setNull(p++, java.sql.Types.OTHER);
@@ -1035,7 +1035,7 @@ public class AssignmentDAO extends BaseDAO {
 				ps.setObject(p++, secretaryId);
 			}
 
-			// minMonths は2回使う
+			/** minMonths は2回使う */
 			if (minMonths == null) {
 				ps.setNull(p++, java.sql.Types.INTEGER);
 				ps.setNull(p++, java.sql.Types.INTEGER);
@@ -1139,10 +1139,10 @@ public class AssignmentDAO extends BaseDAO {
 					ad.setAssignmentCreatedAt(rs.getTimestamp(i++));
 					ad.setAssignmentUpdatedAt(rs.getTimestamp(i++));
 					ad.setAssignmentDeletedAt(rs.getTimestamp(i++));
-					ad.setCustomerCompanyName(rs.getString(i++)); // c.company_name
+					ad.setCustomerCompanyName(rs.getString(i++)); /** c.company_name */
 					ad.setTaskRankName(rs.getString(i++));
-					// tr.rank_name
-					/* int rankNo = */ rs.getInt(i++); // tr.rank_no（必要ならDTOへ）
+					/** tr.rank_name */
+					rs.getInt(i++); /** tr.rank_no（必要ならDTOへ） */
 					list.add(ad);
 				}
 				return list;
@@ -1209,8 +1209,8 @@ public class AssignmentDAO extends BaseDAO {
 						ad.setAssignmentUpdatedAt(rs.getTimestamp(i++));
 						ad.setAssignmentDeletedAt(rs.getTimestamp(i++));
 
-						ad.setTaskRankName(rs.getString(i++));
-						i++; // tr.rank_no
+					ad.setTaskRankName(rs.getString(i++));
+					i++; /** tr.rank_no */
 
 						ad.setSecretaryId(rs.getObject(i++, UUID.class));
 						ad.setSecretaryRankId(rs.getObject(i++, UUID.class));
@@ -1233,7 +1233,7 @@ public class AssignmentDAO extends BaseDAO {
 
 	/**
 	 * 指定した秘書ID・年月（yyyy-MM）のアサイン情報を顧客単位で取得します。
-	 * <p>顧客は {@code id, company_name} のみをセットし、その配下に {@link AssignmentDTO} を格納します。</p>
+	 * 顧客は {@code id, company_name} のみをセットし、その配下に {@link AssignmentDTO} を格納します。
 	 *
 	 * @param secretaryId 秘書ID（{@link UUID}）
 	 * @param yearMonth   年月（例: "2025-09"）
@@ -1252,7 +1252,7 @@ public class AssignmentDAO extends BaseDAO {
 				while (rs.next()) {
 					int i = 1;
 
-					// ---- customers (2)
+					/** customers (2) */
 					UUID cId = rs.getObject(i++, UUID.class);
 					String companyName = rs.getString(i++);
 
@@ -1265,7 +1265,7 @@ public class AssignmentDAO extends BaseDAO {
 						customerMap.put(cId, c);
 					}
 
-					// ---- assignments (15)
+					/** assignments (15) */
 					UUID aId = rs.getObject(i++, UUID.class);
 					AssignmentDTO ad = new AssignmentDTO();
 					ad.setAssignmentId(aId);
@@ -1284,10 +1284,10 @@ public class AssignmentDAO extends BaseDAO {
 					ad.setAssignmentUpdatedAt(rs.getTimestamp(i++));
 					ad.setAssignmentDeletedAt(rs.getTimestamp(i++));
 
-					// ---- task_rank (1)
+					/** task_rank (1) */
 					ad.setTaskRankName(rs.getString(i++));
 
-					// 顧客配下に格納
+					/** 顧客配下に格納 */
 					c.getAssignmentDTOs().add(ad);
 				}
 
@@ -1325,7 +1325,7 @@ public class AssignmentDAO extends BaseDAO {
 					ad.setAssignmentUpdatedAt(rs.getTimestamp("a_updated_at"));
 					ad.setAssignmentDeletedAt(rs.getTimestamp("a_deleted_at"));
 
-					// 画面表示用
+					/** 画面表示用 */
 					ad.setTaskRankName(rs.getString("tr_rank_name"));
 					ad.setCustomerCompanyName(rs.getString("c_company_name"));
 
@@ -1340,7 +1340,7 @@ public class AssignmentDAO extends BaseDAO {
 
 	/**
 	 * 指定した秘書ID・顧客ID・年月（yyyy-MM）のアサイン情報を取得します。
-	 * <p>AssignmentDTO に顧客名・タスクランク名を含めて返します。</p>
+	 * AssignmentDTO に顧客名・タスクランク名を含めて返します。
 	 *
 	 * @param secretaryId 秘書ID（UUID）
 	 * @param customerId  顧客ID（UUID）
@@ -1363,7 +1363,7 @@ public class AssignmentDAO extends BaseDAO {
 					int i = 1;
 					AssignmentDTO ad = new AssignmentDTO();
 
-					// ---- assignments (15)
+					/** assignments (15) */
 					ad.setAssignmentId(rs.getObject(i++, UUID.class));
 					ad.setAssignmentCustomerId(rs.getObject(i++, UUID.class));
 					ad.setAssignmentSecretaryId(rs.getObject(i++, UUID.class));
@@ -1379,11 +1379,11 @@ public class AssignmentDAO extends BaseDAO {
 					ad.setAssignmentCreatedAt(rs.getTimestamp(i++));
 					ad.setAssignmentUpdatedAt(rs.getTimestamp(i++));
 					ad.setAssignmentDeletedAt(rs.getTimestamp(i++));
-					// ---- customers (2)
-					ad.setAssignmentCustomerId(rs.getObject(i++, UUID.class)); // c.id
-					ad.setCustomerCompanyName(rs.getString(i++)); // c.company_name
+					/** customers (2) */
+					ad.setAssignmentCustomerId(rs.getObject(i++, UUID.class)); /** c.id */
+					ad.setCustomerCompanyName(rs.getString(i++)); /** c.company_name */
 
-					// ---- task_rank (1)
+					/** task_rank (1) */
 					ad.setTaskRankName(rs.getString(i++));
 
 					result.add(ad);
@@ -1411,7 +1411,7 @@ public class AssignmentDAO extends BaseDAO {
 				while (rs.next()) {
 					int i = 1;
 					AssignmentDTO ad = new AssignmentDTO();
-					// assignments (15)
+					/** assignments (15) */
 					ad.setAssignmentId(rs.getObject(i++, java.util.UUID.class));
 					ad.setAssignmentCustomerId(rs.getObject(i++, java.util.UUID.class));
 					ad.setAssignmentSecretaryId(rs.getObject(i++, java.util.UUID.class));
@@ -1430,7 +1430,7 @@ public class AssignmentDAO extends BaseDAO {
 					ad.setAssignmentDeletedAt(rs.getTimestamp(i++));
 					ad.setTaskRankName(rs.getString(i++));
 
-					// secretaries (3)
+					/** secretaries (3) */
 					ad.setSecretaryId(rs.getObject(i++, java.util.UUID.class));
 					ad.setSecretaryRankId(rs.getObject(i++, java.util.UUID.class));
 					ad.setSecretaryName(rs.getString(i++));
@@ -1444,7 +1444,7 @@ public class AssignmentDAO extends BaseDAO {
 		}
 	}
 
-	// ID配列で元アサインを取得（適用時にコピー元として使用）
+	/** ID配列で元アサインを取得（適用時にコピー元として使用） */
 	public List<AssignmentDTO> selectByIds(List<UUID> ids) {
 		if (ids == null || ids.isEmpty())
 			return java.util.Collections.emptyList();
@@ -1505,10 +1505,10 @@ public class AssignmentDAO extends BaseDAO {
 				d.setAssignmentSecretaryId(rs.getObject(i++, UUID.class));
 				d.setTaskRankId(rs.getObject(i++, UUID.class));
 				d.setTargetYearMonth(rs.getString(i++));
-				d.setBasePayCustomer(rs.getBigDecimal(i++)); // 追加
-				d.setBasePaySecretary(rs.getBigDecimal(i++)); // 追加
-				d.setIncreaseBasePayCustomer(rs.getBigDecimal(i++)); // 追加
-				d.setIncreaseBasePaySecretary(rs.getBigDecimal(i++)); // 追加
+				d.setBasePayCustomer(rs.getBigDecimal(i++)); /** 追加 */
+				d.setBasePaySecretary(rs.getBigDecimal(i++)); /** 追加 */
+				d.setIncreaseBasePayCustomer(rs.getBigDecimal(i++)); /** 追加 */
+				d.setIncreaseBasePaySecretary(rs.getBigDecimal(i++)); /** 追加 */
 				d.setCustomerBasedIncentiveForCustomer(rs.getBigDecimal(i++));
 				d.setCustomerBasedIncentiveForSecretary(rs.getBigDecimal(i++));
 				d.setCustomerCompanyName(rs.getString(i++));
@@ -1572,10 +1572,10 @@ public class AssignmentDAO extends BaseDAO {
 					ad.setAssignmentUpdatedAt(rs.getTimestamp(i++));
 					ad.setAssignmentDeletedAt(rs.getTimestamp(i++));
 
-					ad.setTaskRankName(rs.getString(i++)); // tr.rank_name
-					rs.getInt(i++); // tr.rank_no（未使用）
+					ad.setTaskRankName(rs.getString(i++)); /** tr.rank_name */
+					rs.getInt(i++); /** tr.rank_no（未使用） */
 
-					rs.getObject(i++, UUID.class); // s_id（未使用）
+					rs.getObject(i++, UUID.class); /** s_id（未使用） */
 					ad.setSecretaryName(rs.getString(i++));
 					ad.setSecretaryRankId(rs.getObject(i++, UUID.class));
 					ad.setSecretaryRankName(rs.getString(i++));
@@ -1638,7 +1638,7 @@ public class AssignmentDAO extends BaseDAO {
         }
     }
 
-    // 氏名/フリガナだけ取得（存在しなければ null を返す）
+    /** 氏名/フリガナだけ取得（存在しなければ null を返す） */
     public java.util.Optional<java.util.AbstractMap.SimpleEntry<String,String>> selectSecretaryNameById(UUID secretaryId) {
         try (PreparedStatement ps = conn.prepareStatement(SQL_SELECT_SECRETARY_NAME_BY_ID)) {
             ps.setObject(1, secretaryId);
@@ -1699,8 +1699,8 @@ public class AssignmentDAO extends BaseDAO {
 					ad.setAssignmentDeletedAt(rs.getTimestamp(i++));
 
 					ad.setTaskRankName(rs.getString(i++));
-					rs.getInt(i++); // tr.rank_no
-					rs.getObject(i++, UUID.class); // s_id
+					rs.getInt(i++); /** tr.rank_no */
+					rs.getObject(i++, UUID.class); /** s_id */
 					ad.setSecretaryName(rs.getString(i++));
 					ad.setSecretaryRankId(rs.getObject(i++, UUID.class));
 					ad.setSecretaryRankName(rs.getString(i++));
@@ -1714,13 +1714,13 @@ public class AssignmentDAO extends BaseDAO {
 		return list;
 	}
 
-	// ========================
-	// INSERT
-	// ========================
+	/** ========================
+	 * INSERT
+	 * ======================== */
 
 	/**
 	 * アサインを新規登録し、採番された {@code id} を返します。
-	 * <p>一部の金額カラムは NULL を許容します。</p>
+	 * 一部の金額カラムは NULL を許容します。
 	 *
 	 * @param dto 登録対象
 	 * @return 新規採番された {@link UUID}（失敗時や RETURNING 無返却なら {@code null}）
@@ -1729,13 +1729,13 @@ public class AssignmentDAO extends BaseDAO {
 	public UUID insert(AssignmentDTO dto) {
 		try (PreparedStatement ps = conn.prepareStatement(SQL_INSERT)) {
 			int i = 1;
-			// 必須
+			/** 必須 */
 			ps.setObject(i++, dto.getAssignmentCustomerId());
 			ps.setObject(i++, dto.getAssignmentSecretaryId());
 			ps.setObject(i++, dto.getTaskRankId());
 			ps.setString(i++, dto.getTargetYearMonth());
 
-			// 金額（NULL許容）
+			/** 金額（NULL許容） */
 			setBigDecimalOrNull(ps, i++, dto.getBasePayCustomer());
 			setBigDecimalOrNull(ps, i++, dto.getBasePaySecretary());
 			setBigDecimalOrNull(ps, i++, dto.getIncreaseBasePayCustomer());
@@ -1743,7 +1743,7 @@ public class AssignmentDAO extends BaseDAO {
 			setBigDecimalOrNull(ps, i++, dto.getCustomerBasedIncentiveForCustomer());
 			setBigDecimalOrNull(ps, i++, dto.getCustomerBasedIncentiveForSecretary());
 
-			// status（NULL許容）
+			/** status（NULL許容） */
 			if (dto.getAssignmentStatus() == null || dto.getAssignmentStatus().isEmpty()) {
 				ps.setNull(i++, java.sql.Types.VARCHAR);
 			} else {
@@ -1758,9 +1758,9 @@ public class AssignmentDAO extends BaseDAO {
 		}
 	}
 
-	// ========================
-	// EXISTS（重複チェック）
-	// ========================
+	/** ========================
+	 * EXISTS（重複チェック）
+	 * ======================== */
 
 	/**
 	 * 同一（年月・顧客・秘書・タスクランク）のアサインが存在するかを判定します。
@@ -1785,13 +1785,13 @@ public class AssignmentDAO extends BaseDAO {
 		}
 	}
 
-	// ========================
-	// UPDATE
-	// ========================
+	/** ========================
+	 * UPDATE
+	 * ======================== */
 
 	/**
 	 * アサインを更新します（論理削除済みは対象外）。
-	 * <p>NULL 許容の金額カラム／status は NULL をセット可能です。</p>
+	 * NULL 許容の金額カラム／status は NULL をセット可能です。
 	 *
 	 * @param dto 更新対象（assignmentId 必須）
 	 * @return 影響行数
@@ -1821,7 +1821,7 @@ public class AssignmentDAO extends BaseDAO {
 				ps.setString(i++, dto.getAssignmentStatus());
 			}
 
-			ps.setObject(i++, dto.getAssignmentId()); // WHERE id = ?
+			ps.setObject(i++, dto.getAssignmentId()); /** WHERE id = ? */
 
 			return ps.executeUpdate();
 		} catch (SQLException e) {
@@ -1859,9 +1859,9 @@ public class AssignmentDAO extends BaseDAO {
 		}
 	}
 
-	// ========================
-	// DELETE
-	// ========================
+	/** ========================
+	 * DELETE
+	 * ======================== */
 
 	/**
 	 * アサインを論理削除します（deleted_at を現在時刻に更新）。
@@ -1994,7 +1994,7 @@ public class AssignmentDAO extends BaseDAO {
 
 					Map<String, Object> m = new LinkedHashMap<>();
 					m.put("name", name);
-					m.put("address", addr.toString().trim()); // JSP側で（${s.address}）と括弧付き表示
+					m.put("address", addr.toString().trim()); /** JSP側で（${s.address}）と括弧付き表示 */
 					list.add(m);
 				}
 			}
@@ -2029,7 +2029,7 @@ public class AssignmentDAO extends BaseDAO {
 					Map<String, Object> m = new LinkedHashMap<>();
 					m.put("name", name);
 					m.put("address", addr.toString().trim());
-					// 必要なら m.put("note", ...); を追加
+					/** 必要なら m.put("note", ...); を追加 */
 					list.add(m);
 				}
 			}
@@ -2039,9 +2039,9 @@ public class AssignmentDAO extends BaseDAO {
 		return list;
 	}
 
-	// ========================
-	// Helper
-	// ========================
+	/** ========================
+	 * Helper
+	 * ======================== */
 
 	/**
 	 * {@code BigDecimal} を NULL 許容でセットします。

@@ -5,45 +5,49 @@ import java.math.BigDecimal;
 import java.sql.Timestamp;
 import java.util.UUID;
 
+/**
+ * アサイン情報を保持するDTO
+ * 複数のテーブル（customers, assignments, task_rank, secretaries, secretary_rank）の情報を統合
+ */
 public class AssignmentDTO implements Serializable {
 	private static final long serialVersionUID = 1L;
 
-	// customers
-	private UUID customerId; // c.id
-	private String customerCompanyCode; // c.company_code
-	private String customerCompanyName; // c.company_name
+	/** customers */
+	private UUID customerId; /** c.id */
+	private String customerCompanyCode; /** c.company_code */
+	private String customerCompanyName; /** c.company_name */
 
-	// assignments
-	private UUID assignmentId; // a.id
-	private UUID assignmentCustomerId; // a.customer_id
-	private UUID assignmentSecretaryId; // a.secretary_id
-	private UUID taskRankId; // a.task_rank_id
-	private String targetYearMonth; // a.target_year_month (YYYY-MM)
-	private BigDecimal basePayCustomer; // a.base_pay_customer
-	private BigDecimal basePaySecretary; // a.base_pay_secretary
-	private BigDecimal increaseBasePayCustomer; // a.increase_base_pay_customer
-	private BigDecimal increaseBasePaySecretary; // a.increase_base_pay_secretary
-	private BigDecimal customerBasedIncentiveForCustomer; // a.customer_based_incentive_for_customer
-	private BigDecimal customerBasedIncentiveForSecretary; // a.customer_based_incentive_for_secretary
+	/** assignments */
+	private UUID assignmentId; /** a.id */
+	private UUID assignmentCustomerId; /** a.customer_id */
+	private UUID assignmentSecretaryId; /** a.secretary_id */
+	private UUID taskRankId; /** a.task_rank_id */
+	private String targetYearMonth; /** a.target_year_month (YYYY-MM) */
+	private BigDecimal basePayCustomer; /** a.base_pay_customer */
+	private BigDecimal basePaySecretary; /** a.base_pay_secretary */
+	private BigDecimal increaseBasePayCustomer; /** a.increase_base_pay_customer */
+	private BigDecimal increaseBasePaySecretary; /** a.increase_base_pay_secretary */
+	private BigDecimal customerBasedIncentiveForCustomer; /** a.customer_based_incentive_for_customer */
+	private BigDecimal customerBasedIncentiveForSecretary; /** a.customer_based_incentive_for_secretary */
 	private BigDecimal hourlyPaySecretary;
 	private BigDecimal hourlyPayCustomer;
-	private String assignmentStatus; // a.status
-	private UUID assignmentCreatedBy; // a.created_by
-	private Timestamp assignmentCreatedAt; // a.created_at
-	private Timestamp assignmentUpdatedAt; // a.updated_at
-	private Timestamp assignmentDeletedAt; // a.deleted_at (nullable)
+	private String assignmentStatus; /** a.status */
+	private UUID assignmentCreatedBy; /** a.created_by */
+	private Timestamp assignmentCreatedAt; /** a.created_at */
+	private Timestamp assignmentUpdatedAt; /** a.updated_at */
+	private Timestamp assignmentDeletedAt; /** a.deleted_at (nullable) */
 
-	// task_rank
-	private String taskRankName; // tr.rank_name
+	/** task_rank */
+	private String taskRankName; /** tr.rank_name */
 
-	// secretaries
-	private UUID secretaryId; // s.id
-	private UUID secretaryRankId; // s.secretary_rank_id
-	private String secretaryName; // s.name
+	/** secretaries */
+	private UUID secretaryId; /** s.id */
+	private UUID secretaryRankId; /** s.secretary_rank_id */
+	private String secretaryName; /** s.name */
 	private Boolean isPmSecretary;
 
-	// secretary_rank
-	private String secretaryRankName; // sr.rank_name
+	/** secretary_rank */
+	private String secretaryRankName; /** sr.rank_name */
 
 	private Integer consecutiveMonths;
 

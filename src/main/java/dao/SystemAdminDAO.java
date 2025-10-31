@@ -12,24 +12,20 @@ import dto.SystemAdminDTO;
 
 /**
  * {@code system_admins} を扱う DAO。
- * <p>
  * 1コネクション上で SQL を実行する薄い永続化層です。
  * トランザクション境界（begin / commit / rollback）は呼び出し側で管理してください。
  * 実行時例外は {@link DAOException} にラップして上位へ伝播します。
- * </p>
  *
- * <h2>クラス構成</h2>
- * <ol>
- *   <li>フィールド（SQL）</li>
- *   <li>フィールド、コンストラクタ</li>
- *   <li>メソッド（SELECT／INSERT/UPDATE/DELETE／重複チェック／Mapper）</li>
- * </ol>
+ * クラス構成：
+ * 1. フィールド（SQL）
+ * 2. フィールド、コンストラクタ
+ * 3. メソッド（SELECT／INSERT/UPDATE/DELETE／重複チェック／Mapper）
  */
 public class SystemAdminDAO extends BaseDAO {
 
-    // ========================
-    // ① フィールド（SQL 定義）
-    // ========================
+    /** ========================
+     * ① フィールド（SQL 定義）
+     * ======================== */
 
     /** 共通 SELECT 句（列順は {@link #mapRow(ResultSet)} と一致させる） */
     private static final String SQL_SELECT_BASE =
@@ -86,9 +82,9 @@ public class SystemAdminDAO extends BaseDAO {
         "   SET password = ?, updated_at = CURRENT_TIMESTAMP " +
         " WHERE id = ? AND deleted_at IS NULL";
 
-    // ========================
-    // ② フィールド、コンストラクタ
-    // ========================
+    /** ========================
+     * ② フィールド、コンストラクタ
+     * ======================== */
 
     /**
      * コンストラクタ。
@@ -99,13 +95,11 @@ public class SystemAdminDAO extends BaseDAO {
         super(conn);
     }
 
-    // ========================
-    // ③ メソッド
-    // ========================
-
-    // =========================
-    // SELECT
-    // =========================
+    /** ========================
+     * ③ メソッド
+     * =========================
+     * SELECT
+     * ========================= */
 
     /**
      * システム管理者の一覧を取得します（論理未削除のみ、作成日時昇順）。
@@ -118,7 +112,7 @@ public class SystemAdminDAO extends BaseDAO {
              ResultSet rs = ps.executeQuery()) {
 
             List<SystemAdminDTO> list = new ArrayList<>();
-            // 1行ずつ DTO へマップ
+            /** 1行ずつ DTO へマップ */
             while (rs.next()) list.add(mapRow(rs));
             return list;
 
@@ -129,7 +123,7 @@ public class SystemAdminDAO extends BaseDAO {
 
     /**
      * メールアドレスをキーにシステム管理者を1件取得します（論理削除は除外）。
-     * <p>該当なしの場合は空の DTO を返します。呼び出し側で {@code id == null} などで判定してください。</p>
+     * 該当なしの場合は空の DTO を返します。呼び出し側で {@code id == null} などで判定してください。
      *
      * @param mail メールアドレス
      * @return 該当 {@link SystemAdminDTO}／未存在時は空 DTO
@@ -142,7 +136,7 @@ public class SystemAdminDAO extends BaseDAO {
                 if (rs.next()) {
                     return mapRow(rs);
                 }
-                return new SystemAdminDTO(); // 互換のため空 DTO を返す
+                return new SystemAdminDTO(); /** 互換のため空 DTO を返す */
             }
         } catch (SQLException e) {
             throw new DAOException("E:A11 system_admins メール検索に失敗しました。", e);
@@ -151,7 +145,7 @@ public class SystemAdminDAO extends BaseDAO {
 
     /**
      * 主キー（UUID）をキーにシステム管理者を1件取得します（論理削除は除外）。
-     * <p>該当なしの場合は空の DTO を返します。</p>
+     * 該当なしの場合は空の DTO を返します。
      *
      * @param id 管理者ID（UUID）
      * @return 該当 {@link SystemAdminDTO}／未存在時は空 DTO
@@ -171,16 +165,14 @@ public class SystemAdminDAO extends BaseDAO {
         }
     }
 
-    // =========================
-    // INSERT / UPDATE / DELETE
-    // =========================
+    /** =========================
+     * INSERT / UPDATE / DELETE
+     * ========================= */
 
     /**
      * システム管理者を新規登録します。
-     * <ul>
-     *   <li>ID は DB 側で {@code gen_random_uuid()} により採番されます。</li>
-     *   <li>{@code created_at / updated_at} はサーバー時刻で自動設定します。</li>
-     * </ul>
+     * - ID は DB 側で {@code gen_random_uuid()} により採番されます。
+     * - {@code created_at / updated_at} はサーバー時刻で自動設定します。
      *
      * @param dto 登録する管理者（使用フィールド：mail, password, name, name_ruby）
      * @return 影響行数（通常 1）
@@ -188,7 +180,7 @@ public class SystemAdminDAO extends BaseDAO {
      */
     public int insert(SystemAdminDTO dto) {
         try (PreparedStatement ps = conn.prepareStatement(SQL_INSERT)) {
-            // 順にバインド（SQL の「?」と順序を一致させる）
+            /** 順にバインド（SQL の「?」と順序を一致させる） */
             ps.setString(1, dto.getMail());
             ps.setString(2, dto.getPassword());
             ps.setString(3, dto.getName());
@@ -201,7 +193,7 @@ public class SystemAdminDAO extends BaseDAO {
 
     /**
      * システム管理者の基本情報を更新します（論理削除済みは対象外）。
-     * <p>{@code updated_at} はサーバー時刻で更新されます。</p>
+     * {@code updated_at} はサーバー時刻で更新されます。
      *
      * @param dto 更新対象（必須：id）／使用フィールド：mail, password, name, name_ruby
      * @return 影響行数（通常 1。対象なしの場合は 0）
@@ -235,9 +227,9 @@ public class SystemAdminDAO extends BaseDAO {
         }
     }
 
-    // =========================
-    // 重複チェック
-    // =========================
+    /** =========================
+     * 重複チェック
+     * ========================= */
 
     /**
      * メールアドレスの存在有無をチェックします（論理未削除のみ対象）。
@@ -258,8 +250,8 @@ public class SystemAdminDAO extends BaseDAO {
     }
 
     /**
-     * メールアドレスの存在有無をチェックします（<b>自IDを除外</b>し、論理未削除のみ対象）。
-     * <p>編集時の一意制約チェックに利用します。</p>
+     * メールアドレスの存在有無をチェックします（自IDを除外し、論理未削除のみ対象）。
+     * 編集時の一意制約チェックに利用します。
      *
      * @param mail      メールアドレス
      * @param excludeId 除外する管理者ID（自身のID）
@@ -295,8 +287,8 @@ public class SystemAdminDAO extends BaseDAO {
 
     /**
      * パスワードのみを更新します（パスワードリセット用）。
-     * <p>{@code updated_at} はサーバー時刻で更新されます。</p>
-     * <p>論理削除済みのレコードは対象外です。</p>
+     * {@code updated_at} はサーバー時刻で更新されます。
+     * 論理削除済みのレコードは対象外です。
      *
      * @param id             管理者ID（UUID）
      * @param hashedPassword ハッシュ化されたパスワード
@@ -313,16 +305,14 @@ public class SystemAdminDAO extends BaseDAO {
         }
     }
 
-    // =========================
-    // ResultSet -> DTO 変換
-    // =========================
+    /** =========================
+     * ResultSet -> DTO 変換
+     * ========================= */
 
     /**
      * 1レコードを {@link SystemAdminDTO} へ詰め替えます。
-     * <p>
-     * 列順は {@link #SQL_SELECT_BASE} と一致させています。<br>
+     * 列順は {@link #SQL_SELECT_BASE} と一致させています。
      * 例外は {@link DAOException} にラップして上位へ伝播します。
-     * </p>
      *
      * @param rs SELECT 実行結果の現在行
      * @return マッピング済み DTO
@@ -331,7 +321,7 @@ public class SystemAdminDAO extends BaseDAO {
     private SystemAdminDTO mapRow(ResultSet rs) {
         try {
             SystemAdminDTO dto = new SystemAdminDTO();
-            // 1列目から順にマッピング（パフォーマンス重視で getObject(列番号) を使用）
+            /** 1列目から順にマッピング（パフォーマンス重視で getObject(列番号) を使用） */
             dto.setId(rs.getObject(1, UUID.class));
             dto.setMail(rs.getString(2));
             dto.setPassword(rs.getString(3));

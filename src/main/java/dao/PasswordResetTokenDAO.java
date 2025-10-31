@@ -10,17 +10,15 @@ import dto.PasswordResetTokenDTO;
 
 /**
  * {@code password_reset_tokens} テーブルを扱う DAO。
- * <p>
  * パスワードリセット用トークンの保存、取得、更新、削除を行います。
  * トランザクション境界（begin / commit / rollback）は呼び出し側で管理してください。
  * 実行時例外は {@link DAOException} にラップして上位へ伝播します。
- * </p>
  */
 public class PasswordResetTokenDAO extends BaseDAO {
 
-    // ========================
-    // ① フィールド（SQL 定義）
-    // ========================
+    /** ========================
+     * ① フィールド（SQL 定義）
+     * ======================== */
 
     /** 共通 SELECT 句 */
     private static final String SQL_SELECT_BASE =
@@ -62,9 +60,9 @@ public class PasswordResetTokenDAO extends BaseDAO {
         "DELETE FROM password_reset_tokens " +
         " WHERE user_type = ? AND user_id = ?";
 
-    // ========================
-    // ② コンストラクタ
-    // ========================
+    /** ========================
+     * ② コンストラクタ
+     * ======================== */
 
     /**
      * コンストラクタ。
@@ -75,13 +73,13 @@ public class PasswordResetTokenDAO extends BaseDAO {
         super(conn);
     }
 
-    // ========================
-    // ③ メソッド
-    // ========================
+    /** ========================
+     * ③ メソッド
+     * ======================== */
 
     /**
      * トークンをキーにパスワードリセットトークンを1件取得します。
-     * <p>該当なしの場合は空の DTO を返します。呼び出し側で {@code id == null} などで判定してください。</p>
+     * 該当なしの場合は空の DTO を返します。呼び出し側で {@code id == null} などで判定してください。
      *
      * @param token トークン文字列
      * @return 該当 {@link PasswordResetTokenDTO}／未存在時は空 DTO
@@ -96,7 +94,7 @@ public class PasswordResetTokenDAO extends BaseDAO {
                     return mapRow(rs);
                 }
             }
-            // 該当なし → 空 DTO
+            /** 該当なし → 空 DTO */
             return new PasswordResetTokenDTO();
 
         } catch (SQLException e) {
@@ -106,9 +104,9 @@ public class PasswordResetTokenDAO extends BaseDAO {
 
     /**
      * 指定ユーザーの有効なトークンを取得します。
-     * <p>未使用（used_at IS NULL）かつ有効期限内（expires_at > 現在時刻）のトークンを検索します。</p>
-     * <p>複数存在する場合は、最新のもの（created_at DESC）を返します。</p>
-     * <p>該当なしの場合は空の DTO を返します。</p>
+     * 未使用（used_at IS NULL）かつ有効期限内（expires_at > 現在時刻）のトークンを検索します。
+     * 複数存在する場合は、最新のもの（created_at DESC）を返します。
+     * 該当なしの場合は空の DTO を返します。
      *
      * @param userType ユーザータイプ（'admin', 'secretary', 'customer'）
      * @param userId   ユーザーID（UUID）
@@ -125,7 +123,7 @@ public class PasswordResetTokenDAO extends BaseDAO {
                     return mapRow(rs);
                 }
             }
-            // 該当なし → 空 DTO
+            /** 該当なし → 空 DTO */
             return new PasswordResetTokenDTO();
 
         } catch (SQLException e) {
@@ -135,10 +133,8 @@ public class PasswordResetTokenDAO extends BaseDAO {
 
     /**
      * パスワードリセットトークンを新規登録します。
-     * <ul>
-     *   <li>ID は DB 側で {@code gen_random_uuid()} により採番されます。</li>
-     *   <li>{@code created_at} はサーバー時刻で自動設定します。</li>
-     * </ul>
+     * - ID は DB 側で {@code gen_random_uuid()} により採番されます。
+     * - {@code created_at} はサーバー時刻で自動設定します。
      *
      * @param dto 登録するトークン（使用フィールド：userType, userId, token, expiresAt）
      * @return 影響行数（通常 1）
@@ -160,7 +156,7 @@ public class PasswordResetTokenDAO extends BaseDAO {
 
     /**
      * トークンを使用済みにマークします。
-     * <p>{@code used_at} に現在時刻を設定します。</p>
+     * {@code used_at} に現在時刻を設定します。
      *
      * @param token トークン文字列
      * @return 影響行数（通常 1。対象なしの場合は 0）
@@ -178,7 +174,7 @@ public class PasswordResetTokenDAO extends BaseDAO {
 
     /**
      * 期限切れトークンを削除します。
-     * <p>パスワードリセット申請時に呼び出して期限切れトークンを削除します。</p>
+     * パスワードリセット申請時に呼び出して期限切れトークンを削除します。
      *
      * @return 削除された行数
      * @throws DAOException DELETE に失敗した場合
@@ -194,7 +190,7 @@ public class PasswordResetTokenDAO extends BaseDAO {
 
     /**
      * 指定ユーザーの全トークンを削除します。
-     * <p>パスワード再設定完了時に、そのユーザーの過去のトークンをクリーンアップするために使用します。</p>
+     * パスワード再設定完了時に、そのユーザーの過去のトークンをクリーンアップするために使用します。
      *
      * @param userType ユーザータイプ（'admin', 'secretary', 'customer'）
      * @param userId   ユーザーID（UUID）
@@ -212,9 +208,9 @@ public class PasswordResetTokenDAO extends BaseDAO {
         }
     }
 
-    // ========================
-    // ④ マッパー
-    // ========================
+    /** ========================
+     * ④ マッパー
+     * ======================== */
 
     /**
      * ResultSet の1行を PasswordResetTokenDTO にマッピングします。
@@ -226,7 +222,7 @@ public class PasswordResetTokenDAO extends BaseDAO {
     private PasswordResetTokenDTO mapRow(ResultSet rs) throws SQLException {
         PasswordResetTokenDTO dto = new PasswordResetTokenDTO();
 
-        // UUID型のカラムは getObject で取得
+        /** UUID型のカラムは getObject で取得 */
         dto.setId((UUID) rs.getObject("id"));
         dto.setUserType(rs.getString("user_type"));
         dto.setUserId((UUID) rs.getObject("user_id"));

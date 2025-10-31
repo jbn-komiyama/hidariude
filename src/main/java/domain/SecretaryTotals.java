@@ -1,9 +1,11 @@
-// domain/SecretaryTotals.java
 package domain;
 
 import java.io.Serializable;
 import java.math.BigDecimal;
 
+/**
+ * 秘書の通算サマリ値を保持するドメインモデル
+ */
 public class SecretaryTotals implements Serializable {
     private static final long serialVersionUID = 1L;
 

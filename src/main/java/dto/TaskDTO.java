@@ -5,6 +5,9 @@ import java.sql.Date;
 import java.sql.Timestamp;
 import java.util.UUID;
 
+/**
+ * タスク（tasks）テーブルのDTO
+ */
 public class TaskDTO implements Serializable {
 	private static final long serialVersionUID = 1L;
 	
@@ -153,7 +156,7 @@ public class TaskDTO implements Serializable {
 	public void setTotal(int total) {
 		this.total = total;
 	}
-	// TaskDTO.java
+	/** TaskDTO.java */
 	private BigDecimal totalAmountAll;
 	private BigDecimal totalAmountApproved;
 

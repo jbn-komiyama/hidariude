@@ -1,6 +1,3 @@
-// =========================
-// 「【admin】　機能：売上・コスト サマリー表示」
-// =========================
 package service;
 
 import java.math.BigDecimal;
@@ -18,43 +15,54 @@ import jakarta.servlet.http.HttpServletRequest;
 
 /**
  * 売上（顧客×月）・コスト（秘書×月）の会計年度（4月開始）サマリーを提供するサービス。
- * <p>
- * コントローラ（FrontController）からの入口は以下の2メソッドのみ：
- * <ul>
- *   <li>{@link #salesSummary()}  … /admin/summary/sales 用（顧客×月売上）</li>
- *   <li>{@link #costSummary()}   … /admin/summary/costs 用（秘書×月コスト）</li>
- * </ul>
- * <p>
- * 画面へは以下の属性を渡します（いずれも変更なし）：
- * <ul>
- *   <li>{@code "months"}（A_MONTHS）: List&lt;String&gt; … 表示対象の年月（YYYY-MM）12か月（4月→翌3月）</li>
- *   <li>{@code "fy"}（A_FY）: int … 会計年度（4月開始）</li>
- *   <li>{@code "rows"}（A_ROWS）: List&lt;PivotRowDTO&gt; … ピボット行（顧客別or秘書別）</li>
- *   <li>{@code "colTotals"}（A_COLTOTAL）: Map&lt;ym, BigDecimal&gt; … 列合計（各月の合計）</li>
- *   <li>{@code "grandTotal"}（A_GRAND）: BigDecimal … 総合計</li>
- * </ul>
+ *
+ * コントローラ（FrontController）からの入口は以下の2メソッドのみ:
+ * - {@link #salesSummary()}  … /admin/summary/sales 用（顧客×月売上）
+ * - {@link #costSummary()}   … /admin/summary/costs 用（秘書×月コスト）
+ *
+ * 画面へは以下の属性を渡します（いずれも変更なし）:
+ * - {@code "months"}（A_MONTHS）: List&lt;String&gt; … 表示対象の年月（YYYY-MM）12か月（4月→翌3月）
+ * - {@code "fy"}（A_FY）: int … 会計年度（4月開始）
+ * - {@code "rows"}（A_ROWS）: List&lt;PivotRowDTO&gt; … ピボット行（顧客別or秘書別）
+ * - {@code "colTotals"}（A_COLTOTAL）: Map&lt;ym, BigDecimal&gt; … 列合計（各月の合計）
+ * - {@code "grandTotal"}（A_GRAND）: BigDecimal … 総合計
+ *
  * エラー時は {@code "errorMsg"} にメッセージを詰めてエラーページへ遷移します（キー名は既存仕様を踏襲）。
  */
 public class SalesCostSummaryService extends BaseService {
 
-    // ====== ① 定数・共通化（パス／パラメータ名／属性名） ======
+    /**
+     * ① 定数・共通化（パス／パラメータ名／属性名）
+     */
 
     /** ビュー: 売上（顧客×月） */
     private static final String VIEW_SALES = "summary/admin/sales";
     /** ビュー: コスト（秘書×月） */
     private static final String VIEW_COSTS = "summary/admin/costs";
 
-    // --- Request Attribute keys（JSP で参照） ---
-    private static final String A_MONTHS   = "months";      // List<String> YYYY-MM（4月→翌3月）
-    private static final String A_FY       = "fy";          // 表示年度
-    private static final String A_ROWS     = "rows";        // List<PivotRowDTO>
-    private static final String A_COLTOTAL = "colTotals";   // Map<ym, BigDecimal>
-    private static final String A_GRAND    = "grandTotal";  // BigDecimal
+    /**
+     * Request Attribute keys（JSP で参照）
+     * List&lt;String&gt; YYYY-MM（4月→翌3月）: months
+     * 表示年度: fy
+     * List&lt;PivotRowDTO&gt;: rows
+     * Map&lt;ym, BigDecimal&gt;: colTotals
+     * BigDecimal: grandTotal
+     */
+    private static final String A_MONTHS   = "months";
+    private static final String A_FY       = "fy";
+    private static final String A_ROWS     = "rows";
+    private static final String A_COLTOTAL = "colTotals";
+    private static final String A_GRAND    = "grandTotal";
 
-    // --- Request Parameter names（受取） ---
-    private static final String P_FY = "fy";                // 例: 2025（4月開始のFY）
+    /**
+     * Request Parameter names（受取）
+     * 例: 2025（4月開始のFY）
+     */
+    private static final String P_FY = "fy";
 
-    // ====== ② フィールド・コンストラクタ ======
+    /**
+     * ② フィールド・コンストラクタ
+     */
 
     /**
      * コンストラクタ。
@@ -65,18 +73,19 @@ public class SalesCostSummaryService extends BaseService {
         super(req, useDB);
     }
 
-    // ====== ③ コントローラ呼び出しメソッド（admin 用） ======
+    /**
+     * ③ コントローラ呼び出しメソッド（admin 用）
+     */
 
-    // =========================
-    // 「【admin】 機能：売上サマリー（顧客×月）」 
-    // =========================
+    /**
+     * 「【admin】 機能：売上サマリー（顧客×月）」
+     */
     /**
      * 「顧客×月の売上サマリー」を表示する。
-     * <ul>
-     *   <li>request param {@code 'fy'}：会計年度（4月開始）。未指定なら今日からFYを推定。</li>
-     *   <li>対象FYの12か月（4月→翌3月）を生成し、範囲に対して集計クエリを実行。</li>
-     *   <li>列合計と総合計を計算して JSP に渡す。</li>
-     * </ul>
+     * - request param {@code 'fy'}：会計年度（4月開始）。未指定なら今日からFYを推定。
+     * - 対象FYの12か月（4月→翌3月）を生成し、範囲に対して集計クエリを実行。
+     * - 列合計と総合計を計算して JSP に渡す。
+     *
      * @return ビュー名 {@value VIEW_SALES}（エラー時はエラーページ）
      */
     public String salesSummary() {
@@ -84,19 +93,19 @@ public class SalesCostSummaryService extends BaseService {
             final int fy = resolveFiscalYear(req.getParameter(P_FY));
             final List<String> months = buildFiscalMonths(fy);
 
-            // 期間（最初と最後のYM）
+            /** 期間（最初と最後のYM） */
             final String fromYm = months.get(0);
             final String toYm   = months.get(months.size() - 1);
 
-            // DAO 呼び出し：顧客×月の売上ピボット
+            /** DAO 呼び出し：顧客×月の売上ピボット */
             CustomerMonthlyInvoiceDAO dao = new CustomerMonthlyInvoiceDAO(tm.getConnection());
             List<PivotRowDTO> rows = dao.selectSalesByCustomerMonth(fromYm, toYm, months);
 
-            // 列合計・総合計
+            /** 列合計・総合計 */
             Map<String, BigDecimal> colTotals = calcColTotals(months, rows);
             BigDecimal grand = calcGrand(colTotals);
 
-            // JSP へ
+            /** JSP へ */
             req.setAttribute(A_FY, fy);
             req.setAttribute(A_MONTHS, months);
             req.setAttribute(A_ROWS, rows);
@@ -106,23 +115,22 @@ public class SalesCostSummaryService extends BaseService {
             return VIEW_SALES;
 
         } catch (RuntimeException e) {
-            // 例外時は既存のキー "errorMsg" でエラーメッセージを渡す（他画面と統一）
+            /** 例外時は既存のキー "errorMsg" でエラーメッセージを渡す（他画面と統一） */
             validation.addErrorMsg("データベースに不正な操作が行われました");
             req.setAttribute("errorMsg", validation.getErrorMsg());
             return req.getContextPath() + req.getServletPath() + "/error";
         }
     }
 
-    // =========================
-    // 「【admin】 機能：コストサマリー（秘書×月）」 
-    // =========================
+    /**
+     * 「【admin】 機能：コストサマリー（秘書×月）」
+     */
     /**
      * 「秘書×月のコストサマリー」を表示する。
-     * <ul>
-     *   <li>request param {@code 'fy'}：会計年度（4月開始）。未指定なら今日からFYを推定。</li>
-     *   <li>対象FYの12か月（4月→翌3月）を生成し、範囲に対して集計クエリを実行。</li>
-     *   <li>列合計と総合計を計算して JSP に渡す。</li>
-     * </ul>
+     * - request param {@code 'fy'}：会計年度（4月開始）。未指定なら今日からFYを推定。
+     * - 対象FYの12か月（4月→翌3月）を生成し、範囲に対して集計クエリを実行。
+     * - 列合計と総合計を計算して JSP に渡す。
+     *
      * @return ビュー名 {@value VIEW_COSTS}（エラー時はエラーページ）
      */
     public String costSummary() {
@@ -155,14 +163,15 @@ public class SalesCostSummaryService extends BaseService {
         }
     }
 
-    // ====== ④ ヘルパーメソッド（private） ======
+    /**
+     * ④ ヘルパーメソッド（private）
+     */
 
     /**
      * 4月開始の会計年度（FY）を決定する。パラメータ優先、無い/不正なら今日で推定。
-     * <ul>
-     *   <li>4〜12月 … その年がFY</li>
-     *   <li>1〜3月  … 前年がFY</li>
-     * </ul>
+     * - 4〜12月 … その年がFY
+     * - 1〜3月  … 前年がFY
+     *
      * @param paramFy リクエストパラメータ {@code "fy"}（null/空/不正は無視）
      * @return 決定した FY（int）
      */
@@ -180,7 +189,8 @@ public class SalesCostSummaryService extends BaseService {
 
     /**
      * 指定 FY の 12か月（4月→翌3月）を "YYYY-MM" で返す。
-     * <p>例：fy=2025 → 2025-04, …, 2026-03</p>
+     * 例：fy=2025 → 2025-04, …, 2026-03
+     *
      * @param fy 会計年度（4月開始）
      * @return 12要素の年月リスト（昇順）
      */

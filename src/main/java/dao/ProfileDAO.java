@@ -16,11 +16,11 @@ import dto.ProfileDTO;
 
 /**
  * profiles テーブルDAO。
- * <p>主に「秘書IDに紐づく1件」を前提に、UPSERTで登録/変更を担います。</p>
+ * 主に「秘書IDに紐づく1件」を前提に、UPSERTで登録/変更を担います。
  */
 public class ProfileDAO extends BaseDAO {
 
-    // ============== SQL ==============
+    /** ============== SQL ============== */
     private static final String SQL_SELECT_BY_SECRETARY =
         "SELECT id, secretary_id, " +
         " weekday_morning, weekday_daytime, weekday_night, " +
@@ -41,8 +41,8 @@ public class ProfileDAO extends BaseDAO {
     	  + " monthly_work_hours, remark, qualification, work_history, academic_background, self_introduction, "
     	  + " created_at, updated_at"
     	  + ") VALUES ("
-    	  + " gen_random_uuid(), "     // id
-    	  + " ?, ?, ?, ?, ?,	 ?, ?, ?, ?, ?, 	?, ?, ?, ?, ?,	 ?, ?, ?, ?,  " // ← ここが 19 個の ? になる
+    	  + " gen_random_uuid(), "     /** id */
+    	  + " ?, ?, ?, ?, ?,	 ?, ?, ?, ?, ?, 	?, ?, ?, ?, ?,	 ?, ?, ?, ?,  " /** ここが 19 個の ? になる */
     	  + " CURRENT_TIMESTAMP, CURRENT_TIMESTAMP"
     	  + ") ON CONFLICT (secretary_id) DO UPDATE SET "
     	  + " weekday_morning     = EXCLUDED.weekday_morning, "
@@ -65,13 +65,12 @@ public class ProfileDAO extends BaseDAO {
     	  + " self_introduction   = EXCLUDED.self_introduction, "
     	  + " updated_at          = CURRENT_TIMESTAMP";
     
-    
- // ★ 置き換え：pref_score を内側で計算 → 外側で参照できるようにする
+    /** 置き換え：pref_score を内側で計算 → 外側で参照できるようにする */
     private static final String SQL_SELECT_CANDIDATE_SECRETARY =
         "WITH sms AS (\n" +
         "  SELECT secretary_id, SUM(total_work_time) AS total_min\n" +
         "  FROM secretary_monthly_summaries\n" +
-        "  WHERE target_year_month = ?\n" +                                // 1: prevYM
+        "  WHERE target_year_month = ?\n" +                                /** 1: prevYM */
         "  GROUP BY secretary_id\n" +
         ")\n" +
         "SELECT * FROM (\n" +
@@ -103,30 +102,30 @@ public class ProfileDAO extends BaseDAO {
         "    CASE WHEN p.sunday_morning   >= 2 THEN 2 WHEN p.sunday_morning   = 1 THEN 1 ELSE 0 END AS sc_su_m,\n" +
         "    CASE WHEN p.sunday_daytime   >= 2 THEN 2 WHEN p.sunday_daytime   = 1 THEN 1 ELSE 0 END AS sc_su_d,\n" +
         "    CASE WHEN p.sunday_night     >= 2 THEN 2 WHEN p.sunday_night     = 1 THEN 1 ELSE 0 END AS sc_su_n,\n" +
-        "    (?::int)*CASE WHEN p.weekday_morning  >= 2 THEN 2 WHEN p.weekday_morning  = 1 THEN 1 ELSE 0 END +\n" + // 2
-        "    (?::int)*CASE WHEN p.weekday_daytime  >= 2 THEN 2 WHEN p.weekday_daytime  = 1 THEN 1 ELSE 0 END +\n" + // 3
-        "    (?::int)*CASE WHEN p.weekday_night    >= 2 THEN 2 WHEN p.weekday_night    = 1 THEN 1 ELSE 0 END +\n" + // 4
-        "    (?::int)*CASE WHEN p.saturday_morning >= 2 THEN 2 WHEN p.saturday_morning = 1 THEN 1 ELSE 0 END +\n" + // 5
-        "    (?::int)*CASE WHEN p.saturday_daytime >= 2 THEN 2 WHEN p.saturday_daytime = 1 THEN 1 ELSE 0 END +\n" + // 6
-        "    (?::int)*CASE WHEN p.saturday_night   >= 2 THEN 2 WHEN p.saturday_night   = 1 THEN 1 ELSE 0 END +\n" + // 7
-        "    (?::int)*CASE WHEN p.sunday_morning   >= 2 THEN 2 WHEN p.sunday_morning   = 1 THEN 1 ELSE 0 END +\n" + // 8
-        "    (?::int)*CASE WHEN p.sunday_daytime   >= 2 THEN 2 WHEN p.sunday_daytime   = 1 THEN 1 ELSE 0 END +\n" + // 9
-        "    (?::int)*CASE WHEN p.sunday_night     >= 2 THEN 2 WHEN p.sunday_night     = 1 THEN 1 ELSE 0 END\n" +   // 10
+        "    (?::int)*CASE WHEN p.weekday_morning  >= 2 THEN 2 WHEN p.weekday_morning  = 1 THEN 1 ELSE 0 END +\n" + /** 2 */
+        "    (?::int)*CASE WHEN p.weekday_daytime  >= 2 THEN 2 WHEN p.weekday_daytime  = 1 THEN 1 ELSE 0 END +\n" + /** 3 */
+        "    (?::int)*CASE WHEN p.weekday_night    >= 2 THEN 2 WHEN p.weekday_night    = 1 THEN 1 ELSE 0 END +\n" + /** 4 */
+        "    (?::int)*CASE WHEN p.saturday_morning >= 2 THEN 2 WHEN p.saturday_morning = 1 THEN 1 ELSE 0 END +\n" + /** 5 */
+        "    (?::int)*CASE WHEN p.saturday_daytime >= 2 THEN 2 WHEN p.saturday_daytime = 1 THEN 1 ELSE 0 END +\n" + /** 6 */
+        "    (?::int)*CASE WHEN p.saturday_night   >= 2 THEN 2 WHEN p.saturday_night   = 1 THEN 1 ELSE 0 END +\n" + /** 7 */
+        "    (?::int)*CASE WHEN p.sunday_morning   >= 2 THEN 2 WHEN p.sunday_morning   = 1 THEN 1 ELSE 0 END +\n" + /** 8 */
+        "    (?::int)*CASE WHEN p.sunday_daytime   >= 2 THEN 2 WHEN p.sunday_daytime   = 1 THEN 1 ELSE 0 END +\n" + /** 9 */
+        "    (?::int)*CASE WHEN p.sunday_night     >= 2 THEN 2 WHEN p.sunday_night     = 1 THEN 1 ELSE 0 END\n" +   /** 10 */
         "    AS pref_score\n" +
         "  FROM profiles p\n" +
         "  JOIN secretaries s ON s.id = p.secretary_id AND s.deleted_at IS NULL\n" +
-        "  LEFT JOIN secretary_rank sr ON sr.id = s.secretary_rank_id\n" +           // ★ pluralに修正
+        "  LEFT JOIN secretary_rank sr ON sr.id = s.secretary_rank_id\n" +           /** pluralに修正 */
         "  LEFT JOIN sms ON sms.secretary_id = s.id\n" +
         "  WHERE p.deleted_at IS NULL\n" +
-        "    AND (NOT ? OR p.weekday_morning  IN (1,2))\n" + // 11
-        "    AND (NOT ? OR p.weekday_daytime  IN (1,2))\n" + // 12
-        "    AND (NOT ? OR p.weekday_night    IN (1,2))\n" + // 13
-        "    AND (NOT ? OR p.saturday_morning IN (1,2))\n" + // 14
-        "    AND (NOT ? OR p.saturday_daytime IN (1,2))\n" + // 15
-        "    AND (NOT ? OR p.saturday_night   IN (1,2))\n" + // 16
-        "    AND (NOT ? OR p.sunday_morning   IN (1,2))\n" + // 17
-        "    AND (NOT ? OR p.sunday_daytime   IN (1,2))\n" + // 18
-        "    AND (NOT ? OR p.sunday_night     IN (1,2))\n" + // 19
+        "    AND (NOT ? OR p.weekday_morning  IN (1,2))\n" + /** 11 */
+        "    AND (NOT ? OR p.weekday_daytime  IN (1,2))\n" + /** 12 */
+        "    AND (NOT ? OR p.weekday_night    IN (1,2))\n" + /** 13 */
+        "    AND (NOT ? OR p.saturday_morning IN (1,2))\n" + /** 14 */
+        "    AND (NOT ? OR p.saturday_daytime IN (1,2))\n" + /** 15 */
+        "    AND (NOT ? OR p.saturday_night   IN (1,2))\n" + /** 16 */
+        "    AND (NOT ? OR p.sunday_morning   IN (1,2))\n" + /** 17 */
+        "    AND (NOT ? OR p.sunday_daytime   IN (1,2))\n" + /** 18 */
+        "    AND (NOT ? OR p.sunday_night     IN (1,2))\n" + /** 19 */
         ") q\n" +
         "ORDER BY\n" +
         "  CASE WHEN (?::int + ?::int + ?::int + ?::int + ?::int + ?::int + ?::int + ?::int + ?::int) > 0\n" +
@@ -136,10 +135,11 @@ public class ProfileDAO extends BaseDAO {
 
     public ProfileDAO(Connection conn) { super(conn); }
 
-    // ============== SELECT ==============
+    /** ============== SELECT ============== */
 
     /**
      * 秘書IDでプロフィールを1件取得します。
+     *
      * @param secretaryId 秘書ID
      * @return 見つかればDTO、なければ null
      * @throws DAOException DB失敗時
@@ -210,48 +210,47 @@ public class ProfileDAO extends BaseDAO {
         };
         String dir = desc ? "DESC" : "ASC";
         
-     // ★ q. を付けて外側でソート
+        /** q. を付けて外側でソート */
         String sql = SQL_SELECT_CANDIDATE_SECRETARY + "q." + sortCol + " " + dir + ", q.name ASC";
 
         List<Map<String, Object>> list = new ArrayList<>();
-//        String sql = SQL_SELECT_CANDIDATE_SECRETARY + sortCol + " " + dir + ", name ASC";
 
         try (PreparedStatement ps = conn.prepareStatement(sql)) {
             int i = 1;
-            ps.setString(i++, prevYM);        // 1: 先月(YYYY-MM)
+            ps.setString(i++, prevYM);        /** 1: 先月(YYYY-MM) */
 
-            // pref_score の重み（ON=1/OFF=0）
-            ps.setInt(i++, fWdM ? 1 : 0);     // 2
-            ps.setInt(i++, fWdD ? 1 : 0);     // 3
-            ps.setInt(i++, fWdN ? 1 : 0);     // 4
-            ps.setInt(i++, fSaM ? 1 : 0);     // 5
-            ps.setInt(i++, fSaD ? 1 : 0);     // 6
-            ps.setInt(i++, fSaN ? 1 : 0);     // 7
-            ps.setInt(i++, fSuM ? 1 : 0);     // 8
-            ps.setInt(i++, fSuD ? 1 : 0);     // 9
-            ps.setInt(i++, fSuN ? 1 : 0);     // 10
+            /** pref_score の重み（ON=1/OFF=0） */
+            ps.setInt(i++, fWdM ? 1 : 0);     /** 2 */
+            ps.setInt(i++, fWdD ? 1 : 0);     /** 3 */
+            ps.setInt(i++, fWdN ? 1 : 0);     /** 4 */
+            ps.setInt(i++, fSaM ? 1 : 0);     /** 5 */
+            ps.setInt(i++, fSaD ? 1 : 0);     /** 6 */
+            ps.setInt(i++, fSaN ? 1 : 0);     /** 7 */
+            ps.setInt(i++, fSuM ? 1 : 0);     /** 8 */
+            ps.setInt(i++, fSuD ? 1 : 0);     /** 9 */
+            ps.setInt(i++, fSuN ? 1 : 0);     /** 10 */
 
-            // WHERE の ON/OFF
-            ps.setBoolean(i++, fWdM);         // 11
-            ps.setBoolean(i++, fWdD);         // 12
-            ps.setBoolean(i++, fWdN);         // 13
-            ps.setBoolean(i++, fSaM);         // 14
-            ps.setBoolean(i++, fSaD);         // 15
-            ps.setBoolean(i++, fSaN);         // 16
-            ps.setBoolean(i++, fSuM);         // 17
-            ps.setBoolean(i++, fSuD);         // 18
-            ps.setBoolean(i++, fSuN);         // 19
+            /** WHERE の ON/OFF */
+            ps.setBoolean(i++, fWdM);         /** 11 */
+            ps.setBoolean(i++, fWdD);         /** 12 */
+            ps.setBoolean(i++, fWdN);         /** 13 */
+            ps.setBoolean(i++, fSaM);         /** 14 */
+            ps.setBoolean(i++, fSaD);         /** 15 */
+            ps.setBoolean(i++, fSaN);         /** 16 */
+            ps.setBoolean(i++, fSuM);         /** 17 */
+            ps.setBoolean(i++, fSuD);         /** 18 */
+            ps.setBoolean(i++, fSuN);         /** 19 */
 
-            // ORDER BY の「指定あり」判定用（sum>0）
-            ps.setInt(i++, fWdM ? 1 : 0);     // 20
-            ps.setInt(i++, fWdD ? 1 : 0);     // 21
-            ps.setInt(i++, fWdN ? 1 : 0);     // 22
-            ps.setInt(i++, fSaM ? 1 : 0);     // 23
-            ps.setInt(i++, fSaD ? 1 : 0);     // 24
-            ps.setInt(i++, fSaN ? 1 : 0);     // 25
-            ps.setInt(i++, fSuM ? 1 : 0);     // 26
-            ps.setInt(i++, fSuD ? 1 : 0);     // 27
-            ps.setInt(i++, fSuN ? 1 : 0);     // 28
+            /** ORDER BY の「指定あり」判定用（sum>0） */
+            ps.setInt(i++, fWdM ? 1 : 0);     /** 20 */
+            ps.setInt(i++, fWdD ? 1 : 0);     /** 21 */
+            ps.setInt(i++, fWdN ? 1 : 0);     /** 22 */
+            ps.setInt(i++, fSaM ? 1 : 0);     /** 23 */
+            ps.setInt(i++, fSaD ? 1 : 0);     /** 24 */
+            ps.setInt(i++, fSaN ? 1 : 0);     /** 25 */
+            ps.setInt(i++, fSuM ? 1 : 0);     /** 26 */
+            ps.setInt(i++, fSuD ? 1 : 0);     /** 27 */
+            ps.setInt(i++, fSuN ? 1 : 0);     /** 28 */
 
             try (ResultSet rs = ps.executeQuery()) {
             	
@@ -287,10 +286,11 @@ public class ProfileDAO extends BaseDAO {
         return list;
     }
 
-    // ============== UPSERT ==============
+    /** ============== UPSERT ============== */
 
     /**
      * secretary_id をキーに UPSERT（登録/更新）します。
+     *
      * @param d 保存対象DTO（secretaryId必須）
      * @return 影響行数
      * @throws DAOException DB失敗時

@@ -1,18 +1,14 @@
-// TaskDAO.java
 package dao;
 
 import java.lang.reflect.Method;
 import java.math.BigDecimal;
-import java.math.RoundingMode;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Types;
 import java.util.ArrayList;
-import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.UUID;
 
 import dto.AssignmentDTO;
@@ -24,34 +20,30 @@ import dto.TaskDTO;
 /**
  * タスク（tasks）に関するデータアクセスを担うDAO。
  *
- * <p>責務：</p>
- * <ul>
- *   <li>タスクの検索（秘書／顧客／月別、状態別、キーワード条件）</li>
- *   <li>タスクの単一取得</li>
- *   <li>タスクの登録・更新・論理削除・承認/承認取消/差戻し</li>
- *   <li>ダッシュボード用の月次集計（admin / secretary / customer）</li>
- *   <li>顧客×月の承認済み金額集計</li>
- * </ul>
+ * 責務：
+ * - タスクの検索（秘書／顧客／月別、状態別、キーワード条件）
+ * - タスクの単一取得
+ * - タスクの登録・更新・論理削除・承認/承認取消/差戻し
+ * - ダッシュボード用の月次集計（admin / secretary / customer）
+ * - 顧客×月の承認済み金額集計
  *
- * <p>設計メモ：</p>
- * <ul>
- *   <li>本DAOは呼び出し側から渡される {@link Connection} に依存（トランザクション境界は呼び出し側が管理）</li>
- *   <li>DB例外は {@link DAOException} にラップして送出</li>
- *   <li>JOIN先のカラムはエイリアス（t_*, a_*, tr_*, c_*, s_*）を付与し混同を防止</li>
- * </ul>
+ * 設計メモ：
+ * - 本DAOは呼び出し側から渡される {@link Connection} に依存（トランザクション境界は呼び出し側が管理）
+ * - DB例外は {@link DAOException} にラップして送出
+ * - JOIN先のカラムはエイリアス（t_*, a_*, tr_*, c_*, s_*）を付与し混同を防止
  */
 public class TaskDAO extends BaseDAO {
 
-	// ========================
-	// ① フィールド（SQL 定義）
-	// ========================
+	/** ========================
+	 * ① フィールド（SQL 定義）
+	 * ======================== */
 
 	/**
 	 * 秘書ID・顧客ID・年月(YYYY-MM)でタスク取得（tasks + assignments + task_rank）。
-	 * <p>並び順：t.start_time</p>
+	 * 並び順：t.start_time
 	 */
 	private static final String SQL_SELECT_BY_SEC_CUST_MONTH = "SELECT "
-			// ---- tasks.* と差戻し情報 ----
+			/** ---- tasks.* と差戻し情報 ---- */
 			+ "  t.id AS t_id, t.assignment_id AS t_assignment_id, t.work_date AS t_work_date, "
 			+ "  t.start_time AS t_start_time, t.end_time AS t_end_time, t.work_minute AS t_work_minute, "
 			+ "  t.work_content AS t_work_content, t.approved_at AS t_approved_at, "
@@ -59,7 +51,7 @@ public class TaskDAO extends BaseDAO {
 			+ "  t.secretary_monthly_summary_id AS t_secretary_monthly_summary_id, t.created_at AS t_created_at, "
 			+ "  t.updated_at AS t_updated_at, t.deleted_at AS t_deleted_at, "
 			+ "  t.remanded_at AS t_remanded_at, t.remanded_by AS t_remanded_by, t.remand_comment AS t_remand_comment, "
-			// ---- assignments.* ----
+			/** ---- assignments.* ---- */
 			+ "  a.id AS a_id, a.customer_id AS a_customer_id, a.secretary_id AS a_secretary_id, "
 			+ "  a.task_rank_id AS a_task_rank_id, a.target_year_month AS a_target_year_month, "
 			+ "  a.base_pay_customer AS a_base_pay_customer, a.base_pay_secretary AS a_base_pay_secretary, "
@@ -68,7 +60,7 @@ public class TaskDAO extends BaseDAO {
 			+ "  a.customer_based_incentive_for_customer AS a_cust_incentive_for_customer, "
 			+ "  a.customer_based_incentive_for_secretary AS a_cust_incentive_for_secretary, "
 			+ "  a.status AS a_status, a.created_at AS a_created_at, a.updated_at AS a_updated_at, a.deleted_at AS a_deleted_at, "
-			// ---- task_rank ----
+			/** ---- task_rank ---- */
 			+ "  tr.rank_name AS tr_rank_name "
 			+ "FROM tasks t "
 			+ "JOIN assignments a ON a.id = t.assignment_id AND a.deleted_at IS NULL "
@@ -81,7 +73,7 @@ public class TaskDAO extends BaseDAO {
 
 	/**
 	 * 月別検索の共通ベース（WHERE: target_year_month = ? / t.deleted_at IS NULL）。
-	 * <p>ORDER BY は呼び出し側で付与。</p>
+	 * ORDER BY は呼び出し側で付与。
 	 */
 	private static final String SQL_SELECT_BY_MONTH_BASE = "SELECT "
 			+ "  t.id AS t_id, t.assignment_id AS t_assignment_id, t.work_date AS t_work_date, "
@@ -242,11 +234,11 @@ public class TaskDAO extends BaseDAO {
 			"  t.remand_comment AS t_remand_comment, " +
 			"       s.name                             AS secretary_name, " +
 			"       tr.rank_name                       AS rank_name, " +
-			"       /* ===== 単価（顧客向け）===== */ " +
+			"       " + /** ===== 単価（顧客向け）===== */
 			"       ( COALESCE(a.base_pay_customer, 0) " +
 			"       + COALESCE(a.increase_base_pay_customer, 0) " +
 			"       + COALESCE(a.customer_based_incentive_for_customer, 0) ) AS unit_price_customer, " +
-			"       /* ===== コスト（単価 × 分/60）===== */ " +
+			"       " + /** ===== コスト（単価 × 分/60）===== */
 			"       ( ( COALESCE(a.base_pay_customer, 0) " +
 			"         + COALESCE(a.increase_base_pay_customer, 0) " +
 			"         + COALESCE(a.customer_based_incentive_for_customer, 0) ) " +
@@ -258,14 +250,13 @@ public class TaskDAO extends BaseDAO {
 			"  LEFT JOIN task_rank tr ON tr.id = a.task_rank_id AND tr.deleted_at IS NULL " +
 			" WHERE t.deleted_at IS NULL " +
 			"   AND a.customer_id = ? " +
-			"   AND t.work_date >= to_date(?, 'YYYY-MM') " + // ym の月初
-			"   AND t.work_date <  (to_date(?, 'YYYY-MM') + INTERVAL '1 month') " + // 翌月月初
+			"   AND t.work_date >= to_date(?, 'YYYY-MM') " + /** ym の月初 */
+			"   AND t.work_date <  (to_date(?, 'YYYY-MM') + INTERVAL '1 month') " + /** 翌月月初 */
 			" ORDER BY t.work_date DESC, t.start_time DESC ";
 
 	/** 顧客の確認申請を記録（alerted_at と alerted_comment を更新） */
 	private static final String SQL_ALERT = "UPDATE tasks SET alerted_at = CURRENT_TIMESTAMP, updated_at = CURRENT_TIMESTAMP, alerted_comment = ? WHERE id = ?";
 
-	// TaskDAO.java （クラス先頭のSQL群に追加）
 	/** 顧客からのアラート一覧取得用 */
 	private static final String SQL_SELECT_ALERT_LIST = "SELECT "
 			+ "  t.id AS t_id, "
@@ -294,9 +285,9 @@ public class TaskDAO extends BaseDAO {
 	private static final String SQL_ALERT_DELETE =
 	    "UPDATE tasks SET alerted_at = NULL, updated_at = CURRENT_TIMESTAMP WHERE id = ?";
 
-	// ========================
-	// ② フィールド／コンストラクタ
-	// ========================
+	/** ========================
+	 * ② フィールド／コンストラクタ
+	 * ======================== */
 
 	/**
 	 * コンストラクタ。
@@ -307,19 +298,16 @@ public class TaskDAO extends BaseDAO {
 		super(conn);
 	}
 
-	// ========================
-	// ③ メソッド（アクター別）
-	// ========================
-
-	// ---------- secretary 用 ----------
-
-	// =========================
-	// SELECT
-	// =========================
+	/** ========================
+	 * ③ メソッド（アクター別）
+	 * ---------- secretary 用 ----------
+	 * =========================
+	 * SELECT
+	 * ========================= */
 
 	/**
 	 * 秘書 × 顧客 × 年月でタスク一覧を取得します。
-	 * <p>tasks／assignments／task_rank を結合し、開始時刻で昇順に並べます。</p>
+	 * tasks／assignments／task_rank を結合し、開始時刻で昇順に並べます。
 	 *
 	 * @param secretaryId 秘書ID
 	 * @param customerId  顧客ID
@@ -339,7 +327,7 @@ public class TaskDAO extends BaseDAO {
 				while (rs.next()) {
 					TaskDTO t = new TaskDTO();
 
-					// tasks.*
+					/** tasks.* */
 					t.setId(rs.getObject("t_id", UUID.class));
 					AssignmentDTO ad = new AssignmentDTO();
 					ad.setAssignmentId(rs.getObject("a_id", UUID.class));
@@ -378,7 +366,7 @@ public class TaskDAO extends BaseDAO {
 					t.setUpdatedAt(rs.getTimestamp("t_updated_at"));
 					t.setDeletedAt(rs.getTimestamp("t_deleted_at"));
 
-					// assignments.*
+					/** assignments.* */
 					ad.setAssignmentCustomerId(rs.getObject("a_customer_id", UUID.class));
 					ad.setAssignmentSecretaryId(rs.getObject("a_secretary_id", UUID.class));
 					ad.setTaskRankId(rs.getObject("a_task_rank_id", UUID.class));
@@ -395,7 +383,7 @@ public class TaskDAO extends BaseDAO {
 					ad.setAssignmentDeletedAt(rs.getTimestamp("a_deleted_at"));
 					ad.setTaskRankName(rs.getString("tr_rank_name"));
 
-					// 差戻し情報
+					/** 差戻し情報 */
 					t.setRemandedAt(rs.getTimestamp("t_remanded_at"));
 					t.setRemandedBy(rs.getObject("t_remanded_by", UUID.class));
 					t.setRemandComment(rs.getString("t_remand_comment"));
@@ -411,7 +399,7 @@ public class TaskDAO extends BaseDAO {
 
 	/**
 	 * 秘書 × 年月（＋状態）でタスク一覧を取得します。
-	 * <p>状態は {@code approved|unapproved|remanded|all} を受け付けます。</p>
+	 * 状態は {@code approved|unapproved|remanded|all} を受け付けます。
 	 *
 	 * @param secretaryId 秘書ID
 	 * @param yearMonth   対象年月（"YYYY-MM"）
@@ -421,13 +409,13 @@ public class TaskDAO extends BaseDAO {
 	 */
 	public List<TaskDTO> selectBySecretaryAndMonth(UUID secretaryId, String yearMonth, String status) {
 		StringBuilder sql = new StringBuilder(SQL_SELECT_BY_SEC_MONTH_BASE);
-		// 状態による絞り込み
+		/** 状態による絞り込み */
 		switch (status == null ? "all" : status) {
 		case "approved" -> sql.append(" AND t.approved_at IS NOT NULL ");
 		case "unapproved" -> sql.append(" AND t.approved_at IS NULL AND t.remanded_at IS NULL ");
 		case "remanded" -> sql.append(" AND t.remanded_at IS NOT NULL ");
 		default -> {
-			/* all */ }
+			/** all */ }
 		}
 		sql.append(" ORDER BY c.company_name, t.work_date, t.start_time ");
 
@@ -473,7 +461,7 @@ public class TaskDAO extends BaseDAO {
 					ad.setCustomerBasedIncentiveForCustomer(rs.getBigDecimal("a_cust_incentive_for_customer"));
 					ad.setCustomerBasedIncentiveForSecretary(rs.getBigDecimal("a_cust_incentive_for_secretary"));
 
-					// 合算時給（表示補助）
+					/** 合算時給（表示補助） */
 					ad.setHourlyPaySecretary(rs.getBigDecimal("a_all_pay_secretary"));
 					ad.setHourlyPayCustomer(rs.getBigDecimal("a_all_pay_customer"));
 
@@ -491,11 +479,11 @@ public class TaskDAO extends BaseDAO {
 		return list;
 	}
 
-	// ---------- admin 用 ----------
+	/** ---------- admin 用 ---------- */
 
 	/**
 	 * 対象年月のタスク一覧を取得します（管理者用、全体）。
-	 * <p>内部の共通ベースSQL（{@code SQL_SELECT_BY_MONTH_BASE}）を使用し、日付→顧客→開始時刻で並べます。</p>
+	 * 内部の共通ベースSQL（{@code SQL_SELECT_BY_MONTH_BASE}）を使用し、日付→顧客→開始時刻で並べます。
 	 *
 	 * @param yearMonth 対象年月（"YYYY-MM"）
 	 * @return {@link TaskDTO} のリスト
@@ -648,7 +636,7 @@ public class TaskDAO extends BaseDAO {
 
 	/**
 	 * 対象年月のタスク一覧（状態＋キーワード：秘書名/会社名）を取得します（管理者用、全体）。
-	 * <p>文字列条件は部分一致・大文字小文字無視（ILIKE）。</p>
+	 * 文字列条件は部分一致・大文字小文字無視（ILIKE）。
 	 *
 	 * @param yearMonth         対象年月（"YYYY-MM"）
 	 * @param status            状態（approved|unapproved|remanded|all）
@@ -661,16 +649,16 @@ public class TaskDAO extends BaseDAO {
 			String secretaryNameLike, String customerNameLike) {
 		StringBuilder sql = new StringBuilder(SQL_SELECT_BY_MONTH_BASE);
 
-		// 状態フィルタ
+		/** 状態フィルタ */
 		switch (status) {
 		case "approved" -> sql.append(" AND t.approved_at IS NOT NULL ");
 		case "unapproved" -> sql.append(" AND t.approved_at IS NULL ");
 		case "remanded" -> sql.append(" AND t.remanded_at IS NOT NULL ");
 		default -> {
-			/* all */ }
+			/** all */ }
 		}
 
-		// 文字列フィルタ
+		/** 文字列フィルタ */
 		if (secretaryNameLike != null && !secretaryNameLike.isBlank()) {
 			sql.append(" AND s.name ILIKE ? ");
 		}
@@ -741,9 +729,9 @@ public class TaskDAO extends BaseDAO {
 		return list;
 	}
 
-	// =========================
-	// 単一取得
-	// =========================
+	/** =========================
+	 * 単一取得
+	 * ========================= */
 
 	/**
 	 * tasks.id で単一タスクを取得します（論理未削除のみ）。
@@ -764,7 +752,7 @@ public class TaskDAO extends BaseDAO {
 
 				TaskDTO t = new TaskDTO();
 
-				// tasks.*
+				/** tasks.* */
 				t.setId(rs.getObject("t_id", UUID.class));
 				AssignmentDTO ad = new AssignmentDTO();
 				ad.setAssignmentId(rs.getObject("a_id", UUID.class));
@@ -802,7 +790,7 @@ public class TaskDAO extends BaseDAO {
 				t.setUpdatedAt(rs.getTimestamp("t_updated_at"));
 				t.setDeletedAt(rs.getTimestamp("t_deleted_at"));
 
-				// assignments.*
+				/** assignments.* */
 				ad.setAssignmentCustomerId(rs.getObject("a_customer_id", UUID.class));
 				ad.setAssignmentSecretaryId(rs.getObject("a_secretary_id", UUID.class));
 				ad.setTaskRankId(rs.getObject("a_task_rank_id", UUID.class));
@@ -818,7 +806,7 @@ public class TaskDAO extends BaseDAO {
 				ad.setAssignmentUpdatedAt(rs.getTimestamp("a_updated_at"));
 				ad.setAssignmentDeletedAt(rs.getTimestamp("a_deleted_at"));
 
-				// task_rank
+				/** task_rank */
 				ad.setTaskRankName(rs.getString("tr_rank_name"));
 
 				return t;
@@ -828,20 +816,18 @@ public class TaskDAO extends BaseDAO {
 		}
 	}
 
-	// =========================
-	// SELECT（customer 用）
-	// =========================
+	/** =========================
+	 * SELECT（customer 用）
+	 * ========================= */
 
 	/**
-	 * 顧客向けタスク一覧を取得します（最新順）。<br>
-	 * <ul>
-	 *   <li>単価 = assignments.base_pay_customer + assignments.increase_base_pay_customer + assignments.customer_based_incentive_for_customer</li>
-	 *   <li>コスト = 単価 × tasks.work_minute / 60（四捨五入、整数円）</li>
-	 *   <li>戻り値は List&lt;TaskDTO&gt;</li>
-	 * </ul>
+	 * 顧客向けタスク一覧を取得します（最新順）。
+	 * - 単価 = assignments.base_pay_customer + assignments.increase_base_pay_customer + assignments.customer_based_incentive_for_customer
+	 * - コスト = 単価 × tasks.work_minute / 60（四捨五入、整数円）
+	 * - 戻り値は List&lt;TaskDTO&gt;
 	 *
 	 * @param customerId 顧客ID
-	 * @param limit      件数（null/0以下は 200 件）
+	 * @param ym         対象年月（YYYY-MM）
 	 * @return タスクDTOのリスト
 	 * @throws DAOException 取得時エラー
 	 */
@@ -859,9 +845,9 @@ public class TaskDAO extends BaseDAO {
 				while (rs.next()) {
 					TaskDTO d = new TaskDTO();
 					d.setId(rs.getObject("task_id", UUID.class));
-					d.setWorkDate(rs.getDate("work_date")); // java.sql.Date
-					d.setStartTime(rs.getTimestamp("start_time")); // java.sql.Timestamp
-					d.setEndTime(rs.getTimestamp("end_time")); // java.sql.Timestamp
+					d.setWorkDate(rs.getDate("work_date")); /** java.sql.Date */
+					d.setStartTime(rs.getTimestamp("start_time")); /** java.sql.Timestamp */
+					d.setEndTime(rs.getTimestamp("end_time")); /** java.sql.Timestamp */
 
 					Integer mins = rs.getObject("work_minute") == null ? null : rs.getInt("work_minute");
 					d.setWorkMinute(mins);
@@ -884,12 +870,12 @@ public class TaskDAO extends BaseDAO {
 					adto.setHourlyPayCustomer(unitPrice);
 					d.setAssignment(adto);
 
-					// TaskDTO にコスト用フィールドがある場合（例：setCostCustomer）
+					/** TaskDTO にコスト用フィールドがある場合（例：setCostCustomer） */
 					try {
 						Method m = TaskDTO.class.getMethod("setCostCustomer", BigDecimal.class);
 						m.invoke(d, rs.getBigDecimal("cost_customer"));
 					} catch (NoSuchMethodException ignore) {
-						// フィールドが無い場合は JSP 側で算出（EL）する前提
+						/** フィールドが無い場合は JSP 側で算出（EL）する前提 */
 					} catch (Exception ex) {
 						throw new SQLException("TaskDTO への costCustomer セットに失敗", ex);
 					}
@@ -904,14 +890,14 @@ public class TaskDAO extends BaseDAO {
 		}
 	}
 
-	// =========================
-	// INSERT / UPDATE / DELETE
-	// =========================
+	/** =========================
+	 * INSERT / UPDATE / DELETE
+	 * ========================= */
 
 	/**
 	 * タスクを新規登録します。
-	 * <p>必須：assignment.id, workDate, startTime, endTime, workMinute, workContent</p>
-	 * <p>任意：approvedAt/By, customerMonthlyInvoiceId, secretaryMonthlySummaryId</p>
+	 * 必須：assignment.id, workDate, startTime, endTime, workMinute, workContent
+	 * 任意：approvedAt/By, customerMonthlyInvoiceId, secretaryMonthlySummaryId
 	 *
 	 * @param dto 登録対象 {@link TaskDTO}
 	 * @return 採番された {@code tasks.id}
@@ -921,14 +907,14 @@ public class TaskDAO extends BaseDAO {
 		try (PreparedStatement ps = conn.prepareStatement(SQL_INSERT)) {
 			int i = 1;
 
-			// assignment_id（必須）
+			/** assignment_id（必須） */
 			UUID assignmentId = (dto.getAssignment() != null) ? dto.getAssignment().getAssignmentId() : null;
 			if (assignmentId == null) {
 				throw new DAOException("E:TS21 assignmentId が未設定です。");
 			}
 			ps.setObject(i++, assignmentId);
 
-			// work_date / start_time / end_time / work_minute / work_content（必須）
+			/** work_date / start_time / end_time / work_minute / work_content（必須） */
 			if (dto.getWorkDate() == null)
 				throw new DAOException("E:TS22 workDate が未設定です。");
 			ps.setDate(i++, new java.sql.Date(dto.getWorkDate().getTime()));
@@ -945,7 +931,7 @@ public class TaskDAO extends BaseDAO {
 
 			ps.setString(i++, dto.getWorkContent());
 
-			// 任意（NULL許容）
+			/** 任意（NULL許容） */
 			if (dto.getApprovedAt() != null)
 				ps.setTimestamp(i++, dto.getApprovedAt());
 			else
@@ -965,7 +951,7 @@ public class TaskDAO extends BaseDAO {
 
 			try (ResultSet rs = ps.executeQuery()) {
 				if (rs.next()) {
-					return rs.getObject(1, UUID.class); // RETURNING id
+					return rs.getObject(1, UUID.class); /** RETURNING id */
 				}
 				return null;
 			}
@@ -976,8 +962,8 @@ public class TaskDAO extends BaseDAO {
 
 	/**
 	 * タスクを更新します（論理未削除のみ）。
-	 * <p>必須：id, assignment.id, workDate, startTime, endTime, workMinute, workContent</p>
-	 * <p>任意：approvedAt/By, customerMonthlyInvoiceId, secretaryMonthlySummaryId</p>
+	 * 必須：id, assignment.id, workDate, startTime, endTime, workMinute, workContent
+	 * 任意：approvedAt/By, customerMonthlyInvoiceId, secretaryMonthlySummaryId
 	 *
 	 * @param dto 更新対象 {@link TaskDTO}
 	 * @return 影響行数（0 の場合は未更新）
@@ -1001,7 +987,7 @@ public class TaskDAO extends BaseDAO {
 		try (PreparedStatement ps = conn.prepareStatement(SQL_UPDATE)) {
 			int i = 1;
 
-			// 必須
+			/** 必須 */
 			ps.setObject(i++, assignmentId);
 			ps.setDate(i++, new java.sql.Date(dto.getWorkDate().getTime()));
 			ps.setTimestamp(i++, dto.getStartTime());
@@ -1009,7 +995,7 @@ public class TaskDAO extends BaseDAO {
 			ps.setInt(i++, dto.getWorkMinute());
 			ps.setString(i++, dto.getWorkContent());
 
-			// 任意（NULL可）
+			/** 任意（NULL可） */
 			if (dto.getApprovedAt() != null)
 				ps.setTimestamp(i++, dto.getApprovedAt());
 			else
@@ -1056,7 +1042,11 @@ public class TaskDAO extends BaseDAO {
 	
 	/**
 	 * 顧客からのアラート一覧を取得します。
-	 * 引数なし／List<TaskDTO> 返却。
+	 * 引数なし／List&lt;TaskDTO&gt; 返却。
+	 *
+	 * @param flg 10件制限フラグ（true の場合は LIMIT 10）
+	 * @return アラート一覧（TaskDTOのリスト）
+	 * @throws DAOException 取得に失敗した場合
 	 */
 	public List<TaskDTO> showAlert(boolean flg) {
 	    List<TaskDTO> list = new ArrayList<>();
@@ -1077,7 +1067,7 @@ public class TaskDAO extends BaseDAO {
 	            t.setRemandedAt(rs.getTimestamp("t_remanded_at"));
 	            t.setRemandComment(rs.getString("t_remand_comment"));
 
-	            // 会社名・ランクは AssignmentDTO 側で保持
+	            /** 会社名・ランクは AssignmentDTO 側で保持 */
 	            AssignmentDTO ad = new AssignmentDTO();
 	            ad.setCustomerCompanyName(rs.getString("c_company_name"));
 	            ad.setTaskRankName(rs.getString("tr_rank_name"));
@@ -1092,9 +1082,9 @@ public class TaskDAO extends BaseDAO {
 	    return list;
 	}
 
-	// =========================
-	// ステータス操作（承認 / 取消 / 差戻し）
-	// =========================
+	/** =========================
+	 * ステータス操作（承認 / 取消 / 差戻し）
+	 * ========================= */
 
 	/**
 	 * タスクを承認します（未承認のみ対象）。
@@ -1185,11 +1175,11 @@ public class TaskDAO extends BaseDAO {
 		}
 	}
 
-	// ---------- dashboard / summary 用 ----------
+	/** ---------- dashboard / summary 用 ---------- */
 
 	/**
 	 * （secretary 用）秘書 × 年月の件数・金額サマリを取得します。
-	 * <p>未承認／承認済／差戻し件数、全体金額と承認済み金額を返します。</p>
+	 * 未承認／承認済／差戻し件数、全体金額と承認済み金額を返します。
 	 *
 	 * @param secretaryId 秘書ID
 	 * @param yearMonth   対象年月（"YYYY-MM"）
@@ -1247,7 +1237,7 @@ public class TaskDAO extends BaseDAO {
 
 	/**
 	 * （customer 用）顧客 × 年月の件数・金額サマリを取得します。
-	 * <p>金額は顧客側の単価体系で算出します。</p>
+	 * 金額は顧客側の単価体系で算出します。
 	 *
 	 * @param customerId 顧客ID
 	 * @param yearMonth  対象年月（"YYYY-MM"）
@@ -1277,7 +1267,7 @@ public class TaskDAO extends BaseDAO {
 
 	/**
 	 * （customer 用）顧客 × 年月の承認済み金額を取得します。
-	 * <p>承認済み（approved_at IS NOT NULL）のみ合算します。</p>
+	 * 承認済み（approved_at IS NOT NULL）のみ合算します。
 	 *
 	 * @param customerId 顧客ID
 	 * @param yearMonth  対象年月（"YYYY-MM"）
@@ -1295,20 +1285,18 @@ public class TaskDAO extends BaseDAO {
 		} catch (SQLException e) {
 			throw new DAOException("E:TS25 顧客×月の承認済み金額集計に失敗しました。", e);
 		}
-		return BigDecimal.ZERO; // 行なしでも0を返す
+		return BigDecimal.ZERO; /** 行なしでも0を返す */
 	}
 
 	/**
 	 * 顧客からの「確認申請（アラート）」を記録します。
 	 *
-	 * <p>以下のカラムを更新します：</p>
-	 * <ul>
-	 *   <li>{@code alerted_at} … 現在時刻（{@code CURRENT_TIMESTAMP}）</li>
-	 *   <li>{@code alerted_comment} … 入力コメント（null 可。保存時そのまま指定）</li>
-	 * </ul>
+	 * 以下のカラムを更新します：
+	 * - {@code alerted_at} … 現在時刻（{@code CURRENT_TIMESTAMP}）
+	 * - {@code alerted_comment} … 入力コメント（null 可。保存時そのまま指定）
 	 *
-	 * <h4>トランザクション</h4>
-	 * 本メソッドはコネクションに対して更新系 SQL を実行します。<br/>
+	 * トランザクション：
+	 * 本メソッドはコネクションに対して更新系 SQL を実行します。
 	 * commit/rollback は呼び出し側（サービス層等）で管理してください。
 	 *
 	 * @param comment 入力コメント（null 可。null のまま保存されます）
@@ -1321,9 +1309,9 @@ public class TaskDAO extends BaseDAO {
 			throw new DAOException("E:TS-ALERT 引数 id が未設定です。");
 		}
 		try (PreparedStatement ps = conn.prepareStatement(SQL_ALERT)) {
-			// alerted_comment
-			ps.setString(1, comment); // null 指定も可：そのまま DB に入る
-			// WHERE id = ?
+			/** alerted_comment */
+			ps.setString(1, comment); /** null 指定も可：そのまま DB に入る */
+			/** WHERE id = ? */
 			ps.setObject(2, id);
 			return ps.executeUpdate();
 		} catch (SQLException e) {
@@ -1333,8 +1321,10 @@ public class TaskDAO extends BaseDAO {
 	
 	/**
 	 * アラートを取り消します（alerted_at を NULL にする）。
+	 *
 	 * @param id tasks.id（UUID）
 	 * @return 影響行数（1 が通常）
+	 * @throws DAOException 更新に失敗した場合
 	 */
 	public int alertDelete(UUID id) {
 	    if (id == null) throw new DAOException("E:TS-ALERT-DEL 引数 id が未設定です。");

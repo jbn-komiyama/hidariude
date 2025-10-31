@@ -8,7 +8,7 @@ import java.sql.Statement;
  * マイグレーション管理用テーブルを作成するマイグレーション
  * 
  * 作成テーブル:
- *   ・schema_migrations - マイグレーション実行履歴を管理
+ *   - schema_migrations - マイグレーション実行履歴を管理
  * 
  * 実行日: 2025-10-29
  */

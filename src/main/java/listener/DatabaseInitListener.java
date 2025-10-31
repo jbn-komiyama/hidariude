@@ -36,25 +36,25 @@ public class DatabaseInitListener implements ServletContextListener {
             try (Connection conn = DriverManager.getConnection(DB_URL + SCHEMA, DB_USER, DB_PASSWORD)) {
                 conn.setAutoCommit(false);
                 
-                // テーブルが存在するかチェック
+                /** テーブルが存在するかチェック */
                 if (!tableExists(conn, "system_admins")) {
                     System.out.println("Tables not found. Creating database schema and initial data...");
                     
-                    // DDL実行
+                    /** DDL実行 */
                     executeDDL(conn);
                     
-                    // 初期データ投入
+                    /** 初期データ投入 */
                     insertInitialData(conn);
                     
                     conn.commit();
                     System.out.println("Database initialization completed successfully.");
                 } else {
                     System.out.println("Tables already exist. Skipping initialization.");
-                    // 既存の制約を修正（口座情報の空欄を許可）
+                    /** 既存の制約を修正（口座情報の空欄を許可） */
                     updateBankTypeConstraint(conn);
                 }
                 
-                // マイグレーション実行
+                /** マイグレーション実行 */
                 runMigrations(conn);
                 
             }
@@ -69,7 +69,7 @@ public class DatabaseInitListener implements ServletContextListener {
 
     @Override
     public void contextDestroyed(ServletContextEvent sce) {
-        // クリーンアップ処理が必要な場合はここに記述
+        /** クリーンアップ処理が必要な場合はここに記述 */
     }
 
     /**
@@ -119,7 +119,7 @@ public class DatabaseInitListener implements ServletContextListener {
     private void runMigrations(Connection conn) throws SQLException {
         System.out.println("Checking for pending migrations...");
         
-        // Step 1: schema_migrations テーブルが存在しない場合は、最初に作成マイグレーションを実行
+        /** Step 1: schema_migrations テーブルが存在しない場合は、最初に作成マイグレーションを実行 */
         if (!migrationTableExists(conn)) {
             System.out.println("Migration table not found. Creating...");
             Migration initMigration = new Migration_20251029_CreateSchemaMigrations();
@@ -138,17 +138,17 @@ public class DatabaseInitListener implements ServletContextListener {
             }
         }
         
-        // Step 2: 通常のマイグレーション一覧を定義（手動で追加）
-        // 新しいマイグレーションを追加する場合は、この配列に追加してください
+        /** Step 2: 通常のマイグレーション一覧を定義（手動で追加）
+         * 新しいマイグレーションを追加する場合は、この配列に追加してください */
         List<Migration> migrations = new ArrayList<>();
-        migrations.add(new Migration_20251029_CreateSchemaMigrations()); // 初回以降はスキップされる
+        migrations.add(new Migration_20251029_CreateSchemaMigrations()); /** 初回以降はスキップされる */
         migrations.add(new Migration_20251029_UpdateSecretaryPayWithTax());
         migrations.add(new Migration_20251030_CreatePasswordResetTokens());
         
-        // 今後のマイグレーションをここに追加
-        // migrations.add(new Migration_YYYYMMDD_YourMigrationName());
+        /** 今後のマイグレーションをここに追加
+         * migrations.add(new Migration_YYYYMMDD_YourMigrationName()); */
         
-        // マイグレーション名順にソート（クラス名の日付部分でソート）
+        /** マイグレーション名順にソート（クラス名の日付部分でソート） */
         migrations.sort((m1, m2) -> m1.getClass().getSimpleName().compareTo(m2.getClass().getSimpleName()));
         
         int appliedCount = 0;
@@ -186,16 +186,16 @@ public class DatabaseInitListener implements ServletContextListener {
      */
     private void updateBankTypeConstraint(Connection conn) {
         try (Statement stmt = conn.createStatement()) {
-            // 既存の制約を削除
+            /** 既存の制約を削除 */
             stmt.execute("ALTER TABLE secretaries DROP CONSTRAINT IF EXISTS chk_secretaries_bank_type");
-            // 新しい制約を追加（空欄を許可）
+            /** 新しい制約を追加（空欄を許可） */
             stmt.execute("ALTER TABLE secretaries ADD CONSTRAINT chk_secretaries_bank_type " +
                         "CHECK (bank_type IS NULL OR bank_type = '' OR bank_type IN ('普通', '当座'))");
             conn.commit();
             System.out.println("Updated bank_type constraint to allow empty values.");
         } catch (SQLException e) {
             System.err.println("Warning: Could not update bank_type constraint: " + e.getMessage());
-            // エラーが発生してもアプリケーションの起動は継続
+            /** エラーが発生してもアプリケーションの起動は継続 */
         }
     }
 
@@ -228,10 +228,10 @@ public class DatabaseInitListener implements ServletContextListener {
         
         List<String> ddlStatements = new ArrayList<>();
         
-        // UUID生成用拡張
+        /** UUID生成用拡張 */
         ddlStatements.add("CREATE EXTENSION IF NOT EXISTS pgcrypto");
         
-        // テーブル定義
+        /** テーブル定義 */
         ddlStatements.add(
             "CREATE TABLE system_admins (" +
             "    id UUID PRIMARY KEY DEFAULT gen_random_uuid()," +
@@ -449,7 +449,7 @@ public class DatabaseInitListener implements ServletContextListener {
         ddlStatements.add("COMMENT ON COLUMN tasks.alerted_at IS 'アラート日時（通知/差し戻しなどの事前警告に使用）'");
         ddlStatements.add("COMMENT ON COLUMN tasks.alerted_comment IS 'アラート理由/メモ'");
         
-        // availability_flag ドメイン
+        /** availability_flag ドメイン */
         ddlStatements.add(
             "DO $$ " +
             "BEGIN " +
@@ -493,7 +493,7 @@ public class DatabaseInitListener implements ServletContextListener {
             ")"
         );
         
-        // DDL実行
+        /** DDL実行 */
         try (Statement stmt = conn.createStatement()) {
             for (String sql : ddlStatements) {
                 stmt.execute(sql);
@@ -509,10 +509,10 @@ public class DatabaseInitListener implements ServletContextListener {
     private void insertInitialData(Connection conn) throws SQLException {
         System.out.println("Inserting initial data...");
         
-        // パスワードをハッシュ化（共通パスワード: Password1）
+        /** パスワードをハッシュ化（共通パスワード: Password1） */
         String hashedPassword = PasswordUtil.hashPassword("Password1");
         
-        // 1. システム管理者（10件）
+        /** 1. システム管理者（10件） */
         String sqlAdmin = "INSERT INTO system_admins (mail, password, name, name_ruby) VALUES (?, ?, ?, ?)";
         try (PreparedStatement ps = conn.prepareStatement(sqlAdmin)) {
             String[][] admins = {
@@ -538,7 +538,7 @@ public class DatabaseInitListener implements ServletContextListener {
         }
         System.out.println("Inserted 10 system admins.");
         
-        // 2. 秘書ランクマスタ（3件）
+        /** 2. 秘書ランクマスタ（3件） */
         String sqlRank = "INSERT INTO secretary_rank (rank_name, description, increase_base_pay_customer, increase_base_pay_secretary) VALUES (?, ?, ?, ?)";
         try (PreparedStatement ps = conn.prepareStatement(sqlRank)) {
             ps.setString(1, "初級"); ps.setString(2, "初心者"); ps.setBigDecimal(3, new java.math.BigDecimal("0")); ps.setBigDecimal(4, new java.math.BigDecimal("0")); ps.executeUpdate();
@@ -547,7 +547,7 @@ public class DatabaseInitListener implements ServletContextListener {
         }
         System.out.println("Inserted 3 secretary ranks.");
         
-        // 3. 秘書（10件）- ランクID取得して循環割当
+        /** 3. 秘書（10件）- ランクID取得して循環割当 */
         List<String> rankIds = new ArrayList<>();
         try (Statement stmt = conn.createStatement();
              ResultSet rs = stmt.executeQuery("SELECT id FROM secretary_rank ORDER BY rank_name")) {
@@ -592,7 +592,7 @@ public class DatabaseInitListener implements ServletContextListener {
         }
         System.out.println("Inserted 10 secretaries.");
         
-        // 4. 顧客（10件）
+        /** 4. 顧客（10件） */
         String sqlCustomer = "INSERT INTO customers (company_code, company_name, mail, phone, postal_code, address1, building) VALUES (?, ?, ?, ?, ?, ?, ?)";
         try (PreparedStatement ps = conn.prepareStatement(sqlCustomer)) {
             String[][] customers = {
@@ -621,7 +621,7 @@ public class DatabaseInitListener implements ServletContextListener {
         }
         System.out.println("Inserted 10 customers.");
         
-        // 5. 顧客担当者（10件）
+        /** 5. 顧客担当者（10件） */
         List<String> customerIds = new ArrayList<>();
         try (Statement stmt = conn.createStatement();
              ResultSet rs = stmt.executeQuery("SELECT id FROM customers ORDER BY company_code")) {
@@ -657,7 +657,7 @@ public class DatabaseInitListener implements ServletContextListener {
         }
         System.out.println("Inserted 10 customer contacts.");
         
-        // 6. customers.primary_contact_id を更新
+        /** 6. customers.primary_contact_id を更新 */
         String sqlUpdateCustomer = "UPDATE customers SET primary_contact_id = ?::uuid WHERE id = ?::uuid";
         try (PreparedStatement ps = conn.prepareStatement(sqlUpdateCustomer)) {
             for (int i = 0; i < customerIds.size(); i++) {
@@ -668,7 +668,7 @@ public class DatabaseInitListener implements ServletContextListener {
         }
         System.out.println("Updated customer primary contacts.");
         
-        // 7. 業務ランクマスタ（5件）
+        /** 7. 業務ランクマスタ（5件） */
         String sqlTaskRank = "INSERT INTO task_rank (rank_name, rank_no, base_pay_customer, base_pay_secretary) VALUES (?, ?, ?, ?)";
         try (PreparedStatement ps = conn.prepareStatement(sqlTaskRank)) {
             ps.setString(1, "P"); ps.setInt(2, 0); ps.setBigDecimal(3, new java.math.BigDecimal("2500")); ps.setBigDecimal(4, new java.math.BigDecimal("1500")); ps.executeUpdate();

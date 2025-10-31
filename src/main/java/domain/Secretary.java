@@ -4,6 +4,9 @@ import java.io.Serializable;
 import java.util.Date;
 import java.util.UUID;
 
+/**
+ * 秘書（secretaries）テーブルのドメインモデル
+ */
 public class Secretary  implements Serializable {
     private static final long serialVersionUID = 1L;
     private UUID id;
@@ -29,8 +32,7 @@ public class Secretary  implements Serializable {
     private String bankAccount;
     private String bankOwner;
 
-    
-	// relation
+    /** relation */
     private SecretaryRank secretaryRank;
 
     public Secretary() {}

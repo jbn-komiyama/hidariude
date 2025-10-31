@@ -5,10 +5,13 @@ import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.UUID;
 
+/**
+ * アサイン（assignments）テーブルのドメインモデル
+ */
 public class Assignment implements Serializable{
 	private static final long serialVersionUID = 1L;
 	
-	// --- assignments ---
+	/** --- assignments --- */
     private UUID id;
     private UUID customerId;
     private UUID secretaryId;
@@ -32,7 +35,7 @@ public class Assignment implements Serializable{
     private String companyName;
     private String secretaryName;  
 
-    // --- relations (domain objects) ---
+    /** --- relations (domain objects) --- */
     private Customer customer;
     private Secretary secretary;
     private Integer consecutiveMonths;

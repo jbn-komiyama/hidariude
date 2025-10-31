@@ -6,6 +6,9 @@ import java.math.RoundingMode;
 import java.util.Date;
 import java.util.UUID;
 
+/**
+ * タスク（tasks）テーブルのドメインモデル
+ */
 public class Task implements Serializable{
 	private static final long serialVersionUID = 1L;
 	
@@ -36,12 +39,23 @@ public class Task implements Serializable{
     private int remanded;
     private int total;
     
+    /**
+     * 時給と作業時間から費用を計算します
+     *
+     * @param hourly 時給
+     * @param minutes 作業時間（分）
+     * @return 計算された費用（端数は0桁 HALF_UPで丸め）
+     */
     private static BigDecimal calcFee(BigDecimal hourly, Integer minutes) {
         if (hourly == null || minutes == null) return null;
-        // 端数は要件に合わせて（ここでは 0 桁 HALF_UP）
+        /** 端数は要件に合わせて（ここでは 0 桁 HALF_UP） */
         return hourly.multiply(BigDecimal.valueOf(minutes))
                      .divide(SIXTY, 0, RoundingMode.HALF_UP);
     }
+
+    /**
+     * 時給と作業時間に基づいて費用を再計算します
+     */
     private void recalcFees() {
         this.fee         = calcFee(this.hourFee, this.workMinute);
         this.feeCustomer = calcFee(this.hourFeeCustomer, this.workMinute);
@@ -195,8 +209,10 @@ public class Task implements Serializable{
 		this.total = total;
 	}
 	
-	private BigDecimal sumAmountApproved; // 承認済み合計
-	private BigDecimal sumAmountAll;      // 全件合計(必要なら)
+	/** 承認済み合計 */
+	private BigDecimal sumAmountApproved;
+	/** 全件合計(必要なら) */
+	private BigDecimal sumAmountAll;
 
 	public BigDecimal getSumAmountApproved() { return sumAmountApproved; }
 	public void setSumAmountApproved(BigDecimal v) { this.sumAmountApproved = v; }

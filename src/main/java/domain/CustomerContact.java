@@ -10,12 +10,12 @@ import java.util.UUID;
 public class CustomerContact implements Serializable {
     private static final long serialVersionUID = 1L;
 
-    // --- columns ---
+    /** --- columns --- */
     private UUID id;
     private String mail;
     private String password;
 
-    // FK: customers.id（必要に応じて Customer をぶら下げるなら customer も持たせる）
+    /** FK: customers.id（必要に応じて Customer をぶら下げるなら customer も持たせる） */
     private UUID customerId;
     private Customer customer; 
 
@@ -30,7 +30,7 @@ public class CustomerContact implements Serializable {
     private Date deletedAt;
     private Date lastLoginAt;
 
-    // --- getters / setters ---
+    /** --- getters / setters --- */
     public UUID getId() { return id; }
     public void setId(UUID id) { this.id = id; }
 

@@ -19,25 +19,21 @@ import dto.TaskDTO;
 /**
  * 請求まわり（明細・集計・月次サマリ）を扱う DAO。
  *
- * <p>責務：</p>
- * <ul>
- *   <li>秘書／顧客／管理者の文脈でのタスク明細取得</li>
- *   <li>分単位の集計と料金（時給×分/60）の計算結果のDTO詰め</li>
- *   <li>秘書の月次サマリ（upsert）</li>
- * </ul>
+ * 責務：
+ * - 秘書／顧客／管理者の文脈でのタスク明細取得
+ * - 分単位の集計と料金（時給×分/60）の計算結果のDTO詰め
+ * - 秘書の月次サマリ（upsert）
  *
- * <p>設計：</p>
- * <ul>
- *   <li>本DAOは渡された {@link Connection} にのみ依存し、トランザクションは呼出側で管理</li>
- *   <li>DB例外は {@link DAOException} にラップして送出</li>
- *   <li>金額計算の丸めは原則 {@link RoundingMode#HALF_UP}（要件に応じ変更）</li>
- * </ul>
+ * 設計：
+ * - 本DAOは渡された {@link Connection} にのみ依存し、トランザクションは呼出側で管理
+ * - DB例外は {@link DAOException} にラップして送出
+ * - 金額計算の丸めは原則 {@link RoundingMode#HALF_UP}（要件に応じ変更）
  */
 public class InvoiceDAO extends BaseDAO {
 
-    // =========================================================
-    // ① フィールド（SQL）
-    // =========================================================
+    /** =========================================================
+     * ① フィールド（SQL）
+     * ========================================================= */
 
     private static final String SQL_SELECT_TASKS_BY_MONTH_AND_SECRETARY =
         "SELECT "
@@ -161,9 +157,9 @@ public class InvoiceDAO extends BaseDAO {
       + "GROUP BY s.id, s.name, c.id, c.company_name, hourly_pay_sec, tr.rank_name, tr.rank_no "
       + "ORDER BY s.name, c.company_name, tr.rank_no";
 
-    // =========================================================
-    // ② フィールド／コンストラクタ
-    // =========================================================
+    /** =========================================================
+     * ② フィールド／コンストラクタ
+     * ========================================================= */
 
     /**
      * コンストラクタ。
@@ -174,23 +170,21 @@ public class InvoiceDAO extends BaseDAO {
         super(conn);
     }
 
-    // =========================================================
-    // ③ メソッド
-    //   ├─ SELECT（admin / customer / secretary 順）
-    //   ├─ UPSERT（月次サマリ）
-    //   └─ ヘルパーなし（DTO詰めは都度記述）
-    // =========================================================
-
-    // =========================
-    // SELECT（secretary 用）
-    // =========================
+    /** =========================================================
+     * ③ メソッド
+     *   ├─ SELECT（admin / customer / secretary 順）
+     *   ├─ UPSERT（月次サマリ）
+     *   └─ ヘルパーなし（DTO詰めは都度記述）
+     * =========================================================
+     *
+     * =========================
+     * SELECT（secretary 用）
+     * ========================= */
 
     /**
      * 【secretary】対象月の自身のタスク明細を取得します（assignment.target_year_month で絞込）。
-     * <ul>
-     *   <li>論理削除済みタスク（t.deleted_at IS NOT NULL）は除外</li>
-     *   <li>rank名／顧客名／顧客への時給（hourly_pay）も明細に同梱</li>
-     * </ul>
+     * - 論理削除済みタスク（t.deleted_at IS NOT NULL）は除外
+     * - rank名／顧客名／顧客への時給（hourly_pay）も明細に同梱
      *
      * @param secretaryId 秘書ID
      * @param targetYearMonth 対象年月（yyyy-MM）
@@ -208,18 +202,18 @@ public class InvoiceDAO extends BaseDAO {
                 while (rs.next()) {
                     TaskDTO dto = new TaskDTO();
 
-                    // tasks 本体
+                    /** tasks 本体 */
                     dto.setWorkDate(rs.getDate("work_date"));
-                    dto.setStartTime(rs.getTimestamp("start_time")); // TIME→Timestamp として扱う
+                    dto.setStartTime(rs.getTimestamp("start_time")); /** TIME→Timestamp として扱う */
                     dto.setEndTime(rs.getTimestamp("end_time"));
                     dto.setWorkMinute(rs.getObject("work_minute", Integer.class));
                     dto.setWorkContent(rs.getString("work_content"));
                     dto.setApprovedAt(rs.getTimestamp("approved_at"));
 
-                    // 表示用付帯：Assignment 情報を内包
+                    /** 表示用付帯：Assignment 情報を内包 */
                     AssignmentDTO asg = new AssignmentDTO();
-                    asg.setCustomerCompanyName(rs.getString("company_name")); // 顧客名
-                    asg.setHourlyPayCustomer(rs.getBigDecimal("hourly_pay")); // 顧客課金時給
+                    asg.setCustomerCompanyName(rs.getString("company_name")); /** 顧客名 */
+                    asg.setHourlyPayCustomer(rs.getBigDecimal("hourly_pay")); /** 顧客課金時給 */
                     asg.setTaskRankName(rs.getString("rank_name"));
                     asg.setTargetYearMonth(targetYearMonth);
                     asg.setAssignmentSecretaryId(secretaryId);
@@ -236,10 +230,8 @@ public class InvoiceDAO extends BaseDAO {
 
     /**
      * 【secretary】対象月の会社別合計（分・時給・ランク）を取得します。
-     * <ul>
-     *   <li>合計金額は <code>hourlyPay × totalMinute ÷ 60</code> を {@link RoundingMode#HALF_UP} で四捨五入</li>
-     *   <li>戻りの {@link InvoiceDTO} は company 情報＋集計値を持ちます</li>
-     * </ul>
+     * - 合計金額は {@code hourlyPay × totalMinute ÷ 60} を {@link RoundingMode#HALF_UP} で四捨五入
+     * - 戻りの {@link InvoiceDTO} は company 情報＋集計値を持ちます
      *
      * @param secretaryId 秘書ID
      * @param targetYearMonth 対象年月（yyyy-MM）
@@ -267,7 +259,7 @@ public class InvoiceDAO extends BaseDAO {
                     dto.setTaskRankName(rs.getString("rank_name"));
                     dto.setTargetYM(targetYearMonth);
 
-                    // 合計金額: 時給×分/60（HALF_UP）
+                    /** 合計金額: 時給×分/60（HALF_UP） */
                     BigDecimal fee = hourlyPay
                         .multiply(BigDecimal.valueOf(totalMin))
                         .divide(BigDecimal.valueOf(60), 0, RoundingMode.HALF_UP);
@@ -282,16 +274,14 @@ public class InvoiceDAO extends BaseDAO {
         }
     }
 
-    // =========================
-    // SELECT（customer 用）
-    // =========================
+    /** =========================
+     * SELECT（customer 用）
+     * ========================= */
 
     /**
      * 【customer】対象月のタスク明細を取得します（work_date 基準で月境界を判定）。
-     * <ul>
-     *   <li>論理削除済みタスクは除外</li>
-     *   <li>秘書名／ランク名／顧客課金時給（hourly_pay_customer）を同梱</li>
-     * </ul>
+     * - 論理削除済みタスクは除外
+     * - 秘書名／ランク名／顧客課金時給（hourly_pay_customer）を同梱
      *
      * @param customerId 顧客ID
      * @param targetYM   対象年月（yyyy-MM）
@@ -335,10 +325,8 @@ public class InvoiceDAO extends BaseDAO {
 
     /**
      * 【customer】対象月の「秘書×ランク」集計を取得します（work_date 基準）。
-     * <ul>
-     *   <li>分合計のほか、料金=時給×分/60（HALF_UP）をDTOへ設定</li>
-     *   <li>DTOの {@code customerId} には「秘書ID」を詰めています（画面表示用の都合）</li>
-     * </ul>
+     * - 分合計のほか、料金=時給×分/60（HALF_UP）をDTOへ設定
+     * - DTOの {@code customerId} には「秘書ID」を詰めています（画面表示用の都合）
      *
      * @param customerId 顧客ID
      * @param targetYM   対象年月（yyyy-MM）
@@ -356,9 +344,9 @@ public class InvoiceDAO extends BaseDAO {
             try (ResultSet rs = ps.executeQuery()) {
                 while (rs.next()) {
                     InvoiceDTO dto = new InvoiceDTO();
-                    // 表示用の都合で、secretary_id を customerId フィールドへ格納している点に注意
-                    dto.setCustomerId((UUID) rs.getObject("id")); // secretary_id
-                    dto.setCustomerCompanyName(rs.getString("secretary_name")); // 表示用に秘書名
+                    /** 表示用の都合で、secretary_id を customerId フィールドへ格納している点に注意 */
+                    dto.setCustomerId((UUID) rs.getObject("id")); /** secretary_id */
+                    dto.setCustomerCompanyName(rs.getString("secretary_name")); /** 表示用に秘書名 */
                     int totalMin = rs.getInt("total_minute");
                     dto.setTotalMinute(totalMin);
 
@@ -381,16 +369,14 @@ public class InvoiceDAO extends BaseDAO {
         return list;
     }
 
-    // =========================
-    // SELECT（admin 用）
-    // =========================
+    /** =========================
+     * SELECT（admin 用）
+     * ========================= */
 
     /**
      * 【admin】対象月の「顧客請求ライン」を取得します。
-     * <ul>
-     *   <li>顧客×秘書×ランクごとに分合計を集計し、顧客課金時給で金額を算出</li>
-     *   <li>明細は {@link InvoiceDTO}（顧客ID/顧客名/秘書名/ランク/分/時給/金額/対象YM）</li>
-     * </ul>
+     * - 顧客×秘書×ランクごとに分合計を集計し、顧客課金時給で金額を算出
+     * - 明細は {@link InvoiceDTO}（顧客ID/顧客名/秘書名/ランク/分/時給/金額/対象YM）
      *
      * @param targetYM 対象年月（yyyy-MM）
      * @return 顧客請求ラインのリスト
@@ -431,10 +417,8 @@ public class InvoiceDAO extends BaseDAO {
 
     /**
      * 【admin】対象月の「秘書支払ライン」を取得します。
-     * <ul>
-     *   <li>秘書×顧客×ランク単位に分合計を集計し、秘書取り分の時給で金額を算出</li>
-     *   <li>明細は {@link InvoiceDTO}（秘書名/顧客名/ランク/分/時給/金額/対象YM）</li>
-     * </ul>
+     * - 秘書×顧客×ランク単位に分合計を集計し、秘書取り分の時給で金額を算出
+     * - 明細は {@link InvoiceDTO}（秘書名/顧客名/ランク/分/時給/金額/対象YM）
      *
      * @param targetYM 対象年月（yyyy-MM）
      * @return 秘書支払ラインのリスト
@@ -454,10 +438,10 @@ public class InvoiceDAO extends BaseDAO {
                     int mins = rs.getInt("total_minute");
                     d.setTotalMinute(mins);
 
-                    BigDecimal hourly = rs.getBigDecimal("hourly_pay_sec"); // 秘書取り分
+                    BigDecimal hourly = rs.getBigDecimal("hourly_pay_sec"); /** 秘書取り分 */
                     d.setHourlyPay(hourly);
 
-                    // 金額 = 時給 × 分 / 60（HALF_UP）
+                    /** 金額 = 時給 × 分 / 60（HALF_UP） */
                     BigDecimal fee = (hourly == null)
                         ? BigDecimal.ZERO
                         : hourly.multiply(BigDecimal.valueOf(mins))
@@ -474,9 +458,9 @@ public class InvoiceDAO extends BaseDAO {
         return list;
     }
 
-    // =========================
-    // UPSERT（月次サマリ）
-    // =========================
+    /** =========================
+     * UPSERT（月次サマリ）
+     * ========================= */
 
     /**
      * 秘書×年月の月次サマリを UPSERT（存在しなければ INSERT、あれば UPDATE）します。

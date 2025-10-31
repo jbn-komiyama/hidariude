@@ -42,22 +42,20 @@ import dto.TaskDTO;
 
 /**
  * 請求・支払サマリー／Excel発行に関するアプリケーションサービス。
- * <p>役割別（admin / customer / secretary）の画面向けデータ組み立てと、
- * 請求書Excelの生成・ダウンロードを担います。</p>
+ * 役割別（admin / customer / secretary）の画面向けデータ組み立てと、
+ * 請求書Excelの生成・ダウンロードを担います。
  *
- * <h2>クラス構成</h2>
- * <ol>
- *   <li>定数・共通化（パラメータ名／パス／フォーマッタ）</li>
- *   <li>フィールド、コンストラクタ</li>
- *   <li>メソッド（コントローラ呼び出し：admin → customer → secretary）</li>
- *   <li>ヘルパー</li>
- * </ol>
+ * クラス構成:
+ * - 定数・共通化（パラメータ名／パス／フォーマッタ）
+ * - フィールド、コンストラクタ
+ * - メソッド（コントローラ呼び出し：admin → customer → secretary）
+ * - ヘルパー
  */
 public class InvoiceService extends BaseService {
 
-    // =========================================================
-    // ① 定数・共通化（パラメータ名／パス／フォーマッタ）
-    // =========================================================
+    /**
+     * ① 定数・共通化（パラメータ名／パス／フォーマッタ）
+     */
 
     /** Excelテンプレ格納パス（WEB-INF配下） */
     private static final String TEMPLATE_PATH = "/WEB-INF/templates/invoice.xlsx";
@@ -67,13 +65,17 @@ public class InvoiceService extends BaseService {
     /** 日付フォーマッタ（yyyy-MM-dd） */
     private static final DateTimeFormatter YMD_FMT = DateTimeFormatter.ofPattern("yyyy-MM-dd");
 
-    // ----- Request params -----
+    /**
+     * Request params
+     */
     /** 画面入力パラメータ名（新系：yearMonth） */
     private static final String P_YM = "yearMonth";
     /** 画面入力パラメータ名（既存互換：targetYM） */
     private static final String P_YM_LEGACY = "targetYM";
 
-    // ----- Request attributes（JSP 参照キー） -----
+    /**
+     * Request attributes（JSP 参照キー）
+     */
     /** 明細テーブル：タスク */
     private static final String A_TASKS = "tasks";
     /** 集計テーブル：請求行 */
@@ -84,19 +86,23 @@ public class InvoiceService extends BaseService {
     private static final String A_YM = "yearMonth";
     private static final String A_YM_LEGACY = "targetYM";
 
-    // ----- View names -----
+    /**
+     * View names
+     */
     private static final String VIEW_SUMMARY_SECRETARY   = "invoice/secretary/summary";
     private static final String VIEW_SUMMARY_CUSTOMER    = "invoice/customer/summary";
     private static final String VIEW_SUMMARY_ADMIN_COSTS = "invoice/admin/costs";
     private static final String VIEW_SUMMARY_ADMIN_SALES = "invoice/admin/sales";
 
-    // Excel テンプレの既定明細行数（1始まり座標前提の相対制御に利用）
+    /**
+     * Excel テンプレの既定明細行数（1始まり座標前提の相対制御に利用）
+     */
     private static final int TAXABLE_DEFAULT_ROWS = 5;
     private static final int NONTAX_DEFAULT_ROWS  = 5;
 
-    // =========================================================
-    // ② フィールド・コンストラクタ
-    // =========================================================
+    /**
+     * ② フィールド・コンストラクタ
+     */
 
     /** DTO⇔ドメインの相互変換ユーティリティ（都度 new を避ける） */
     private final ConvertUtil conv = new ConvertUtil();
@@ -110,49 +116,48 @@ public class InvoiceService extends BaseService {
         super(req, useDB);
     }
 
-    // =========================================================
-    // ③ メソッド（アクター別：admin → customer → secretary）
-    // =========================================================
+    /**
+     * ③ メソッド（アクター別：admin → customer → secretary）
+     */
 
-    // =========================
-    // 「【admin】 機能：売上サマリー（顧客×秘書×ランク）」
-    // =========================
+    /**
+     * 「【admin】 機能：売上サマリー（顧客×秘書×ランク）」
+     */
     /**
      * 「請求サマリー（管理）」表示。
-     * <ul>
-     *   <li><b>yearMonth</b>: request param 'yearMonth'（無ければ <code>targetYM</code> → 無ければ当月JST）</li>
-     *   <li>当月の顧客向け月次集計を DRAFT で UPSERT</li>
-     *   <li>当月/前月のKPIと、顧客名グルーピングの明細を生成</li>
-     *   <li>JSP: <code>/WEB-INF/jsp/invoice/admin/sales.jsp</code></li>
-     * </ul>
+     * - yearMonth: request param 'yearMonth'（無ければ targetYM → 無ければ当月JST）
+     * - 当月の顧客向け月次集計を DRAFT で UPSERT
+     * - 当月/前月のKPIと、顧客名グルーピングの明細を生成
+     * - JSP: /WEB-INF/jsp/invoice/admin/sales.jsp
+     *
      * @return ビュー名
      * @throws ServiceException サマリー生成に失敗した場合
      */
     public String adminInvoiceSummary() {
-        // 表示年月の決定
+        /** 表示年月の決定 */
         String ym = pickYearMonthParam();
 
-        // 前月算出（yyyy-MM → yyyy-MM-01 → minusMonths(1)）
+        /** 前月算出（yyyy-MM → yyyy-MM-01 → minusMonths(1)） */
         LocalDate cur = LocalDate.parse(ym + "-01", YMD_FMT);
         String prevYm = cur.minusMonths(1).format(YM_FMT);
 
         try (TransactionManager tm = new TransactionManager()) {
             InvoiceDAO dao = new InvoiceDAO(tm.getConnection());
 
-            // 当月の顧客向け月次サマリーを UPSERT（DRAFT）
+            /** 当月の顧客向け月次サマリーを UPSERT（DRAFT） */
             new CustomerMonthlyInvoiceDAO(tm.getConnection()).upsertByMonthFromTasks(ym);
 
-            // 明細（顧客×秘書×ランク）
+            /** 明細（顧客×秘書×ランク） */
             List<InvoiceDTO> rows = dao.selectAdminLines(ym);
 
-            // 顧客名でグルーピング（ツリーMapで見た目が安定）
+            /** 顧客名でグルーピング（ツリーMapで見た目が安定） */
             Map<String, List<InvoiceDTO>> grouped = rows.stream()
                     .collect(Collectors.groupingBy(
                             InvoiceDTO::getCustomerCompanyName,
                             TreeMap::new,
                             Collectors.toList()));
 
-            // KPI（合計金額・合計作業分数・行数）
+            /** KPI（合計金額・合計作業分数・行数） */
             BigDecimal totalAmount = rows.stream()
                     .map(InvoiceDTO::getFee)
                     .filter(Objects::nonNull)
@@ -160,16 +165,18 @@ public class InvoiceService extends BaseService {
             int totalMinutes = rows.stream().mapToInt(InvoiceDTO::getTotalMinute).sum();
             int totalTasks = rows.size();
 
-            // 前月比較
+            /** 前月比較 */
             BigDecimal prevTotalAmount = dao.selectAdminLines(prevYm).stream()
                     .map(InvoiceDTO::getFee)
                     .filter(Objects::nonNull)
                     .reduce(BigDecimal.ZERO, BigDecimal::add);
             BigDecimal diffFromPrev = totalAmount.subtract(prevTotalAmount);
 
-            // JSP 属性（既存JSP互換キーをセット）
+            /** JSP 属性（既存JSP互換キーをセット） */
             req.setAttribute("yearMonth", ym);
-            req.setAttribute("targetYM", ym);     // 念のため互換
+            req.setAttribute("targetYM", ym);
+
+            /** 念のため互換 */
             req.setAttribute("prevYearMonth", prevYm);
 
             Map<String, Object> adminTotals = new HashMap<>();
@@ -188,25 +195,24 @@ public class InvoiceService extends BaseService {
         }
     }
 
-    // =========================
-    // 「【admin】 機能：秘書への支払サマリー」
-    // =========================
+    /**
+     * 「【admin】 機能：秘書への支払サマリー」
+     */
     /**
      * 「秘書支払いサマリー（管理）」表示。
-     * <ul>
-     *   <li><b>targetYM</b>: request param 'targetYM'（無ければ <code>yearMonth</code> → 無ければ当月JST）</li>
-     *   <li>当月の秘書×顧客×ランク明細（<code>costLines</code>）と総額（<code>grandTotalCost</code>）を算出</li>
-     *   <li>今月＋過去3ヶ月タイルの合計（<code>costNow/Prev1/2/3</code>）も算出</li>
-     *   <li>JSP: <code>/WEB-INF/jsp/invoice/admin/costs.jsp</code></li>
-     * </ul>
+     * - targetYM: request param 'targetYM'（無ければ yearMonth → 無ければ当月JST）
+     * - 当月の秘書×顧客×ランク明細（costLines）と総額（grandTotalCost）を算出
+     * - 今月＋過去3ヶ月タイルの合計（costNow/Prev1/2/3）も算出
+     * - JSP: /WEB-INF/jsp/invoice/admin/costs.jsp
+     *
      * @return ビュー名
      * @throws ServiceException 取得に失敗した場合
      */
     public String secretaryInvoiceSummary() {
-        // 既存 JSP が targetYM を期待するため、まずは targetYM を優先取得
+        /** 既存 JSP が targetYM を期待するため、まずは targetYM を優先取得 */
         String targetYM = pickYearMonthParamPreferLegacy();
 
-        // タイル表示（月の数字と YYYY-MM をセット）
+        /** タイル表示（月の数字と YYYY-MM をセット） */
         ZoneId JST = ZoneId.of("Asia/Tokyo");
         YearMonth ym0 = YearMonth.now(JST);      // 今月
         YearMonth ym1 = ym0.minusMonths(1);
@@ -226,7 +232,7 @@ public class InvoiceService extends BaseService {
         try (TransactionManager tm = new TransactionManager()) {
             InvoiceDAO dao = new InvoiceDAO(tm.getConnection());
 
-            // ① 当月明細（秘書×顧客×ランク）
+            /** ① 当月明細（秘書×顧客×ランク） */
             List<InvoiceDTO> lines = dao.selectAdminLines(targetYM);
 
             BigDecimal grandTotal = lines.stream()
@@ -234,15 +240,15 @@ public class InvoiceService extends BaseService {
                     .filter(Objects::nonNull)
                     .reduce(BigDecimal.ZERO, BigDecimal::add);
 
-            // cost_summary.jsp が参照するキー名を厳守
+            /** cost_summary.jsp が参照するキー名を厳守 */
             req.setAttribute("costLines", lines);
             req.setAttribute("grandTotalCost", grandTotal);
 
-            // 表示中YM（互換のため両方）
-            req.setAttribute(A_YM_LEGACY, targetYM); // targetYM
-            req.setAttribute(A_YM, targetYM);        // yearMonth
+            /** 表示中YM（互換のため両方） */
+            req.setAttribute(A_YM_LEGACY, targetYM);
+            req.setAttribute(A_YM, targetYM);
 
-            // ② タイル用（4ヶ月分の総額）
+            /** ② タイル用（4ヶ月分の総額） */
             req.setAttribute("costNow",   sumFee(dao.selectAdminLines(ym0.toString())));
             req.setAttribute("costPrev1", sumFee(dao.selectAdminLines(ym1.toString())));
             req.setAttribute("costPrev2", sumFee(dao.selectAdminLines(ym2.toString())));
@@ -255,24 +261,23 @@ public class InvoiceService extends BaseService {
         }
     }
 
-    // =========================
-    // 「【customer】 機能：請求サマリー（秘書×ランク）」
-    // =========================
+    /**
+     * 「【customer】 機能：請求サマリー（秘書×ランク）」
+     */
     /**
      * 「請求サマリー（顧客）」表示。
-     * <ul>
-     *   <li><b>yearMonth</b>: request param 'yearMonth'（無ければ <code>targetYM</code> → 無ければ当月JST）</li>
-     *   <li>当月のタスク明細（<code>tasks</code>）と秘書×ランク集計（<code>invoices</code>）を表示</li>
-     *   <li>今月＋過去3ヶ月の未承認件数/合計金額（<code>statNow/Prev1/2/3</code>）も算出</li>
-     *   <li>JSP: <code>/WEB-INF/jsp/invoice/customer/summary.jsp</code></li>
-     * </ul>
+     * - yearMonth: request param 'yearMonth'（無ければ targetYM → 無ければ当月JST）
+     * - 当月のタスク明細（tasks）と秘書×ランク集計（invoices）を表示
+     * - 今月＋過去3ヶ月の未承認件数/合計金額（statNow/Prev1/2/3）も算出
+     * - JSP: /WEB-INF/jsp/invoice/customer/summary.jsp
+     *
      * @return ビュー名
      * @throws ServiceException 顧客ID取得やデータ取得に失敗した場合
      */
     public String customerInvoiceSummary() {
         String targetYM = pickYearMonthParam();
 
-        // ログイン中の顧客IDをセッションから判定（顧客 or 顧客担当の双方に対応）
+        /** ログイン中の顧客IDをセッションから判定（顧客 or 顧客担当の双方に対応） */
         HttpSession session = req.getSession(false);
         if (session == null) throw new ServiceException("E:INV-C00 セッションが無効です。");
         LoginUser lu = (LoginUser) session.getAttribute("loginUser");
@@ -286,7 +291,7 @@ public class InvoiceService extends BaseService {
         }
         if (customerId == null) throw new ServiceException("E:INV-C01 顧客IDが取得できません。");
 
-        // タイル（月表示用）
+        /** タイル（月表示用） */
         ZoneId JST = ZoneId.of("Asia/Tokyo");
         YearMonth ym0 = YearMonth.now(JST);
         YearMonth ym1 = ym0.minusMonths(1);
@@ -325,7 +330,7 @@ public class InvoiceService extends BaseService {
             req.setAttribute(A_YM, targetYM);
             req.setAttribute(A_YM_LEGACY, targetYM);
 
-            // ダッシュボード（月次ステータス）
+            /** ダッシュボード（月次ステータス） */
             req.setAttribute("statNow",   buildMonthlyStat(dao, customerId, ym0.toString()));
             req.setAttribute("statPrev1", buildMonthlyStat(dao, customerId, ym1.toString()));
             req.setAttribute("statPrev2", buildMonthlyStat(dao, customerId, ym2.toString()));
@@ -338,23 +343,22 @@ public class InvoiceService extends BaseService {
         }
     }
 
-    // =========================
-    // 「【secretary】 機能：自身の請求サマリー」
-    // =========================
+    /**
+     * 「【secretary】 機能：自身の請求サマリー」
+     */
     /**
      * 「請求サマリー（秘書）」表示（自身の稼働ベース）。
-     * <ul>
-     *   <li><b>yearMonth</b>: request param 'yearMonth'（無ければ <code>targetYM</code> → 無ければ当月JST）</li>
-     *   <li>タスク明細と会社別集計を取得し、月次サマリーを DRAFT で UPSERT</li>
-     *   <li>JSP: <code>/WEB-INF/jsp/invoice/secretary/summary.jsp</code></li>
-     * </ul>
+     * - yearMonth: request param 'yearMonth'（無ければ targetYM → 無ければ当月JST）
+     * - タスク明細と会社別集計を取得し、月次サマリーを DRAFT で UPSERT
+     * - JSP: /WEB-INF/jsp/invoice/secretary/summary.jsp
+     *
      * @return ビュー名
      * @throws ServiceException 取得またはUPSERTに失敗した場合
      */
     public String invoiceSummery() {
         String targetYM = pickYearMonthParam();
 
-        // ログイン中の秘書IDをセッションから取得
+        /** ログイン中の秘書IDをセッションから取得 */
         HttpSession session = req.getSession(false);
         if (session == null) throw new ServiceException("E:INV-SVC00 セッションが無効です。");
         LoginUser loginUser = (LoginUser) session.getAttribute("loginUser");
@@ -381,7 +385,7 @@ public class InvoiceService extends BaseService {
                     .sum();
             int totalTasks = (tasks != null) ? tasks.size() : 0;
 
-            // 月次サマリーUPSERT（DRAFT）
+            /** 月次サマリーUPSERT（DRAFT） */
             dao.upsertSecretaryMonthlySummary(
                     secretaryId, targetYM, grandTotal, totalTasks, totalMinutes,
                     null, "DRAFT");
@@ -401,24 +405,23 @@ public class InvoiceService extends BaseService {
         }
     }
 
-    // =========================
-    // 「【secretary】 機能：Excel発行（ダウンロード）
-    // =========================
+    /**
+     * 「【secretary】 機能：Excel発行（ダウンロード）
+     */
     /**
      * 「請求書発行」Excelダウンロード。
-     * <ul>
-     *   <li><b>yearMonth</b>: request param 'yearMonth'（無ければ <code>targetYM</code> → 無ければ当月JST）</li>
-     *   <li>未承認タスクがあれば <code>sendError(409)</code></li>
-     *   <li>見出しテキストを検出してテンプレ上詰めに自動追従</li>
-     *   <li>PDF出力なし（xlsx のみ）</li>
-     * </ul>
+     * - yearMonth: request param 'yearMonth'（無ければ targetYM → 無ければ当月JST）
+     * - 未承認タスクがあれば sendError(409)
+     * - 見出しテキストを検出してテンプレ上詰めに自動追従
+     * - PDF出力なし（xlsx のみ）
+     *
      * @param resp レスポンス（ストリームへ xlsx を書き込み）
      * @throws ServiceException 生成処理に失敗した場合
      */
     public void issueInvoiceExcel(HttpServletResponse resp) {
         String targetYM = pickYearMonthParam();
 
-        // ログイン中の秘書
+        /** ログイン中の秘書 */
         HttpSession session = req.getSession(false);
         if (session == null) throw new ServiceException("E:INV-ISSUE00 セッションが無効です。");
         LoginUser loginUser = (LoginUser) session.getAttribute("loginUser");
@@ -426,7 +429,7 @@ public class InvoiceService extends BaseService {
             throw new ServiceException("E:INV-ISSUE01 ログイン情報が見つかりません。");
         UUID secretaryId = loginUser.getSecretary().getId();
 
-        // 請求書ヘッダ（住所・口座）
+        /** 請求書ヘッダ（住所・口座） */
         String secretaryName = "";
         String secretaryAddress1 = "";
         String secretaryAddress2 = "";
@@ -442,7 +445,7 @@ public class InvoiceService extends BaseService {
         List<TaskDTO> taskDtos;
         List<InvoiceDTO> invoiceDtos;
 
-        // 取得
+        /** 取得 */
         try (TransactionManager tm = new TransactionManager()) {
             SecretaryDAO sdao = new SecretaryDAO(tm.getConnection());
             SecretaryDTO sec = sdao.selectByUUIdIncludeAccount(secretaryId);
@@ -468,24 +471,24 @@ public class InvoiceService extends BaseService {
             throw new ServiceException("E:INV-ISSUE10 データ取得に失敗しました。", e);
         }
 
-        // 対象データ存在チェック
+        /** 対象データ存在チェック */
         if (taskDtos == null || taskDtos.isEmpty()) {
             sendError(resp, HttpServletResponse.SC_NOT_FOUND, "対象データがありません。");
             return;
         }
-        // 未承認チェック
+        /** 未承認チェック */
         long unapproved = taskDtos.stream().filter(t -> t.getApprovedAt() == null).count();
         if (unapproved > 0) {
             sendError(resp, HttpServletResponse.SC_CONFLICT, "未承認タスクが含まれています。承認後に発行してください。");
             return;
         }
 
-        // 並び：会社→ランク
+        /** 並び：会社→ランク */
         invoiceDtos.sort(Comparator
                 .comparing(InvoiceDTO::getCustomerCompanyName, Comparator.nullsLast(String::compareTo))
                 .thenComparing(InvoiceDTO::getTaskRankName, Comparator.nullsLast(String::compareTo)));
 
-        // Excel 生成
+        /** Excel 生成 */
         try (InputStream in = req.getServletContext().getResourceAsStream(TEMPLATE_PATH)) {
             if (in == null) {
                 sendError(resp, HttpServletResponse.SC_NOT_FOUND, "Excelテンプレが見つかりません: " + TEMPLATE_PATH);
@@ -494,17 +497,17 @@ public class InvoiceService extends BaseService {
             try (XSSFWorkbook wb = new XSSFWorkbook(in)) {
                 Sheet sh = wb.getSheetAt(0);
 
-                // ヘッダ（セル座標は 1 始まり指定ヘルパを使用）
-                setCell(sh, 2, 1, "御　請　求　書（" + targetYM + "）");                // A2
-                setCell(sh, 5, 8, secretaryName);                                      // H5
+                /** ヘッダ（セル座標は 1 始まり指定ヘルパを使用） */
+                setCell(sh, 2, 1, "御　請　求　書（" + targetYM + "）");
+                setCell(sh, 5, 8, secretaryName);
                 setCell(sh, 6, 8, secretaryPostal.isEmpty() ? "" : "〒" + secretaryPostal);
                 setCell(sh, 7, 8, secretaryAddress1 + secretaryAddress2);
                 setCell(sh, 8, 8, secretaryBuilding);
                 setCell(sh, 9, 8, secretaryTel.isEmpty() ? "" : "TEL：" + secretaryTel);
                 LocalDate todayJST = LocalDate.now(ZoneId.of("Asia/Tokyo"));
-                setCell(sh, 1, 9, "請求日：" + formatJpYmd(todayJST));                  // I1
+                setCell(sh, 1, 9, "請求日：" + formatJpYmd(todayJST));
 
-                // 口座
+                /** 口座 */
                 StringBuilder bankLine = new StringBuilder();
                 if (!bankName.isBlank())   bankLine.append(bankName);
                 if (!bankBranch.isBlank()) bankLine.append(bankLine.length() > 0 ? " " : "").append(bankBranch);
@@ -513,7 +516,7 @@ public class InvoiceService extends BaseService {
                 setCell(sh, 31, 1, bankLine.toString());
                 setCell(sh, 32, 1, bankOwner.isBlank() ? "" : "口座名義：" + bankOwner);
 
-                // 見出し検出（テンプレ変更に追従）
+                /** 見出し検出（テンプレ変更に追従） */
                 int taxableHeader = findRowByText(sh, "会社名", 200);
                 int rankHeader    = findRowByText(sh, "ランク", 200);
                 if (taxableHeader <= 0 || (rankHeader > 0 && rankHeader != taxableHeader)) {
@@ -525,7 +528,7 @@ public class InvoiceService extends BaseService {
                 if (nonTaxHeader <= 0) nonTaxHeader = 21;
                 final int NONTAX_DATA_START = nonTaxHeader + 1;
 
-                // 行確保（既定行数を超える場合は差し込み）
+                /** 行確保（既定行数を超える場合は差し込み） */
                 final int count   = invoiceDtos.size();
                 final int addRows = Math.max(0, count - TAXABLE_DEFAULT_ROWS);
                 final int SUBTOTAL_ROW_BASE_DYNAMIC = TAXABLE_DATA_START + TAXABLE_DEFAULT_ROWS;
@@ -538,7 +541,7 @@ public class InvoiceService extends BaseService {
                     }
                 }
 
-                // データ書込み
+                /** データ書込み */
                 for (int i = 0; i < count; i++) {
                     InvoiceDTO d = invoiceDtos.get(i);
                     int r = TAXABLE_DATA_START + i;
@@ -546,15 +549,15 @@ public class InvoiceService extends BaseService {
                     int hours = totalMin / 60;
                     int mins  = totalMin % 60;
 
-                    setCell(sh, r, 1, nvl(d.getCustomerCompanyName())); // A
-                    setCell(sh, r, 5, nvl(d.getTaskRankName()));         // E
-                    setCell(sh, r, 6, hours);                            // F
-                    setCell(sh, r, 7, mins);                             // G
-                    if (d.getHourlyPay() != null) setCell(sh, r, 8, d.getHourlyPay().doubleValue()); // H
-                    setCellFormula(sh, r, 10, "ROUND(H" + r + "*(F" + r + "+G" + r + "/60),0)");      // J
+                    setCell(sh, r, 1, nvl(d.getCustomerCompanyName()));
+                    setCell(sh, r, 5, nvl(d.getTaskRankName()));
+                    setCell(sh, r, 6, hours);
+                    setCell(sh, r, 7, mins);
+                    if (d.getHourlyPay() != null) setCell(sh, r, 8, d.getHourlyPay().doubleValue());
+                    setCellFormula(sh, r, 10, "ROUND(H" + r + "*(F" + r + "+G" + r + "/60),0)");
                 }
 
-                // 小計（課税・非課税）
+                /** 小計（課税・非課税） */
                 final int subRow    = SUBTOTAL_ROW_BASE_DYNAMIC + addRows;
                 final int nonTaxSub = (NONTAX_DATA_START + NONTAX_DEFAULT_ROWS) + addRows;
                 setCellFormula(sh, subRow,    10, "SUM(J" + TAXABLE_DATA_START + ":J" + (TAXABLE_DATA_START + count - 1) + ")");
@@ -574,12 +577,13 @@ public class InvoiceService extends BaseService {
         }
     }
 
-    // =========================================================
-    // ④ ヘルパー（全メソッドJavadocあり）
-    // =========================================================
+    /**
+     * ④ ヘルパー（全メソッドJavadocあり）
+     */
 
     /**
-     * 表示対象の年月を取得（<code>yearMonth</code> を優先、無ければ <code>targetYM</code> → 当月JST）。
+     * 表示対象の年月を取得（yearMonth を優先、無ければ targetYM → 当月JST）。
+     *
      * @return 年月（yyyy-MM）
      */
     private String pickYearMonthParam() {
@@ -590,8 +594,9 @@ public class InvoiceService extends BaseService {
     }
 
     /**
-     * 表示対象の年月を取得（<code>targetYM</code> を優先、無ければ <code>yearMonth</code> → 当月JST）。
-     * <p>支払サマリー（admin/costs）での互換用。</p>
+     * 表示対象の年月を取得（targetYM を優先、無ければ yearMonth → 当月JST）。
+     * 支払サマリー（admin/costs）での互換用。
+     *
      * @return 年月（yyyy-MM）
      */
     private String pickYearMonthParamPreferLegacy() {

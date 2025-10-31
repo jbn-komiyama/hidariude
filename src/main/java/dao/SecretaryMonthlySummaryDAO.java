@@ -1,4 +1,3 @@
-// dao/SecretaryMonthlySummaryDAO.java
 package dao;
 
 import java.math.BigDecimal;
@@ -18,21 +17,19 @@ import dto.SecretaryTotalsDTO;
 
 /**
  * 【集計DAO】秘書の月次サマリ（secretary_monthly_summaries）に関する読み取り専用DAO。
- * <p>
- * - 画面想定：<br>
- *   ・【secretary】マイページ/実績サマリ（合計・直近12ヶ月）<br>
- *   ・【admin】売上・原価サマリ（秘書×月のピボット）<br>
- * </p>
- * <p>
- * SQLは全て定数として集約（①フィールド：SQL）。<br>
- * 例外は {@link DAOException} にラップして上位（Service）へ委譲します。<br>
- * </p>
+ *
+ * 画面想定：
+ * - 【secretary】マイページ/実績サマリ（合計・直近12ヶ月）
+ * - 【admin】売上・原価サマリ（秘書×月のピボット）
+ *
+ * SQLは全て定数として集約（①フィールド：SQL）。
+ * 例外は {@link DAOException} にラップして上位（Service）へ委譲します。
  */
 public class SecretaryMonthlySummaryDAO extends BaseDAO {
 
-    // =========================
-    // ① フィールド（SQL）
-    // =========================
+    /** =========================
+     * ① フィールド（SQL）
+     * ========================= */
 
     /** 秘書トータル（売上=取り分合計／件数／稼働分） */
     private static final String SQL_TOTALS =
@@ -63,9 +60,9 @@ public class SecretaryMonthlySummaryDAO extends BaseDAO {
         " GROUP BY s.id, s.name, m.target_year_month " +
         " ORDER BY s.name, m.target_year_month";
 
-    // =========================
-    // ② フィールド / コンストラクタ
-    // =========================
+    /** =========================
+     * ② フィールド / コンストラクタ
+     * ========================= */
 
     /**
      * コンストラクタ。
@@ -76,26 +73,20 @@ public class SecretaryMonthlySummaryDAO extends BaseDAO {
         super(conn);
     }
 
-    // =========================
-    // ③ メソッド
-    //   - アクターごとにブロック化
-    // =========================
-
-    // ---------------------------------
-    // 【secretary】マイページ/サマリ
-    // ---------------------------------
-
-    // =========================
-    // SELECT
-    // =========================
+    /** =========================
+     * ③ メソッド
+     *   - アクターごとにブロック化
+     * ---------------------------------
+     * 【secretary】マイページ/サマリ
+     * =========================
+     * SELECT
+     * ========================= */
 
     /**
      * 【secretary】秘書の通算サマリ値（取り分合計・タスク件数・稼働分）を取得します。
-     * <p>
-     * - 集計対象は {@code deleted_at IS NULL} のみ。<br>
-     * - NULL になる可能性のある合計値は SQL 側で COALESCE により 0 を返します。<br>
+     * - 集計対象は {@code deleted_at IS NULL} のみ。
+     * - NULL になる可能性のある合計値は SQL 側で COALESCE により 0 を返します。
      * - DTO 側の件数/分は {@code int} 相当に丸めています（Long→int、安全な範囲想定）。
-     * </p>
      *
      * @param secretaryId 秘書ID
      * @return 合計値を格納した {@link SecretaryTotalsDTO}。データが無い場合でも 0 埋めで返却。
@@ -103,16 +94,16 @@ public class SecretaryMonthlySummaryDAO extends BaseDAO {
      */
     public SecretaryTotalsDTO selectTotals(UUID secretaryId) {
         try (PreparedStatement ps = conn.prepareStatement(SQL_TOTALS)) {
-            // 1) 入力秘書IDで集計
+            /** 1) 入力秘書IDで集計 */
             ps.setObject(1, secretaryId);
 
             try (ResultSet rs = ps.executeQuery()) {
                 SecretaryTotalsDTO d = new SecretaryTotalsDTO();
                 if (rs.next()) {
-                    // 金額は BigDecimal のまま（COALESCEで0保証）
+                    /** 金額は BigDecimal のまま（COALESCEで0保証） */
                     d.setTotalSecretaryAmount(rs.getBigDecimal("amt"));
 
-                    // 件数・分は long で読み、int に安全に縮小（データ設計上オーバーフロー非想定）
+                    /** 件数・分は long で読み、int に安全に縮小（データ設計上オーバーフロー非想定） */
                     long cntL  = rs.getLong("cnt");
                     d.setTotalTasksCount(rs.wasNull() ? null : Math.toIntExact(cntL));
 
@@ -122,18 +113,16 @@ public class SecretaryMonthlySummaryDAO extends BaseDAO {
                 return d;
             }
         } catch (SQLException e) {
-            // 上位(Service)がハンドリングしやすいようにDAO例外へ変換
+            /** 上位(Service)がハンドリングしやすいようにDAO例外へ変換 */
             throw new DAOException("E:SMS11 合計取得に失敗しました。", e);
         }
     }
 
     /**
      * 【secretary】指定期間（境界値含む）の直近12か月サマリを年月昇順で取得します。
-     * <p>
-     * - 期間は {@code target_year_month BETWEEN fromYm AND toYm} でインクルーシブ。<br>
-     * - 列はDTOに必要な範囲でマッピング。件数/稼働分はlong→intに縮小。<br>
+     * - 期間は {@code target_year_month BETWEEN fromYm AND toYm} でインクルーシブ。
+     * - 列はDTOに必要な範囲でマッピング。件数/稼働分はlong→intに縮小。
      * - ソートは {@code target_year_month ASC} で表示側の折れ線/棒グラフに使いやすくします。
-     * </p>
      *
      * @param secretaryId 秘書ID
      * @param fromYm      期間開始（yyyy-MM, 含む）
@@ -143,7 +132,7 @@ public class SecretaryMonthlySummaryDAO extends BaseDAO {
      */
     public List<SecretaryMonthlySummaryDTO> selectLast12Months(UUID secretaryId, String fromYm, String toYm) {
         try (PreparedStatement ps = conn.prepareStatement(SQL_LAST12)) {
-            // 1) 主キー + 期間境界
+            /** 1) 主キー + 期間境界 */
             ps.setObject(1, secretaryId);
             ps.setString(2, fromYm);
             ps.setString(3, toYm);
@@ -152,10 +141,10 @@ public class SecretaryMonthlySummaryDAO extends BaseDAO {
                 List<SecretaryMonthlySummaryDTO> list = new ArrayList<>();
 
                 while (rs.next()) {
-                    // 2) 行をDTOへ詰め替え
+                    /** 2) 行をDTOへ詰め替え */
                     SecretaryMonthlySummaryDTO d = new SecretaryMonthlySummaryDTO();
                     d.setId(rs.getObject(1, UUID.class));
-                    // d.setSecretaryId(rs.getObject(2, UUID.class)); // DTOにフィールドがある場合のみ使用
+                    /** d.setSecretaryId(rs.getObject(2, UUID.class)); DTOにフィールドがある場合のみ使用 */
                     d.setTargetYearMonth(rs.getString(3));
                     d.setTotalSecretaryAmount(rs.getBigDecimal(4));
 
@@ -180,19 +169,17 @@ public class SecretaryMonthlySummaryDAO extends BaseDAO {
         }
     }
 
-    // ---------------------------------
-    // 【admin】ダッシュボード/サマリ
-    // ---------------------------------
+    /** ---------------------------------
+     * 【admin】ダッシュボード/サマリ
+     * --------------------------------- */
 
     /**
      * 【admin】期間内（fromYm～toYm）の「秘書×月」の金額をピボット用に取得します。
-     * <p>
-     * - ベース集計は SQL 側で {@code SUM(total_secretary_amount)}、秘書×月で GROUP BY。<br>
-     * - Java 側で {@link PivotRowDTO} に整形（行=秘書、列=monthsの各yyyy-MM、セル=金額）。<br>
-     * - 存在しない月のセルは 0 で初期化します（表崩れ防止）。<br>
-     * - 行合計（rowTotal）も Java 側で計算してセットします。<br>
+     * - ベース集計は SQL 側で {@code SUM(total_secretary_amount)}、秘書×月で GROUP BY。
+     * - Java 側で {@link PivotRowDTO} に整形（行=秘書、列=monthsの各yyyy-MM、セル=金額）。
+     * - 存在しない月のセルは 0 で初期化します（表崩れ防止）。
+     * - 行合計（rowTotal）も Java 側で計算してセットします。
      * - 利用想定：管理者の原価/売上集計画面での月別秘書軸ピボット表示。
-     * </p>
      *
      * @param fromYm  集計期間開始（yyyy-MM, 含む）
      * @param toYm    集計期間終了（yyyy-MM, 含む）
@@ -202,22 +189,22 @@ public class SecretaryMonthlySummaryDAO extends BaseDAO {
      */
     public List<PivotRowDTO> selectCostsBySecretaryMonth(String fromYm, String toYm, List<String> months) {
         try (PreparedStatement ps = conn.prepareStatement(SQL_COSTS_BY_SECRETARY_MONTH)) {
-            // 1) 期間境界（インクルーシブ）
+            /** 1) 期間境界（インクルーシブ） */
             ps.setString(1, fromYm);
             ps.setString(2, toYm);
 
-            // 2) 結果格納マップ（key=秘書ID）
+            /** 2) 結果格納マップ（key=秘書ID） */
             Map<UUID, PivotRowDTO> map = new LinkedHashMap<>();
 
             try (ResultSet rs = ps.executeQuery()) {
-                // 3) SQL結果を一旦「秘書×月の明細」として読み込み
+                /** 3) SQL結果を一旦「秘書×月の明細」として読み込み */
                 while (rs.next()) {
                     UUID sid   = rs.getObject("sid", UUID.class);
                     String nm  = rs.getString("sname");
                     String ym  = rs.getString("ym");
-                    BigDecimal amt = rs.getBigDecimal("amt"); // COALESCE済
+                    BigDecimal amt = rs.getBigDecimal("amt"); /** COALESCE済 */
 
-                    // 3-1) 行が無ければ初期化（months分の列を0で作っておく）
+                    /** 3-1) 行が無ければ初期化（months分の列を0で作っておく） */
                     PivotRowDTO row = map.get(sid);
                     if (row == null) {
                         row = new PivotRowDTO();
@@ -229,12 +216,12 @@ public class SecretaryMonthlySummaryDAO extends BaseDAO {
                         map.put(sid, row);
                     }
 
-                    // 3-2) 対象月セルを上書き
+                    /** 3-2) 対象月セルを上書き */
                     row.getAmountByYm().put(ym, (amt == null) ? BigDecimal.ZERO : amt);
                 }
             }
 
-            // 4) 行合計（rowTotal）を算出してセット（表示ヘッダの合計列用）
+            /** 4) 行合計（rowTotal）を算出してセット（表示ヘッダの合計列用） */
             for (PivotRowDTO r : map.values()) {
                 BigDecimal sum = BigDecimal.ZERO;
                 for (String ym : months) {
@@ -243,7 +230,7 @@ public class SecretaryMonthlySummaryDAO extends BaseDAO {
                 r.setRowTotal(sum);
             }
 
-            // 5) 表示順は SQL で秘書名昇順に出ているため、そのまま保持
+            /** 5) 表示順は SQL で秘書名昇順に出ているため、そのまま保持 */
             return new ArrayList<>(map.values());
 
         } catch (SQLException e) {

@@ -39,7 +39,7 @@ public class PasswordUtil {
         try {
             return BCrypt.checkpw(plainPassword, hashedPassword);
         } catch (IllegalArgumentException e) {
-            // ハッシュ形式が不正な場合（例: 平文が保存されている場合）
+            /** ハッシュ形式が不正な場合（例: 平文が保存されている場合） */
             return false;
         }
     }

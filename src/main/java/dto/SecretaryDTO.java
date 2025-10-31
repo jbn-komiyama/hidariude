@@ -3,6 +3,9 @@ import java.io.Serializable;
 import java.sql.Timestamp;
 import java.util.UUID;
 
+/**
+ * 秘書（secretaries）テーブルのDTO
+ */
 public class SecretaryDTO implements Serializable {
 	private static final long serialVersionUID = 1L;
 	

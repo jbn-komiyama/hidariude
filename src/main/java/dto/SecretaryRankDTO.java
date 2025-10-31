@@ -4,6 +4,9 @@ import java.math.BigDecimal;
 import java.sql.Timestamp;
 import java.util.UUID;
 
+/**
+ * 秘書ランク（secretary_rank）テーブルのDTO
+ */
 public class SecretaryRankDTO implements Serializable {
 	private static final long serialVersionUID = 1L;
 	

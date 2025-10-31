@@ -39,24 +39,22 @@ import dto.TaskRankDTO;
 
 /**
  * アサイン（assignment）登録/一覧のアプリケーションサービス。
- * <ul>
- *   <li>一覧（当月）表示</li>
- *   <li>通常登録：入力 → 確認 → 完了</li>
- *   <li>PM登録：入力 → 確認 → 完了</li>
- *   <li>引継ぎプレビュー/適用、継続単価編集、削除</li>
- *   <li>（顧客）委託先一覧</li>
- * </ul>
- * <p>入力値検証は {@code Validation} を利用し、重複チェックは DAO で実施します。</p>
+ * - 一覧（当月）表示
+ * - 通常登録：入力 → 確認 → 完了
+ * - PM登録：入力 → 確認 → 完了
+ * - 引継ぎプレビュー/適用、継続単価編集、削除
+ * - （顧客）委託先一覧
+ * 入力値検証は {@code Validation} を利用し、重複チェックは DAO で実施します。
  */
 public class AssignmentService extends BaseService {
 
-    // =========================================================
-    // ① 定数・共通化（パラメータ名／パス／フォーマッタ／コンバータ）
-    // =========================================================
+    /** =========================================================
+     * ① 定数・共通化（パラメータ名／パス／フォーマッタ／コンバータ）
+     * ========================================================= */
     /** 年月フォーマッタ（yyyy-MM） */
     private static final DateTimeFormatter YM_FMT = DateTimeFormatter.ofPattern("yyyy-MM");
 
-    // ----- Request params -----
+    /** ----- Request params ----- */
     private static final String P_CUSTOMER_ID   = "customerId";
     private static final String P_SECRETARY_ID  = "secretaryId";
     private static final String P_TASK_RANK_ID  = "taskRankId";
@@ -71,9 +69,9 @@ public class AssignmentService extends BaseService {
     private static final String P_COMPANY_ID    = "companyId";
     private static final String P_COMPANY_NAME  = "companyName";
     private static final String P_ID            = "id";
-    // private static final String P_ASSIGNMENT_ID = "assignmentId"; // ← 未使用のため削除
+    // private static final String P_ASSIGNMENT_ID = "assignmentId"; /** ← 未使用のため削除 */
 
-    // ----- View names -----
+    /** ----- View names ----- */
     private static final String VIEW_HOME                 = "assignment/admin/home";
     private static final String VIEW_REGISTER             = "assignment/admin/register";
     private static final String VIEW_REGISTER_CHECK       = "assignment/admin/register_check";
@@ -84,11 +82,10 @@ public class AssignmentService extends BaseService {
     private static final String VIEW_CARRY_OVER_PREVIEW   = "assignment/admin/carry_over_preview";
     private static final String VIEW_EDIT_INCENTIVE       = "assignment/admin/edit_incentive";
     private static final String VIEW_OUTSOURCE_LIST       = "assignment/customer/list";
-    private static final String P_ASSIGNMENT_ID = "assignmentId";
     private static final String P_SECRETARY_NAME = "secretaryName";
     private static final String VIEW_SECRETARY_PROFILE = "assignment/customer/profile";
 
-    // ----- Attribute keys -----
+    /** ----- Attribute keys ----- */
     private static final String A_CUSTOMERS    = "customers";
     private static final String A_TARGET_YM    = "targetYM";
     private static final String A_CUSTOMER     = "customer";
@@ -99,7 +96,7 @@ public class AssignmentService extends BaseService {
     private static final String A_MESSAGE      = "message";
     private static final String A_STATUS       = "status";
 
-    // 確認画面・エラー戻し用（form_*）
+    /** 確認画面・エラー戻し用（form_*） */
     private static final String A_FORM_CUSTOMER_ID  = "form_customerId";
     private static final String A_FORM_SECRETARY_ID = "form_secretaryId";
     private static final String A_FORM_TASK_RANK_ID = "form_taskRankId";
@@ -112,41 +109,39 @@ public class AssignmentService extends BaseService {
     private static final String A_FORM_INCENT_SEC   = "form_customerBasedIncentiveForSecretary";
     private static final String A_FORM_STATUS       = "form_status";
 
-    // PM確認画面の hidden 受け渡し（h_*）
+    /** PM確認画面の hidden 受け渡し（h_*） */
     private static final String A_H_CUSTOMER_ID     = "h_customerId";
     private static final String A_H_SECRETARY_ID    = "h_secretaryId";
     private static final String A_H_TASK_RANK_ID    = "h_taskRankId";
     private static final String A_H_BASE_CUST       = "h_basePayCustomer";
     private static final String A_H_BASE_SEC        = "h_basePaySecretary";
 
-    // 変換（DTO→Domain）
+    /** 変換（DTO→Domain） */
     private final ConvertUtil conv = new ConvertUtil();
 
-    // =========================================================
-    // ② フィールド・コンストラクタ
-    // =========================================================
+    /** =========================================================
+     * ② フィールド・コンストラクタ
+     * ========================================================= */
     public AssignmentService(HttpServletRequest req, boolean useDB) {
         super(req, useDB);
     }
 
-    // =========================================================
-    // ③ メソッド（アクター別）
-    //  ③-1. 【admin】一覧/登録/確認/完了/各種ユーティリティ
-    //  ③-2. 【customer】委託先一覧
-    //  （secretary 用は現状なし）
-    // =========================================================
+    /** =========================================================
+     * ③ メソッド（アクター別）
+     *   ③-1. 【admin】一覧/登録/確認/完了/各種ユーティリティ
+     *   ③-2. 【customer】委託先一覧
+     *   （secretary 用は現状なし）
+     * ========================================================= */
 
-    // =========================
-    // 【admin】機能：一覧（当月）
-    // =========================
+    /** =========================
+     * 【admin】機能：一覧（当月）
+     * ========================= */
     /**
      * 「アサイン一覧（当月）」の表示。
-     * <ul>
-     *   <li>request param: {@code targetYM}（無指定なら当月、最大で翌月まで）</li>
-     *   <li>フィルタ：顧客名（部分一致）/ 秘書 / 継続≧N（DAO 側で処理）</li>
-     *   <li>ソート：フィルタ無しかつ指定「months_desc」のときのみ継続月数降順SQLを使用</li>
-     *   <li>顧客起点で LEFT JOIN し、当月アサイン無しの顧客行も表示</li>
-     * </ul>
+     * - request param: {@code targetYM}（無指定なら当月、最大で翌月まで）
+     * - フィルタ：顧客名（部分一致）/ 秘書 / 継続≧N（DAO 側で処理）
+     * - ソート：フィルタ無しかつ指定「months_desc」のときのみ継続月数降順SQLを使用
+     * - 顧客起点で LEFT JOIN し、当月アサイン無しの顧客行も表示
      * @return JSP: {@code assignment/admin/home}
      */
     public String assignmentList() {
@@ -180,12 +175,12 @@ public class AssignmentService extends BaseService {
                 || (qCustomer != null && !qCustomer.isBlank());
 
         try (TransactionManager tm = new TransactionManager()) {
-            // セレクトボックス：秘書
+            /** セレクトボックス：秘書 */
             loadSecretariesToRequest(tm, false);
 
             AssignmentDAO aDao = new AssignmentDAO(tm.getConnection());
 
-            // データ取得
+            /** データ取得 */
             List<CustomerDTO> cRows;
             if (sortByMonthsDesc && !hasFilters) {
                 cRows = aDao.selectAllByMonthOrderByConsecutiveDesc(targetYM);
@@ -193,7 +188,7 @@ public class AssignmentService extends BaseService {
                 cRows = aDao.selectAllByMonthFiltered(targetYM, qCustomer, filterSecId, minMonths);
             }
 
-            // DTO→Domain 整形（秘書単位でグルーピング）
+            /** DTO→Domain 整形（秘書単位でグルーピング） */
             Map<UUID, Integer> contMonths = new HashMap<>();
             List<Customer> customers = new ArrayList<>();
 
@@ -225,7 +220,7 @@ public class AssignmentService extends BaseService {
                 customers.add(c);
             }
 
-            // 画面用属性
+            /** 画面用属性 */
             String prevYM = LocalDate.parse(targetYM + "-01").minusMonths(1).format(YM_FMT);
             req.setAttribute("canCarryOver", ymNow.equals(targetYM) || ymNext.equals(targetYM));
             req.setAttribute("prevYM", prevYM);
@@ -235,7 +230,7 @@ public class AssignmentService extends BaseService {
             req.setAttribute(A_CUSTOMERS, customers);
             req.setAttribute(A_TARGET_YM, targetYM);
 
-            // フォーム反映
+            /** フォーム反映 */
             req.setAttribute("f_minMonths",  minMonthsStr);
             req.setAttribute("f_secretaryId", secretaryIdStr);
             req.setAttribute("f_qCustomer",  qCustomer);
@@ -248,18 +243,15 @@ public class AssignmentService extends BaseService {
         }
     }
 
-    // =========================
-    // 【admin】機能：登録フォーム表示（通常）
-    // =========================
+    /** =========================
+     * 【admin】機能：登録フォーム表示（通常）
+     * ========================= */
     /**
      * 「通常アサイン登録」フォームの表示。
-     * <ul>
-     *   <li>必須：{@code id}（顧客ID）, {@code companyName}</li>
-     *   <li>フィルタ/ソートはリクエスト（GET）で受け取り、<br>
-     *       {@code ProfileDAO#selectSecretaryCandidatesForRegister()} に渡してサーバー側で実現</li>
-     *   <li>対象月 {@code targetYM} は無ければ当月</li>
-     *   <li>候補は profiles 登録済みの秘書のみ、〇/△のみ抽出、pref_score で「〇→△」優先</li>
-     * </ul>
+     * - 必須：{@code id}（顧客ID）, {@code companyName}
+     * - フィルタ/ソートはリクエスト（GET）で受け取り、{@code ProfileDAO#selectSecretaryCandidatesForRegister()} に渡してサーバー側で実現
+     * - 対象月 {@code targetYM} は無ければ当月
+     * - 候補は profiles 登録済みの秘書のみ、〇/△のみ抽出、pref_score で「〇→△」優先
      * @return JSP: {@code assignment/admin/register}
      */
     public String assignmentRegister() {
@@ -274,7 +266,7 @@ public class AssignmentService extends BaseService {
             return req.getContextPath() + "/admin/assignment";
         }
 
-        // チェックボックス受け取り（JSPのnameと一致）
+        /** チェックボックス受け取り（JSPのnameと一致） */
         Predicate<String> truthy = v -> v != null &&
                 (v.equalsIgnoreCase("1") || v.equalsIgnoreCase("on")
                         || v.equalsIgnoreCase("true") || v.equalsIgnoreCase("yes"));
@@ -289,18 +281,18 @@ public class AssignmentService extends BaseService {
         boolean suDay   = truthy.test(req.getParameter("suDay"));
         boolean suNight = truthy.test(req.getParameter("suNight"));
 
-        String sortKey = req.getParameter("sortKey");   // wdHours / saHours / suHours / totalHours / lastMonth / capacity
-        String sortDir = req.getParameter("sortDir");   // asc / desc
+        String sortKey = req.getParameter("sortKey");   /** wdHours / saHours / suHours / totalHours / lastMonth / capacity */
+        String sortDir = req.getParameter("sortDir");   /** asc / desc */
         boolean desc = !"asc".equalsIgnoreCase(sortDir);
 
         try (TransactionManager tm = new TransactionManager()) {
-            // 顧客（固定表示）
+            /** 顧客（固定表示） */
             Customer customer = new Customer();
             customer.setId(UUID.fromString(idStr));
             customer.setCompanyName(companyName);
             req.setAttribute(A_CUSTOMER, customer);
 
-            // プルダウン
+            /** プルダウン */
             loadSecretariesToRequest(tm, false);
             loadTaskRanksToRequest(tm);
             
@@ -313,7 +305,7 @@ public class AssignmentService extends BaseService {
             
             req.setAttribute("futureAssignments", futureAssignments);
             
-            // 候補（サーバー側：SQLでフィルタ/ソート）
+            /** 候補（サーバー側：SQLでフィルタ/ソート） */
             ProfileDAO pdao = new ProfileDAO(tm.getConnection());
             List<Map<String, Object>> candidates =
                     pdao.selectSecretaryCandidatesForRegister(
@@ -326,7 +318,7 @@ public class AssignmentService extends BaseService {
 
             req.setAttribute("secretaryCandidates", candidates);
 
-            // 画面の状態戻し
+            /** 画面の状態戻し */
             req.setAttribute("wdAm", wdAm);
             req.setAttribute("wdDay", wdDay);
             req.setAttribute("wdNight", wdNight);
@@ -346,17 +338,15 @@ public class AssignmentService extends BaseService {
         }
     }
 
-    // =========================
-    // 【admin】機能：登録フォーム表示（PM）
-    // =========================
+    /** =========================
+     * 【admin】機能：登録フォーム表示（PM）
+     * ========================= */
     /**
      * 「PMアサイン登録」フォームの表示。
-     * <ul>
-     *   <li>必須：{@code companyId}（顧客ID）, {@code companyName}</li>
-     *   <li>PM秘書のみプルダウン表示（is_pm_secretary = true）</li>
-     *   <li>タスクランク P を固定表示</li>
-     *   <li>対象月 {@code targetYM} は無ければ当月</li>
-     * </ul>
+     * - 必須：{@code companyId}（顧客ID）, {@code companyName}
+     * - PM秘書のみプルダウン表示（is_pm_secretary = true）
+     * - タスクランク P を固定表示
+     * - 対象月 {@code targetYM} は無ければ当月
      * @return JSP: {@code assignment/admin/pm_register}
      */
     public String assignmentPMRegister() {
@@ -386,28 +376,25 @@ public class AssignmentService extends BaseService {
         }
     }
 
-    // =========================
-    // 【admin】機能：登録確認（通常）
-    // =========================
+    /** =========================
+     * 【admin】機能：登録確認（通常）
+     * ========================= */
     /**
      * 「通常アサイン登録」確認画面。
-     * <ul>
-     *   <li>form_* を request に積み、ID 形式の軽微な検証を実施</li>
-     *   <li>名称（顧客・秘書・ランク）は DB から取得して表示用に設定</li>
-     * </ul>
+     * - form_* を request に積み、ID 形式の軽微な検証を実施
+     * - 名称（顧客・秘書・ランク）は DB から取得して表示用に設定
      * @return JSP: {@code assignment/admin/register_check}（エラー時は入力画面へ戻す）
      */
     public String assignmentRegisterCheck() {
-        // form_* をいったん積む
+        /** form_* をいったん積む */
         pushFormBackToRequestForCheck(false);
 
-        // POST 値
-        final String customerIdStr  = req.getParameter(P_ID);           // ※ 画面の name=id を受け取る仕様
+        /** POST 値 */
+        final String customerIdStr  = req.getParameter(P_ID);           /** ※ 画面の name=id を受け取る仕様 */
         final String secretaryIdStr = req.getParameter(P_SECRETARY_ID);
         final String taskRankIdStr  = req.getParameter(P_TASK_RANK_ID);
-        final String targetYM       = req.getParameter(P_TARGET_YM);
 
-        // 軽い検証
+        /** 軽い検証 */
         if (!validation.isUuid(customerIdStr)) validation.addErrorMsg("顧客の指定が不正です");
         if (!validation.isUuid(secretaryIdStr)) validation.addErrorMsg("秘書の指定が不正です");
         if (!validation.isUuid(taskRankIdStr))  validation.addErrorMsg("業務ランクの指定が不正です");
@@ -426,7 +413,7 @@ public class AssignmentService extends BaseService {
             return VIEW_REGISTER;
         }
 
-        // 表示名称取得
+        /** 表示名称取得 */
         try (TransactionManager tm = new TransactionManager()) {
             CustomerDAO  cdao  = new CustomerDAO(tm.getConnection());
             SecretaryDAO sdao  = new SecretaryDAO(tm.getConnection());
@@ -449,15 +436,13 @@ public class AssignmentService extends BaseService {
         return VIEW_REGISTER_CHECK;
     }
 
-    // =========================
-    // 【admin】機能：登録確認（PM）
-    // =========================
+    /** =========================
+     * 【admin】機能：登録確認（PM）
+     * ========================= */
     /**
      * 「PMアサイン登録」確認画面。
-     * <ul>
-     *   <li>単価（顧客/秘書）は hidden をそのまま使用</li>
-     *   <li>増額/継続インセンティブは PM 仕様で 0 固定（非表示）</li>
-     * </ul>
+     * - 単価（顧客/秘書）は hidden をそのまま使用
+     * - 増額/継続インセンティブは PM 仕様で 0 固定（非表示）
      * @return JSP: {@code assignment/admin/pm_register_check}
      */
     public String assignmentPMRegisterCheck() {
@@ -523,15 +508,13 @@ public class AssignmentService extends BaseService {
         }
     }
 
-    // =========================
-    // 【admin】機能：登録完了（通常）
-    // =========================
+    /** =========================
+     * 【admin】機能：登録完了（通常）
+     * ========================= */
     /**
      * 「通常アサイン登録」の確定（INSERT）。
-     * <ul>
-     *   <li>重複チェック：同月・同顧客・同秘書・同ランク</li>
-     *   <li>エラー時はフォーム値を復元し、リスト再設定</li>
-     * </ul>
+     * - 重複チェック：同月・同顧客・同秘書・同ランク
+     * - エラー時はフォーム値を復元し、リスト再設定
      * @return JSP: {@code assignment/admin/register_done}（エラー時は入力画面）
      */
     public String assignmentRegisterDone() {
@@ -598,15 +581,13 @@ public class AssignmentService extends BaseService {
         }
     }
 
-    // =========================
-    // 【admin】機能：登録完了（PM）
-    // =========================
+    /** =========================
+     * 【admin】機能：登録完了（PM）
+     * ========================= */
     /**
      * 「PMアサイン登録」の確定（INSERT）。
-     * <ul>
-     *   <li>増額/継続インセンティブは 0 固定</li>
-     *   <li>重複チェック：同月・同顧客・同秘書・同ランク</li>
-     * </ul>
+     * - 増額/継続インセンティブは 0 固定
+     * - 重複チェック：同月・同顧客・同秘書・同ランク
      * @return JSP: {@code assignment/admin/pm_register_done}（重複時は入力へリダイレクト）
      */
     public String assignmentPMRegisterDone() {
@@ -638,7 +619,7 @@ public class AssignmentService extends BaseService {
             AssignmentDTO dto = buildAssignmentDto(
                     customerIdStr, secretaryIdStr, taskRankIdStr, targetYM,
                     basePayCustomerStr, basePaySecretaryStr,
-                    "0", "0", "0", "0", status // PM 固定
+                    "0", "0", "0", "0", status /** PM 固定 */
             );
 
             AssignmentDAO dao = new AssignmentDAO(tm.getConnection());
@@ -668,12 +649,12 @@ public class AssignmentService extends BaseService {
         }
     }
 
-    // =========================
-    // 【admin】機能：引継ぎプレビュー
-    // =========================
+    /** =========================
+     * 【admin】機能：引継ぎプレビュー
+     * ========================= */
     
-    //ここに仮作成
-    //委託先一覧表示
+    /** ここに仮作成
+     * 委託先一覧表示 */
 //    public String outsourceList() {
 //        // 1) ログイン中の顧客ID（会社ID）をセッションから取得
 //        UUID customerId = currentCustomerId();
@@ -702,8 +683,8 @@ public class AssignmentService extends BaseService {
 //        return VIEW_OUTSOURCE_LIST;
 //    }
 
-    // 秘書プロフィール表示
- // 秘書プロフィール表示（秘書名を受け取り、IDに解決してから取得）
+    /** 秘書プロフィール表示
+     * 秘書プロフィール表示（秘書名を受け取り、IDに解決してから取得） */
     public String secretaryProfile() {
         final String name = req.getParameter(P_SECRETARY_NAME);
         if (name == null || name.isBlank()) {
@@ -714,7 +695,7 @@ public class AssignmentService extends BaseService {
         try (TransactionManager tm = new TransactionManager()) {
             AssignmentDAO assignmentDao = new AssignmentDAO(tm.getConnection());
 
-            // ① 氏名 → 秘書ID を解決
+            /** ① 氏名 → 秘書ID を解決 */
             var optId = assignmentDao.selectSecretaryIdByName(name);
             if (optId.isEmpty()) {
                 req.setAttribute(A_ERROR, java.util.List.of("指定された氏名の秘書が見つかりません。"));
@@ -722,7 +703,7 @@ public class AssignmentService extends BaseService {
             }
             java.util.UUID secId = optId.get();
 
-            // ② 氏名/フリガナ（DBの正規値）を取得（なければ受け取った name を表示名に採用）
+            /** ② 氏名/フリガナ（DBの正規値）を取得（なければ受け取った name を表示名に採用） */
             var namePairOpt = assignmentDao.selectSecretaryNameById(secId);
             namePairOpt.ifPresentOrElse(pair -> {
                 req.setAttribute("secretaryName", pair.getKey());
@@ -732,7 +713,7 @@ public class AssignmentService extends BaseService {
                 req.setAttribute("secretaryNameRuby", null);
             });
 
-            // ③ プロフィール本体
+            /** ③ プロフィール本体 */
             dto.ProfileDTO profile = assignmentDao.selectProfileBySecretaryId(secId);
             req.setAttribute("profile", profile);
 
@@ -746,11 +727,9 @@ public class AssignmentService extends BaseService {
     
     /**
      * 「引継ぎプレビュー」（先月→対象月）。
-     * <ul>
-     *   <li>request param: {@code toYM}（対象月）, {@code fromYM}（先月）</li>
-     *   <li>対象月に未登録のもののみ候補表示</li>
-     *   <li>候補行に対して、{@code fromYM} を末尾とする「連続月数」を計算して併せて表示</li>
-     * </ul>
+     * - request param: {@code toYM}（対象月）, {@code fromYM}（先月）
+     * - 対象月に未登録のもののみ候補表示
+     * - 候補行に対して、{@code fromYM} を末尾とする「連続月数」を計算して併せて表示
      * @return JSP: {@code assignment/admin/carry_over_preview}
      */
     public String assignmentCarryOverPreview() {
@@ -781,15 +760,13 @@ public class AssignmentService extends BaseService {
         }
     }
 
-    // =========================
-    // 【admin】機能：引継ぎ適用
-    // =========================
+    /** =========================
+     * 【admin】機能：引継ぎ適用
+     * ========================= */
     /**
      * 「引継ぎ適用」（チェック済み候補を対象月に一括INSERT）。
-     * <ul>
-     *   <li>request param: {@code toYM}（対象月）, {@code assignmentId[]}（候補ID群）</li>
-     *   <li>重複（同顧客×同秘書×同ランク×対象月）はスキップ</li>
-     * </ul>
+     * - request param: {@code toYM}（対象月）, {@code assignmentId[]}（候補ID群）
+     * - 重複（同顧客×同秘書×同ランク×対象月）はスキップ
      * @return 一覧へリダイレクト（対象月）
      */
     public String assignmentCarryOverApply() {
@@ -813,7 +790,6 @@ public class AssignmentService extends BaseService {
             AssignmentDAO dao = new AssignmentDAO(tm.getConnection());
             List<AssignmentDTO> rows = dao.selectByIds(idList);
 
-            int inserted = 0;
             for (AssignmentDTO src : rows) {
                 AssignmentDTO dto = new AssignmentDTO();
                 dto.setAssignmentCustomerId(src.getAssignmentCustomerId());
@@ -827,10 +803,8 @@ public class AssignmentService extends BaseService {
                 dto.setCustomerBasedIncentiveForCustomer(src.getCustomerBasedIncentiveForCustomer());
                 dto.setCustomerBasedIncentiveForSecretary(src.getCustomerBasedIncentiveForSecretary());
                 dto.setAssignmentStatus(src.getAssignmentStatus());
-
                 if (!dao.existsDuplicate(dto)) {
                     dao.insert(dto);
-                    inserted++;
                 }
             }
             tm.commit();
@@ -841,15 +815,13 @@ public class AssignmentService extends BaseService {
         }
     }
 
-    // =========================
-    // 【admin】機能：継続単価 編集フォーム
-    // =========================
+    /** =========================
+     * 【admin】機能：継続単価 編集フォーム
+     * ========================= */
     /**
      * 「継続単価」編集フォーム表示。
-     * <ul>
-     *   <li>request param: {@code id}（アサインID）, {@code targetYM}（戻り先用）</li>
-     *   <li>顧客/秘書/年月/ランクは表示のみ（変更不可）</li>
-     * </ul>
+     * - request param: {@code id}（アサインID）, {@code targetYM}（戻り先用）
+     * - 顧客/秘書/年月/ランクは表示のみ（変更不可）
      * @return JSP: {@code assignment/admin/edit_incentive}
      */
     public String assignmentEditIncentiveForm() {
@@ -876,15 +848,13 @@ public class AssignmentService extends BaseService {
         }
     }
 
-    // =========================
-    // 【admin】機能：継続単価 更新
-    // =========================
+    /** =========================
+     * 【admin】機能：継続単価 更新
+     * ========================= */
     /**
      * 「継続単価」更新実行（顧客×秘書×対象月の全レコード一括更新）。
-     * <ul>
-     *   <li>request param: {@code id}, {@code targetYM}, {@code customerBasedIncentiveForCustomer}, {@code customerBasedIncentiveForSecretary}</li>
-     *   <li>翌月に同ペアが登録済みなら、その月にも同値を反映（UPDATE件数0ならスルー）</li>
-     * </ul>
+     * - request param: {@code id}, {@code targetYM}, {@code customerBasedIncentiveForCustomer}, {@code customerBasedIncentiveForSecretary}
+     * - 翌月に同ペアが登録済みなら、その月にも同値を反映（UPDATE件数0ならスルー）
      * @return 一覧へリダイレクト（編集対象の月）
      */
     public String assignmentEditIncentiveUpdate() {
@@ -941,15 +911,13 @@ public class AssignmentService extends BaseService {
         }
     }
 
-    // =========================
-    // 【admin】機能：削除
-    // =========================
+    /** =========================
+     * 【admin】機能：削除
+     * ========================= */
     /**
      * アサインの削除（論理削除）。紐づくタスクがある場合は削除不可。
-     * <ul>
-     *   <li>request param: {@code id}, {@code targetYM}</li>
-     *   <li>紐づくタスク存在時はエラーメッセージをセットして一覧へ戻す</li>
-     * </ul>
+     * - request param: {@code id}, {@code targetYM}
+     * - 紐づくタスク存在時はエラーメッセージをセットして一覧へ戻す
      * @return 一覧へリダイレクト
      */
     public String assignmentDelete() {
@@ -981,16 +949,14 @@ public class AssignmentService extends BaseService {
         }
     }
 
-    // =========================
-    // 【customer】機能：委託先一覧
-    // =========================
+    /** =========================
+     * 【customer】機能：委託先一覧
+     * ========================= */
     /**
      * （顧客向け）当月の「委託先一覧」表示。
-     * <ul>
-     *   <li>ログイン中の顧客IDをセッションから取得</li>
-     *   <li>対象月は JST の当月固定</li>
-     *   <li>当月に該当顧客へ紐づく秘書を重複無しで一覧化</li>
-     * </ul>
+     * - ログイン中の顧客IDをセッションから取得
+     * - 対象月は JST の当月固定
+     * - 当月に該当顧客へ紐づく秘書を重複無しで一覧化
      * @return JSP: {@code assignment/customer/list}
      */
     public String outsourceList() {
@@ -1014,9 +980,9 @@ public class AssignmentService extends BaseService {
         return VIEW_OUTSOURCE_LIST;
     }
 
-    // =========================================================
-    // ④ ヘルパー
-    // =========================================================
+    /** =========================================================
+     * ④ ヘルパー
+     * ========================================================= */
 
     /**
      * 金額文字列を {@link BigDecimal} に変換（空/blank→0、カンマ除去）。
@@ -1057,16 +1023,12 @@ public class AssignmentService extends BaseService {
     
     /**
      * AssignmentDTO の組立ヘルパー（内部利用）。
-     * <ul>
-     *   <li>文字列ID（顧客/秘書/ランク）を UUID へ変換</li>
-     *   <li>金額文字列は空やカンマ含みも 0 として BigDecimal 化</li>
-     *   <li>対象月・ステータス等をそのまま DTO に詰める</li>
-     * </ul>
+     * - 文字列ID（顧客/秘書/ランク）を UUID へ変換
+     * - 金額文字列は空やカンマ含みも 0 として BigDecimal 化
+     * - 対象月・ステータス等をそのまま DTO に詰める
      * 呼び出し元：
-     * <ul>
-     *   <li>assignmentRegisterDone（通常登録）</li>
-     *   <li>assignmentPMRegisterDone（PM登録・増額/継続は "0" 固定で渡す）</li>
-     * </ul>
+     * - assignmentRegisterDone（通常登録）
+     * - assignmentPMRegisterDone（PM登録・増額/継続は "0" 固定で渡す）
      */
     private AssignmentDTO buildAssignmentDto(
             String customerIdStr, String secretaryIdStr, String taskRankIdStr, String targetYearMonth,

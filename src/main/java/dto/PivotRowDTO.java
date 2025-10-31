@@ -1,4 +1,3 @@
-// dto/PivotRowDTO.java
 package dto;
 
 import java.io.Serializable;
@@ -7,13 +6,17 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.UUID;
 
-/** ピボット1行分（顧客/秘書） */
+/**
+ * ピボット1行分（顧客/秘書）のDTO
+ */
 public class PivotRowDTO implements Serializable {
     private static final long serialVersionUID = 1L;
 
     private UUID id;
-    private String label; // 会社名 or 秘書名
-    private Map<String, BigDecimal> amountByYm = new LinkedHashMap<>(); // ym -> 金額
+    /** 会社名 or 秘書名 */
+    private String label;
+    /** ym -> 金額 */
+    private Map<String, BigDecimal> amountByYm = new LinkedHashMap<>();
     private BigDecimal rowTotal = BigDecimal.ZERO;
 
     public UUID getId() { return id; }
