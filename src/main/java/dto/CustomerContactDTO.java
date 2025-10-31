@@ -4,6 +4,9 @@ import java.io.Serializable;
 import java.sql.Timestamp;
 import java.util.UUID;
 
+/**
+ * 顧客担当者（customer_contacts）テーブルのDTO
+ */
 public class CustomerContactDTO implements Serializable {
 	private static final long serialVersionUID = 1L;
 

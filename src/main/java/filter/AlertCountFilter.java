@@ -26,7 +26,7 @@ public class AlertCountFilter implements Filter {
 
     @Override
     public void init(FilterConfig filterConfig) throws ServletException {
-        // 初期化処理（特になし）
+        /** 初期化処理（特になし） */
     }
 
     @Override
@@ -35,34 +35,34 @@ public class AlertCountFilter implements Filter {
         
         HttpServletRequest httpRequest = (HttpServletRequest) request;
         
-        // 管理者がログインしているか確認
+        /** 管理者がログインしているか確認 */
         HttpSession session = httpRequest.getSession(false);
         if (session != null && session.getAttribute("loginUser") != null) {
             LoginUser loginUser = (LoginUser) session.getAttribute("loginUser");
             
-            // 管理者の場合のみアラート件数を取得
+            /** 管理者の場合のみアラート件数を取得 */
             if (loginUser.getSystemAdmin() != null) {
                 try (TransactionManager tm = new TransactionManager()) {
                     TaskDAO dao = new TaskDAO(tm.getConnection());
-                    // showAlert(false): 全件取得
+                    /** showAlert(false): 全件取得 */
                     List<TaskDTO> alerts = dao.showAlert(false);
-                    // アラート件数をrequestスコープにセット
+                    /** アラート件数をrequestスコープにセット */
                     request.setAttribute("alertCount", alerts.size());
                 } catch (Exception e) {
-                    // エラーが発生してもフィルタ処理は継続
+                    /** エラーが発生してもフィルタ処理は継続 */
                     e.printStackTrace();
                     request.setAttribute("alertCount", 0);
                 }
             }
         }
         
-        // 次のフィルタまたはサーブレットへ
+        /** 次のフィルタまたはサーブレットへ */
         chain.doFilter(request, response);
     }
 
     @Override
     public void destroy() {
-        // クリーンアップ処理（特になし）
+        /** クリーンアップ処理（特になし） */
     }
 }
 

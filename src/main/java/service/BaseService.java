@@ -4,12 +4,15 @@ import jakarta.servlet.http.HttpServletRequest;
 import util.ValidationUtil;
 import dao.TransactionManager;
 
+/**
+ * サービス層の基底クラス
+ */
 public class BaseService {
 	protected HttpServletRequest req;
 	protected TransactionManager tm;
 	protected Connection conn;
 	protected ValidationUtil validation = new ValidationUtil();
-    // ===== Error
+    /** ===== Error */
     public static String REDIRECT_ERROR;
 	
 	public BaseService(HttpServletRequest req, boolean useDB) {

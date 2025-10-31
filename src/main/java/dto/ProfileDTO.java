@@ -5,7 +5,9 @@ import java.math.BigDecimal;
 import java.sql.Timestamp;
 import java.util.UUID;
 
-/** profiles のDTO */
+/**
+ * 秘書プロフィール（profiles）テーブルのDTO
+ */
 public class ProfileDTO implements Serializable{
 	private static final long serialVersionUID = 1L;
     private UUID id;
@@ -39,7 +41,7 @@ public class ProfileDTO implements Serializable{
     private Timestamp updatedAt;
     private Timestamp deletedAt;
 
-    // --- getter / setter（省略なし） ---
+    /** --- getter / setter（省略なし） --- */
     public UUID getId() { return id; }
     public void setId(UUID id) { this.id = id; }
     public UUID getSecretaryId() { return secretaryId; }

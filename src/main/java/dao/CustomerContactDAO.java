@@ -12,29 +12,24 @@ import dto.CustomerContactDTO;
 import dto.CustomerDTO;
 
 /**
- * 顧客担当者（<code>customer_contacts</code>）用 DAO。
- * <ul>
- *   <li><code>mail</code> は全体で UNIQUE（NOT NULL）</li>
- *   <li><code>password</code> は NOT NULL（新規登録必須）</li>
- *   <li><code>is_primary</code> で主担当管理（1顧客につき1名へ正規化）</li>
- * </ul>
- * <p>
- * 例外は {@link DAOException} にラップして上位に伝播します。
- * 取得系は論理削除（<code>deleted_at IS NULL</code>）を自動で除外します。
- * </p>
+ * 顧客担当者（{@code customer_contacts}）用 DAO。
+ * - {@code mail} は全体で UNIQUE（NOT NULL）
+ * - {@code password} は NOT NULL（新規登録必須）
+ * - {@code is_primary} で主担当管理（1顧客につき1名へ正規化）
  *
- * <h2>クラス構成</h2>
- * <ol>
- *   <li>フィールド（SQL 文）</li>
- *   <li>フィールド、コンストラクタ</li>
- *   <li>メソッド（SELECT／CUD／重複チェック／主担当制御／マッパ）</li>
- * </ol>
+ * 例外は {@link DAOException} にラップして上位に伝播します。
+ * 取得系は論理削除（{@code deleted_at IS NULL}）を自動で除外します。
+ *
+ * クラス構成：
+ * 1. フィールド（SQL 文）
+ * 2. フィールド、コンストラクタ
+ * 3. メソッド（SELECT／CUD／重複チェック／主担当制御／マッパ）
  */
 public class CustomerContactDAO extends BaseDAO {
 
-    // ========================
-    // ① フィールド（SQL 定義）
-    // ========================
+    /** ========================
+     * ① フィールド（SQL 定義）
+     * ======================== */
 
     /** 一覧・単体取得の共通 SELECT 句 */
     private static final String BASE_SELECT =
@@ -89,9 +84,9 @@ public class CustomerContactDAO extends BaseDAO {
     private static final String SQL_UPDATE_LAST_LOGIN_AT =
         "UPDATE customer_contacts SET last_login_at = CURRENT_TIMESTAMP WHERE id = ?";
 
-    // ========================
-    // ② フィールド、コンストラクタ
-    // ========================
+    /** ========================
+     * ② フィールド、コンストラクタ
+     * ======================== */
 
     /**
      * コンストラクタ。
@@ -102,10 +97,10 @@ public class CustomerContactDAO extends BaseDAO {
         super(conn); 
     }
 
-    // ========================
-    // ③ メソッド
-    // ========================
-    // -------- SELECT --------
+    /** ========================
+     * ③ メソッド
+     * -------- SELECT --------
+     * ======================== */
 
     /**
      * 顧客IDで担当者一覧を取得します（論理未削除のみ／氏名昇順）。
@@ -119,7 +114,7 @@ public class CustomerContactDAO extends BaseDAO {
             ps.setObject(1, customerId);
             try (ResultSet rs = ps.executeQuery()) {
                 List<CustomerContactDTO> list = new ArrayList<>();
-                while (rs.next()) list.add(map(rs, 1)); // カラム先頭を1として順次マップ
+                while (rs.next()) list.add(map(rs, 1)); /** カラム先頭を1として順次マップ */
                 return list;
             }
         } catch (SQLException e) {
@@ -129,7 +124,7 @@ public class CustomerContactDAO extends BaseDAO {
 
     /**
      * 担当者IDで1件取得します（論理未削除のみ）。
-     * <p>見つからない場合は空の DTO（フィールド未セット）を返します。</p>
+     * 見つからない場合は空の DTO（フィールド未セット）を返します。
      *
      * @param id 担当者ID（必須）
      * @return 該当 {@link CustomerContactDTO}／未存在時は空 DTO
@@ -140,7 +135,7 @@ public class CustomerContactDAO extends BaseDAO {
             ps.setObject(1, id);
             try (ResultSet rs = ps.executeQuery()) {
                 if (rs.next()) return map(rs, 1);
-                return new CustomerContactDTO(); // 未存在は空DTOで呼び出し側の互換性維持
+                return new CustomerContactDTO(); /** 未存在は空DTOで呼び出し側の互換性維持 */
             }
         } catch (SQLException e) {
             throw new DAOException("E:CC12 担当者単一取得に失敗しました。", e);
@@ -149,7 +144,7 @@ public class CustomerContactDAO extends BaseDAO {
 
     /**
      * メールアドレスで1件取得します（論理未削除のみ）。
-     * <p>見つからない場合は空の DTO（フィールド未セット）を返します。</p>
+     * 見つからない場合は空の DTO（フィールド未セット）を返します。
      *
      * @param mail メールアドレス（UNIQUE／必須）
      * @return 該当 {@link CustomerContactDTO}／未存在時は空 DTO
@@ -161,7 +156,7 @@ public class CustomerContactDAO extends BaseDAO {
             ps.setString(1, mail);
             try (ResultSet rs = ps.executeQuery()) {
                 if (rs.next()) {
-                    return map(rs, 1); // 取得位置1から BASE_SELECT の並びで詰める
+                    return map(rs, 1); /** 取得位置1から BASE_SELECT の並びで詰める */
                 }
                 return new CustomerContactDTO();
             }
@@ -170,16 +165,14 @@ public class CustomerContactDAO extends BaseDAO {
         }
     }
 
-    // ---- INSERT / UPDATE / DELETE ----
+    /** ---- INSERT / UPDATE / DELETE ---- */
 
     /**
      * 新規登録を行い、生成されたID（UUID）を返します。
-     * <ul>
-     *   <li><code>mail</code> は UNIQUE かつ NOT NULL</li>
-     *   <li><code>password</code> は NOT NULL</li>
-     *   <li><code>customer_id</code> は外部キー</li>
-     *   <li><code>is_primary</code> は初期フラグとして受け取ります（主担当正規化は上位で制御）</li>
-     * </ul>
+     * - {@code mail} は UNIQUE かつ NOT NULL
+     * - {@code password} は NOT NULL
+     * - {@code customer_id} は外部キー
+     * - {@code is_primary} は初期フラグとして受け取ります（主担当正規化は上位で制御）
      *
      * @param dto 登録内容（必須フィールドは呼び出し側で事前検証）
      * @return 生成された主キー（UUID）
@@ -187,14 +180,14 @@ public class CustomerContactDAO extends BaseDAO {
      */
     public UUID insertReturningId(CustomerContactDTO dto) {
         try (PreparedStatement ps = conn.prepareStatement(SQL_INSERT_RETURNING_ID)) {
-            ps.setString(1, dto.getMail());                     // UNIQUE NOT NULL
-            ps.setString(2, dto.getPassword());                 // NOT NULL
-            ps.setObject(3, dto.getCustomerDTO().getId());      // FK
-            ps.setString(4, dto.getName());                     // NOT NULL
+            ps.setString(1, dto.getMail());                     /** UNIQUE NOT NULL */
+            ps.setString(2, dto.getPassword());                 /** NOT NULL */
+            ps.setObject(3, dto.getCustomerDTO().getId());      /** FK */
+            ps.setString(4, dto.getName());                     /** NOT NULL */
             ps.setString(5, dto.getNameRuby());
             ps.setString(6, dto.getPhone());
             ps.setString(7, dto.getDepartment());
-            ps.setBoolean(8, dto.isPrimary());                  // 初期 is_primary
+            ps.setBoolean(8, dto.isPrimary());                  /** 初期 is_primary */
 
             try (ResultSet rs = ps.executeQuery()) {
                 if (rs.next()) return rs.getObject(1, UUID.class);
@@ -206,10 +199,10 @@ public class CustomerContactDAO extends BaseDAO {
     }
 
     /**
-     * 基本情報を更新します（<b>password は対象外</b>）。
-     * <p><code>updated_at</code> はサーバー時刻で更新されます。</p>
+     * 基本情報を更新します（password は対象外）。
+     * {@code updated_at} はサーバー時刻で更新されます。
      *
-     * @param dto 更新内容（<code>id</code> 必須）
+     * @param dto 更新内容（{@code id} 必須）
      * @return 影響行数（通常 1）
      * @throws DAOException UPDATE に失敗した場合
      */
@@ -229,7 +222,7 @@ public class CustomerContactDAO extends BaseDAO {
     }
 
     /**
-     * 論理削除を行います（<code>deleted_at</code> に現在時刻を設定）。
+     * 論理削除を行います（{@code deleted_at} に現在時刻を設定）。
      *
      * @param id 担当者ID
      * @throws DAOException UPDATE（論理削除）に失敗した場合
@@ -243,7 +236,7 @@ public class CustomerContactDAO extends BaseDAO {
         }
     }
 
-    // ---- 重複チェック（mail はグローバル）----
+    /** ---- 重複チェック（mail はグローバル）---- */
 
     /**
      * メールアドレスの存在有無をチェックします（論理未削除のみ対象）。
@@ -283,11 +276,11 @@ public class CustomerContactDAO extends BaseDAO {
         }
     }
 
-    // ---- 主担当制御（1顧客＝1名に正規化）----
+    /** ---- 主担当制御（1顧客＝1名に正規化）---- */
 
     /**
      * 指定顧客の全担当者の主担当フラグを一括で OFF にします。
-     * <p>主担当の正規化（1顧客＝1名）を行う前処理として利用します。</p>
+     * 主担当の正規化（1顧客＝1名）を行う前処理として利用します。
      *
      * @param customerId 顧客ID
      * @throws DAOException SQL 実行時にエラーが発生した場合
@@ -335,8 +328,8 @@ public class CustomerContactDAO extends BaseDAO {
 
     /**
      * パスワードのみを更新します（パスワードリセット用）。
-     * <p>{@code updated_at} はサーバー時刻で更新されます。</p>
-     * <p>論理削除済みのレコードは対象外です。</p>
+     * {@code updated_at} はサーバー時刻で更新されます。
+     * 論理削除済みのレコードは対象外です。
      *
      * @param id             担当者ID（UUID）
      * @param hashedPassword ハッシュ化されたパスワード
@@ -354,14 +347,12 @@ public class CustomerContactDAO extends BaseDAO {
         }
     }
 
-    // -------- Mapper --------
+    /** -------- Mapper -------- */
 
     /**
      * {@link ResultSet} の現在行を {@link CustomerContactDTO} にマッピングします。
-     * <p>
-     * 先頭カラムのインデックス（1 始まり）を指定し、<br>
+     * 先頭カラムのインデックス（1 始まり）を指定し、
      * {@link #BASE_SELECT} のカラム順に従って DTO へ詰めます。
-     * </p>
      *
      * @param rs  結果セット（現在行が有効であること）
      * @param i   先頭カラムのインデックス（1 始まり）
@@ -372,7 +363,7 @@ public class CustomerContactDAO extends BaseDAO {
         CustomerContactDTO dto = new CustomerContactDTO();
         dto.setId(rs.getObject(i++, UUID.class));
 
-        // customer_id は CustomerDTO と重複保持（利便性のため両方にセット）
+        /** customer_id は CustomerDTO と重複保持（利便性のため両方にセット） */
         UUID cid = rs.getObject(i++, UUID.class);
         CustomerDTO c = new CustomerDTO();
         c.setId(cid);
@@ -385,7 +376,7 @@ public class CustomerContactDAO extends BaseDAO {
         dto.setNameRuby(rs.getString(i++));
         dto.setPhone(rs.getString(i++));
         dto.setDepartment(rs.getString(i++));
-        dto.setPrimary(rs.getBoolean(i++)); // is_primary
+        dto.setPrimary(rs.getBoolean(i++)); /** is_primary */
         dto.setCreatedAt(rs.getTimestamp(i++));
         dto.setUpdatedAt(rs.getTimestamp(i++));
         dto.setDeletedAt(rs.getTimestamp(i++));

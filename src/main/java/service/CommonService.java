@@ -40,40 +40,36 @@ import util.PasswordUtil;
 
 /**
  * 共通サービス（admin / secretary / customer の横断機能）。
- * <p>
  * ログイン、ホームダッシュボード、admin のマイページ（表示・編集）を提供します。
  * 画面パス・パラメータ名・属性名は定数に集約してハードコード散在を防止しています。
  * DB アクセスは {@link TransactionManager} を用いた try-with-resources で安全に扱います。
- * </p>
- * <h2>構成</h2>
- * <ol>
- *   <li>定数（パラメータ名／パス／フォーマッタ／権限）</li>
- *   <li>フィールド・コンストラクタ</li>
- *   <li>コントローラ呼び出しメソッド（admin → secretary → customer の順）</li>
- *   <li>ヘルパー</li>
- * </ol>
- * <h2>命名・互換性</h2>
- * <ul>
- *   <li>JSP からの <code>req.getParameter("...")</code> のキー名は既存どおり（変更なし）。</li>
- *   <li>JSP への <code>setAttribute("...")</code> のキー名も既存どおり（変更なし）。</li>
- * </ul>
+ * 
+ * 構成:
+ * - 定数（パラメータ名／パス／フォーマッタ／権限）
+ * - フィールド・コンストラクタ
+ * - コントローラ呼び出しメソッド（admin → secretary → customer の順）
+ * - ヘルパー
+ * 
+ * 命名・互換性:
+ * - JSP からの {@code req.getParameter("...")} のキー名は既存どおり（変更なし）
+ * - JSP への {@code setAttribute("...")} のキー名も既存どおり（変更なし）
  */
 public class CommonService extends BaseService {
 
-    // =========================================================
-    // ① 定数／共通化（パラメータ名／パス／フォーマッタ／権限）
-    // =========================================================
+    /** =========================================================
+     * ① 定数／共通化（パラメータ名／パス／フォーマッタ／権限）
+     * ========================================================= */
 
     /** 権限（従来の数値を定数化） */
     private static final int AUTH_ADMIN     = 1;
     private static final int AUTH_SECRETARY = 2;
     private static final int AUTH_CUSTOMER  = 3;
 
-    // ---- Request Parameters ----
+    /** ---- Request Parameters ---- */
     private static final String P_LOGIN_ID = "loginId";
     private static final String P_PASSWORD = "password";
 
-    // ---- Paths (forward / redirect) ----
+    /** ---- Paths (forward / redirect) ---- */
     private static final String PATH_SECRETARY_LOGIN = "/secretary";
     private static final String PATH_SECRETARY_LOGIN_FORM = "common/secretary/login";
     private static final String PATH_SECRETARY_HOME  = "/secretary/home";
@@ -86,18 +82,18 @@ public class CommonService extends BaseService {
     private static final String PATH_ADMIN_MYPAGE    = "mypage/admin/home";
     private static final String PATH_ADMIN_ID_EDIT   = "mypage/admin/edit";
 
-    // ---- Attributes ----
+    /** ---- Attributes ---- */
     private static final String ATTR_LOGIN_USER = "loginUser";
     private static final String ATTR_ADMIN      = "admin";
     private static final String ATTR_FORM       = "form";
 
-    // ---- Date / Time ----
+    /** ---- Date / Time ---- */
     private static final ZoneId Z_TOKYO = ZoneId.of("Asia/Tokyo");
     private static final DateTimeFormatter YM_FMT = DateTimeFormatter.ofPattern("yyyy-MM");
 
-    // =========================================================
-    // ② フィールド／コンストラクタ
-    // =========================================================
+    /** =========================================================
+     * ② フィールド／コンストラクタ
+     * ========================================================= */
 
     /** DTO ↔ Domain の変換器 */
     private final ConvertUtil conv = new ConvertUtil();
@@ -111,13 +107,13 @@ public class CommonService extends BaseService {
         super(req, useDB);
     }
 
-    // =========================================================
-    // ③ コントローラ呼び出しメソッド（アクター別）
-    // =========================================================
+    /** =========================================================
+     * ③ コントローラ呼び出しメソッド（アクター別）
+     * ========================================================= */
 
-    // =========================
-    // 「【secretary】 機能：ログイン」
-    // =========================
+    /** =========================
+     * 「【secretary】 機能：ログイン」
+     * ========================= */
     /**
      * 秘書ログイン。
      * - loginId / password: request param（必須）
@@ -140,11 +136,11 @@ public class CommonService extends BaseService {
             SecretaryDAO dao = new SecretaryDAO(tm.getConnection());
             SecretaryDTO dto = dao.selectByMail(loginId);
             if (dto != null && PasswordUtil.verifyPassword(password, dto.getPassword())) {
-                // 最終ログイン時刻を更新
+                /** 最終ログイン時刻を更新 */
                 dao.updateLastLoginAt(dto.getId());
                 tm.commit();
                 
-                // セッションへ格納（JSP は sessionScope.loginUser.secretary を参照）
+                /** セッションへ格納（JSP は sessionScope.loginUser.secretary を参照） */
                 LoginUser loginUser = new LoginUser();
                 Secretary sec = new Secretary();
                 sec.setId(dto.getId());
@@ -163,9 +159,9 @@ public class CommonService extends BaseService {
         }
     }
 
-    // =========================
-    // 「【admin】 機能：ログイン」
-    // =========================
+    /** =========================
+     * 「【admin】 機能：ログイン」
+     * ========================= */
     /**
      * 管理者ログイン。
      * - loginId / password: request param（必須）
@@ -187,7 +183,7 @@ public class CommonService extends BaseService {
             SystemAdminDAO dao = new SystemAdminDAO(tm.getConnection());
             SystemAdminDTO dto = dao.selectByMail(loginId);
             if (dto != null && PasswordUtil.verifyPassword(password, dto.getPassword())) {
-                // 最終ログイン時刻を更新
+                /** 最終ログイン時刻を更新 */
                 dao.updateLastLoginAt(dto.getId());
                 tm.commit();
                 
@@ -214,9 +210,9 @@ public class CommonService extends BaseService {
         }
     }
 
-    // =========================
-    // 「【admin】 機能：マスタ管理」
-    // =========================
+    /** =========================
+     * 「【admin】 機能：マスタ管理」
+     * ========================= */
     /**
      * マスタ管理画面。
      * - 表示用データ：業務ランク一覧、秘書ランク一覧
@@ -228,7 +224,7 @@ public class CommonService extends BaseService {
             dao.TaskRankDAO taskRankDAO = new dao.TaskRankDAO(tm.getConnection());
             dao.SecretaryDAO secretaryDAO = new dao.SecretaryDAO(tm.getConnection());
 
-            // 業務ランク一覧を取得
+            /** 業務ランク一覧を取得 */
             List<dto.TaskRankDTO> taskRankDTOs = taskRankDAO.selectAll();
             List<domain.TaskRank> taskRanks = new ArrayList<>();
             for (dto.TaskRankDTO dto : taskRankDTOs) {
@@ -243,7 +239,7 @@ public class CommonService extends BaseService {
                 taskRanks.add(taskRank);
             }
 
-            // 秘書ランク一覧を取得
+            /** 秘書ランク一覧を取得 */
             List<dto.SecretaryRankDTO> secretaryRankDTOs = secretaryDAO.selectRankAll();
             List<domain.SecretaryRank> secretaryRanks = new ArrayList<>();
             for (dto.SecretaryRankDTO dto : secretaryRankDTOs) {
@@ -259,7 +255,7 @@ public class CommonService extends BaseService {
                 secretaryRanks.add(secretaryRank);
             }
 
-            // JSP へ
+            /** JSP へ */
             req.setAttribute("taskRanks", taskRanks);
             req.setAttribute("secretaryRanks", secretaryRanks);
             return "master/admin/home";
@@ -269,9 +265,9 @@ public class CommonService extends BaseService {
         }
     }
 
-    // =========================
-    // 「【admin】 機能：ホーム」
-    // =========================
+    /** =========================
+     * 「【admin】 機能：ホーム」
+     * ========================= */
     /**
      * 管理者ホーム。
      * - 表示用データ：今月/先月のタスク集計（未承認・承認済・差戻し・総数・承認済金額）
@@ -279,7 +275,7 @@ public class CommonService extends BaseService {
      *   'task', 'taskPrev', 'yearMonth', 'prevYearMonth', 'adminName'
      */
     public String adminHome() {
-        // 表示名（セッション任意）
+        /** 表示名（セッション任意） */
         HttpSession session = req.getSession(false);
         String adminName = "";
         if (session != null) {
@@ -287,7 +283,7 @@ public class CommonService extends BaseService {
             if (lu != null && lu.getSystemAdmin() != null) adminName = lu.getSystemAdmin().getName();
         }
 
-        // 今月 / 先月の YYYY-MM
+        /** 今月 / 先月の YYYY-MM */
         String yearMonth     = LocalDate.now(Z_TOKYO).format(YM_FMT);
         String prevYearMonth = LocalDate.now(Z_TOKYO).minusMonths(1).format(YM_FMT);
 
@@ -296,7 +292,7 @@ public class CommonService extends BaseService {
             SecretaryDAO sdao = new SecretaryDAO(tm.getConnection());
             CustomerDAO  cdao = new CustomerDAO(tm.getConnection());
 
-            // 今月
+            /** 今月 */
             TaskDTO tdThis = tdao.selectCountsForAdminMonth(yearMonth);
             Task tThis = new Task();
             tThis.setUnapproved(tdThis.getUnapproved());
@@ -305,7 +301,7 @@ public class CommonService extends BaseService {
             tThis.setTotal(tdThis.getTotal());
             tThis.setSumAmountApproved(tdThis.getTotalAmountApproved());
 
-            // 先月
+            /** 先月 */
             TaskDTO tdPrev = tdao.selectCountsForAdminMonth(prevYearMonth);
             Task tPrev = new Task();
             tPrev.setUnapproved(tdPrev.getUnapproved());
@@ -321,15 +317,15 @@ public class CommonService extends BaseService {
             }
 
             
-            // 直近10件をそれぞれ取得
+            /** 直近10件をそれぞれ取得 */
             List<Map<String,Object>> recentSecretaries = sdao.selectRecent10WithProfileFlag();
             List<Map<String,Object>> recentCustomers   = cdao.selectRecent10();
 
-            // JSP へ渡す（新規属性名。既存の属性名は変更しません）
+            /** JSP へ渡す（新規属性名。既存の属性名は変更しません） */
             req.setAttribute("recentSecretaries", recentSecretaries);
             req.setAttribute("recentCustomers",   recentCustomers);
 
-            // JSP へ
+            /** JSP へ */
             req.setAttribute("task", tThis);
             req.setAttribute("taskPrev", tPrev);
             req.setAttribute("yearMonth", yearMonth);
@@ -343,9 +339,9 @@ public class CommonService extends BaseService {
         }
     }
 
-    // =========================
-    // 「【admin】 機能：マイページ表示」
-    // =========================
+    /** =========================
+     * 「【admin】 機能：マイページ表示」
+     * ========================= */
     /**
      * 管理者マイページ表示。
      * - セッション必須：{@code loginUser.systemAdmin}
@@ -363,9 +359,9 @@ public class CommonService extends BaseService {
         return PATH_ADMIN_MYPAGE;
     }
 
-    // =========================
-    // 「【admin】 機能：マイページ編集（画面）」
-    // =========================
+    /** =========================
+     * 「【admin】 機能：マイページ編集（画面）」
+     * ========================= */
     /**
      * 管理者ID編集フォーム表示。
      * - セッション必須：{@code loginUser.systemAdmin}
@@ -386,9 +382,9 @@ public class CommonService extends BaseService {
         return PATH_ADMIN_ID_EDIT;
     }
 
-    // =========================
-    // 「【admin】 機能：ID情報編集（送信）」
-    // =========================
+    /** =========================
+     * 「【admin】 機能：ID情報編集（送信）」
+     * ========================= */
     /**
      * 管理者ID編集の送信処理。
      * - 入力：mail（必須）, name（必須）, nameRuby, password（空なら据え置き）
@@ -404,9 +400,9 @@ public class CommonService extends BaseService {
         }
         UUID adminId = lu.getSystemAdmin().getId();
 
-        // 入力
+        /** 入力 */
         String mail     = req.getParameter("mail");
-        String password = req.getParameter("password"); // 空なら据え置き
+        String password = req.getParameter("password"); /** 空なら据え置き */
         String name     = req.getParameter("name");
         String nameRuby = req.getParameter("nameRuby");
 
@@ -427,7 +423,7 @@ public class CommonService extends BaseService {
         try (TransactionManager tm = new TransactionManager()) {
             SystemAdminDAO dao = new SystemAdminDAO(tm.getConnection());
 
-            // 自分以外でメール重複が無いか
+            /** 自分以外でメール重複が無いか */
             if (dao.mailExistsExceptId(mail, adminId)) {
                 req.setAttribute("errorMsg", "入力されたメールアドレスは既に使用されています。");
                 return PATH_ADMIN_ID_EDIT;
@@ -439,12 +435,12 @@ public class CommonService extends BaseService {
                 return PATH_ADMIN_ID_EDIT;
             }
 
-            // 更新 DTO（パスワードは空なら据え置き）
+            /** 更新 DTO（パスワードは空なら据え置き） */
             SystemAdminDTO upd = new SystemAdminDTO();
             upd.setId(adminId);
             upd.setMail(mail);
             if (password != null && !password.isBlank()) {
-                // パスワード変更時は強度チェック
+                /** パスワード変更時は強度チェック */
                 if (!validation.isStrongPassword(password)) {
                     req.setAttribute("errorMsg", validation.getErrorMsg());
                     req.setAttribute(ATTR_FORM, form);
@@ -465,7 +461,7 @@ public class CommonService extends BaseService {
 
             tm.commit();
 
-            // セッションの Domain も更新
+            /** セッションの Domain も更新 */
             lu.getSystemAdmin().setMail(mail);
             lu.getSystemAdmin().setName(name);
             lu.getSystemAdmin().setNameRuby(nameRuby);
@@ -481,9 +477,9 @@ public class CommonService extends BaseService {
         }
     }
 
-    // =========================
-    // 「【secretary】 機能：ホーム」
-    // =========================
+    /** =========================
+     * 「【secretary】 機能：ホーム」
+     * ========================= */
     /**
      * 秘書ホーム。
      * - セッション必須：{@code loginUser.secretary.id}
@@ -505,7 +501,7 @@ public class CommonService extends BaseService {
         String prevYearMonth = LocalDate.now(Z_TOKYO).minusMonths(1).format(YM_FMT);
 
         try (TransactionManager tm = new TransactionManager()) {
-            // 当月アサインのフラット行（会社名／ランク／単価内訳）
+            /** 当月アサインのフラット行（会社名／ランク／単価内訳） */
             List<AssignmentDTO> adtosFlat =
                 new AssignmentDAO(tm.getConnection())
                     .selectBySecretaryAndMonthToAssignment(secretaryId, yearMonth);
@@ -525,7 +521,7 @@ public class CommonService extends BaseService {
                 assignRows.add(row);
             }
 
-            // タスク集計（今月／先月）
+            /** タスク集計（今月／先月） */
             TaskDAO tdao = new TaskDAO(tm.getConnection());
             TaskDTO tdto     = tdao.selectCountsForSecretaryMonth(secretaryId, yearMonth);
             TaskDTO tdtoPrev = tdao.selectCountsForSecretaryMonth(secretaryId, prevYearMonth);
@@ -544,7 +540,7 @@ public class CommonService extends BaseService {
             taskPrev.setTotal(tdtoPrev.getTotal());
             taskPrev.setSumAmountApproved(tdtoPrev.getTotalAmountApproved());
 
-            // JSP へ
+            /** JSP へ */
             req.setAttribute("task", task);
             req.setAttribute("taskPrev", taskPrev);
             req.setAttribute("yearMonth", yearMonth);
@@ -558,9 +554,9 @@ public class CommonService extends BaseService {
         }
     }
 
-    // =========================
-    // 「【customer】 機能：ログイン」
-    // =========================
+    /** =========================
+     * 「【customer】 機能：ログイン」
+     * ========================= */
     /**
      * 顧客ログイン。
      * - loginId / password: request param（必須）
@@ -584,14 +580,14 @@ public class CommonService extends BaseService {
 
             CustomerContactDTO ccDto = ccDao.selectByMail(loginId);
             if (ccDto != null && PasswordUtil.verifyPassword(password, ccDto.getPassword())) {
-                // 最終ログイン時刻を更新
+                /** 最終ログイン時刻を更新 */
                 ccDao.updateLastLoginAt(ccDto.getId());
                 tm.commit();
                 
-                // 担当者 Domain
+                /** 担当者 Domain */
                 CustomerContact cc = conv.toDomain(ccDto);
 
-                // 顧客IDを確実に取得
+                /** 顧客IDを確実に取得 */
                 UUID customerId =
                     (ccDto.getCustomerDTO() != null && ccDto.getCustomerDTO().getId() != null)
                         ? ccDto.getCustomerDTO().getId()
@@ -602,11 +598,11 @@ public class CommonService extends BaseService {
                     return PATH_CUSTOMER_LOGIN_FORM;
                 }
 
-                // 会社 Domain
+                /** 会社 Domain */
                 CustomerDTO cDto = cDao.selectByUUId(customerId);
                 Customer customer = conv.toDomain(cDto);
 
-                // セッションへ格納
+                /** セッションへ格納 */
                 LoginUser loginUser = new LoginUser();
                 loginUser.setCustomer(customer);
                 loginUser.setCustomerContact(cc);
@@ -623,9 +619,9 @@ public class CommonService extends BaseService {
         }
     }
 
-    // =========================
-    // 「【admin】 機能：ログアウト」
-    // =========================
+    /** =========================
+     * 「【admin】 機能：ログアウト」
+     * ========================= */
     /**
      * 管理者ログアウト。
      * - セッションを無効化し、ログイン画面（/admin）へリダイレクト
@@ -638,9 +634,9 @@ public class CommonService extends BaseService {
         return req.getContextPath() + PATH_ADMIN_LOGIN;
     }
 
-    // =========================
-    // 「【secretary】 機能：ログアウト」
-    // =========================
+    /** =========================
+     * 「【secretary】 機能：ログアウト」
+     * ========================= */
     /**
      * 秘書ログアウト。
      * - セッションを無効化し、ログイン画面（/secretary）へリダイレクト
@@ -653,9 +649,9 @@ public class CommonService extends BaseService {
         return req.getContextPath() + PATH_SECRETARY_LOGIN;
     }
 
-    // =========================
-    // 「【customer】 機能：ログアウト」
-    // =========================
+    /** =========================
+     * 「【customer】 機能：ログアウト」
+     * ========================= */
     /**
      * 顧客ログアウト。
      * - セッションを無効化し、ログイン画面（/customer）へリダイレクト
@@ -668,9 +664,9 @@ public class CommonService extends BaseService {
         return req.getContextPath() + PATH_CUSTOMER_LOGIN;
     }
 
-    // =========================
-    // 「【customer】 機能：ホーム」
-    // =========================
+    /** =========================
+     * 「【customer】 機能：ホーム」
+     * ========================= */
     /**
      * 顧客ホーム。
      * - セッション必須：{@code loginUser.customer.id}
@@ -682,7 +678,7 @@ public class CommonService extends BaseService {
      *   'statNow','statPrev1','statPrev2','statPrev3'
      */
     public String customerHome() {
-        // ログイン確認
+        /** ログイン確認 */
         HttpSession session = req.getSession(false);
         if (session == null) return req.getContextPath() + PATH_CUSTOMER_LOGIN;
         LoginUser lu = (LoginUser) session.getAttribute(ATTR_LOGIN_USER);
@@ -691,13 +687,13 @@ public class CommonService extends BaseService {
 
         UUID customerId = lu.getCustomer().getId();
 
-        // 今月と過去3か月
+        /** 今月と過去3か月 */
         YearMonth ymNow   = YearMonth.now(Z_TOKYO);
         YearMonth ymPrev1 = ymNow.minusMonths(1);
         YearMonth ymPrev2 = ymNow.minusMonths(2);
         YearMonth ymPrev3 = ymNow.minusMonths(3);
 
-        // JSP 用（月数値/文字列）
+        /** JSP 用（月数値/文字列） */
         req.setAttribute("m0", ymNow.getMonthValue());
         req.setAttribute("m1", ymPrev1.getMonthValue());
         req.setAttribute("m2", ymPrev2.getMonthValue());
@@ -711,23 +707,23 @@ public class CommonService extends BaseService {
             CustomerMonthlyInvoiceDAO cmiDao = new CustomerMonthlyInvoiceDAO(tm.getConnection());
             InvoiceDAO invDao = new InvoiceDAO(tm.getConnection());
 
-            // 未承認件数（work_date 基準）
+            /** 未承認件数（work_date 基準） */
             MonthStat statNow   = loadCustomerMonthStatByWorkDate(customerId, ymNow,   invDao);
             MonthStat statPrev1 = loadCustomerMonthStatByWorkDate(customerId, ymPrev1, invDao);
             MonthStat statPrev2 = loadCustomerMonthStatByWorkDate(customerId, ymPrev2, invDao);
             MonthStat statPrev3 = loadCustomerMonthStatByWorkDate(customerId, ymPrev3, invDao);
 
-            // 金額合計：今月/先月は InvoiceDAO の fee を合算（work_date 基準）
+            /** 金額合計：今月/先月は InvoiceDAO の fee を合算（work_date 基準） */
             statNow.setTotal(sumFee(invDao, customerId, ymNow));
             statPrev1.setTotal(sumFee(invDao, customerId, ymPrev1));
 
-            // 2～3か月前は確定テーブル
+            /** 2～3か月前は確定テーブル */
             BigDecimal amt2 = cmiDao.selectTotalAmountByCustomerAndMonth(customerId, ymPrev2.format(YM_FMT));
             BigDecimal amt3 = cmiDao.selectTotalAmountByCustomerAndMonth(customerId, ymPrev3.format(YM_FMT));
             statPrev2.setTotal(amt2 != null ? amt2 : BigDecimal.ZERO);
             statPrev3.setTotal(amt3 != null ? amt3 : BigDecimal.ZERO);
 
-            // JSP へ
+            /** JSP へ */
             req.setAttribute("statNow",   statNow);
             req.setAttribute("statPrev1", statPrev1);
             req.setAttribute("statPrev2", statPrev2);
@@ -739,27 +735,22 @@ public class CommonService extends BaseService {
         }
     }
 
-    // =========================================================
-    // ④ ヘルパー
-    // =========================================================
+    /** =========================================================
+     * ④ ヘルパー
+     * ========================================================= */
 
-    /** セッションへ LoginUser を格納（セッション新規作成あり）。 */
+    /** セッションへ LoginUser を格納（セッション新規作成あり） */
     private void putLoginUserToSession(LoginUser loginUser) {
         HttpSession session = req.getSession(true);
         session.setAttribute(ATTR_LOGIN_USER, loginUser);
     }
 
-    /** null セーフな equals。 */
-    private boolean safeEquals(String a, String b) {
-        return (a == null) ? (b == null) : a.equals(b);
-    }
-
-    /** null を 0 にするユーティリティ。 */
+    /** null を 0 にするユーティリティ */
     private static BigDecimal nz(BigDecimal v) { return v == null ? BigDecimal.ZERO : v; }
 
-    // -------------------------
-    // 顧客ホーム用のミニ DTO / 集計関数
-    // -------------------------
+    /** -------------------------
+     * 顧客ホーム用のミニ DTO / 集計関数
+     * ------------------------- */
 
     /** 顧客ホームの月次統計（未承認件数・金額合計） */
     public static class MonthStat {
@@ -772,7 +763,7 @@ public class CommonService extends BaseService {
     }
 
     /**
-     * work_date 基準でその月の未承認件数を数える（approvedAt==null）。
+     * work_date 基準でその月の未承認件数を数える（approvedAt==null）
      * @param customerId 顧客ID
      * @param ym 対象年月
      * @param invDao InvoiceDAO
@@ -781,10 +772,7 @@ public class CommonService extends BaseService {
         final String ymStr = ym.format(YM_FMT);
         MonthStat s = new MonthStat();
         s.setYm(ymStr);
-
-        List<InvoiceDTO> rows =
-            invDao.selectTotalMinutesBySecretaryAndCustomer(customerId, ymStr);
-        // 未承認数は Task 明細の方が正確なケースもあるが、本件は invDao から取得できる TaskDTO 群で代替
+        /** 未承認数は Task 明細の方が正確なケースもあるが、本件は invDao から取得できる TaskDTO 群で代替 */
         List<TaskDTO> tasks = invDao.selectTasksByMonthAndCustomer(customerId, ymStr);
         int unapproved = 0;
         if (tasks != null) {
@@ -793,7 +781,7 @@ public class CommonService extends BaseService {
             }
         }
         s.setUnapproved(unapproved);
-        s.setTotal(null); // 金額は呼び出し側で設定
+        s.setTotal(null); /** 金額は呼び出し側で設定 */
         return s;
     }
 

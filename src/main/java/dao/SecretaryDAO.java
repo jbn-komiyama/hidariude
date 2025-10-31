@@ -16,26 +16,22 @@ import dto.SecretaryRankDTO;
 /**
  * 秘書（secretaries）および秘書ランク（secretary_rank）に関するデータアクセスを担うDAO。
  *
- * <p>責務：</p>
- * <ul>
- *   <li>秘書情報の取得（一覧／単一／メール）</li>
- *   <li>秘書ランクの取得</li>
- *   <li>秘書の登録・更新（口座情報含む）・論理削除</li>
- *   <li>コード／メールの重複チェック</li>
- * </ul>
+ * 責務：
+ * - 秘書情報の取得（一覧／単一／メール）
+ * - 秘書ランクの取得
+ * - 秘書の登録・更新（口座情報含む）・論理削除
+ * - コード／メールの重複チェック
  *
- * <p>設計メモ：</p>
- * <ul>
- *   <li>本DAOは渡された {@link Connection} に依存（トランザクション境界は呼び出し側が管理）</li>
- *   <li>DB例外は {@link DAOException} にラップして送出</li>
- *   <li>ResultSet→DTO 変換は専用のプライベートメソッドで一元化</li>
- * </ul>
+ * 設計メモ：
+ * - 本DAOは渡された {@link Connection} に依存（トランザクション境界は呼び出し側が管理）
+ * - DB例外は {@link DAOException} にラップして送出
+ * - ResultSet→DTO 変換は専用のプライベートメソッドで一元化
  */
 public class SecretaryDAO extends BaseDAO {
 
-	// ========================
-	// ① フィールド（SQL 定義）
-	// ========================
+	/** ========================
+	 * ① フィールド（SQL 定義）
+	 * ======================== */
 
 	/** 秘書の基本情報＋ランク情報を取得する共通SELECT（口座情報なし） */
 	private static final String SQL_SELECT_BASIC = "SELECT "
@@ -68,7 +64,7 @@ public class SecretaryDAO extends BaseDAO {
 	    "       s.created_at " +
 	    "  FROM secretaries s " +
 	    "  LEFT JOIN secretary_rank sr ON sr.id = s.secretary_rank_id " +
-	    // ※テーブル名が projects などではなく「profile」想定。異なる場合はここを調整してください。
+	    /** テーブル名が projects などではなく「profile」想定。異なる場合はここを調整してください。 */
 	    "  LEFT JOIN profiles p ON p.secretary_id = s.id AND p.deleted_at IS NULL " +
 	    " WHERE s.deleted_at IS NULL " +
 	    " ORDER BY s.created_at DESC " +
@@ -122,9 +118,9 @@ public class SecretaryDAO extends BaseDAO {
 	/** 最終ログイン時刻の更新 */
 	private static final String SQL_UPDATE_LAST_LOGIN_AT = "UPDATE secretaries SET last_login_at = CURRENT_TIMESTAMP WHERE id = ?";
 
-	// ========================
-	// ② フィールド／コンストラクタ
-	// ========================
+	/** ========================
+	 * ② フィールド／コンストラクタ
+	 * ======================== */
 
 	/**
 	 * コンストラクタ。
@@ -135,17 +131,16 @@ public class SecretaryDAO extends BaseDAO {
 		super(conn);
 	}
 
-	// ========================
-	// ③ メソッド群
-	// ========================
-
-	// ------------------------
-	// SELECT
-	// ------------------------
+	/** ========================
+	 * ③ メソッド群
+	 * ------------------------
+	 * SELECT
+	 * ------------------------
+	 * ======================== */
 
 	/**
 	 * 秘書の一覧（削除されていない行）を、ランク情報とともに取得します。
-	 * <p>口座情報は含みません。</p>
+	 * 口座情報は含みません。
 	 *
 	 * @return {@link SecretaryDTO} のリスト（0件なら空）
 	 * @throws DAOException DBアクセスに失敗した場合
@@ -167,7 +162,7 @@ public class SecretaryDAO extends BaseDAO {
 
 	/**
 	 * PM対応可能（{@code is_pm_secretary = TRUE}）な秘書のみを取得します。
-	 * <p>削除済みは除外、口座情報は含みません。</p>
+	 * 削除済みは除外、口座情報は含みません。
 	 *
 	 * @return {@link SecretaryDTO} のリスト（0件なら空）
 	 * @throws DAOException DBアクセスに失敗した場合
@@ -203,8 +198,8 @@ public class SecretaryDAO extends BaseDAO {
 
 			try (ResultSet rs = ps.executeQuery()) {
 				if (rs.next()) {
-					SecretaryDTO dto = resultSetToSecretaryDTO(rs); // 基本＋ランク
-					// 追加の口座列（25..29列目）を詰める
+					SecretaryDTO dto = resultSetToSecretaryDTO(rs); /** 基本＋ランク */
+					/** 追加の口座列（25..29列目）を詰める */
 					dto.setBankName(rs.getString(25));
 					dto.setBankBranch(rs.getString(26));
 					dto.setBankType(rs.getString(27));
@@ -257,7 +252,7 @@ public class SecretaryDAO extends BaseDAO {
 			try (ResultSet rs = ps.executeQuery()) {
 				if (rs.next()) {
 					SecretaryDTO dto = resultSetToSecretaryDTO(rs);
-					// 25..29列：口座情報
+					/** 25..29列：口座情報 */
 					resultSetToSecretaryDTOWithBank(rs, dto);
 					return dto;
 				}
@@ -311,21 +306,19 @@ public class SecretaryDAO extends BaseDAO {
 	}
 	
 	/**
-	 * 最近登録された秘書を10件取得します。<br>
-	 * 取得カラムは、id / secretary_code / name / rank_name / mail / phone / has_profile / created_at。<br>
+	 * 最近登録された秘書を10件取得します。
+	 * 取得カラムは、id / secretary_code / name / rank_name / mail / phone / has_profile / created_at。
 	 * rank_name は {@code secretary_rank} から、プロフィール有無は {@code profile} の存在で判定します。
 	 *
 	 * @return 表示用マップのリスト（LinkedHashMap）。キーは
-	 *         <ul>
-	 *           <li>{@code id}（UUID）</li>
-	 *           <li>{@code secretaryCode}（String）</li>
-	 *           <li>{@code name}（String）</li>
-	 *           <li>{@code rankName}（String）</li>
-	 *           <li>{@code mail}（String）</li>
-	 *           <li>{@code phone}（String）</li>
-	 *           <li>{@code hasProfile}（Boolean）</li>
-	 *           <li>{@code createdAt}（java.sql.Timestamp）</li>
-	 *         </ul>
+	 *         - {@code id}（UUID）
+	 *         - {@code secretaryCode}（String）
+	 *         - {@code name}（String）
+	 *         - {@code rankName}（String）
+	 *         - {@code mail}（String）
+	 *         - {@code phone}（String）
+	 *         - {@code hasProfile}（Boolean）
+	 *         - {@code createdAt}（java.sql.Timestamp）
 	 * @throws DAOException 取得に失敗した場合
 	 */
 	public List<Map<String, Object>> selectRecent10WithProfileFlag() {
@@ -351,13 +344,13 @@ public class SecretaryDAO extends BaseDAO {
 	    return list;
 	}
 
-	// ------------------------
-	// INSERT
-	// ------------------------
+	/** ------------------------
+	 * INSERT
+	 * ------------------------ */
 
 	/**
 	 * 秘書を新規登録します。
-	 * <p>{@code id} はDB側で生成、{@code created_at/updated_at} は現在時刻が入ります。</p>
+	 * {@code id} はDB側で生成、{@code created_at/updated_at} は現在時刻が入ります。
 	 *
 	 * @param dto 登録対象（code/mail/password/rankId など必須）
 	 * @return 影響行数（通常は1）
@@ -368,7 +361,7 @@ public class SecretaryDAO extends BaseDAO {
 			ps.setString(1, dto.getSecretaryCode());
 			ps.setString(2, dto.getMail());
 			ps.setString(3, dto.getPassword());
-			ps.setObject(4, dto.getSecretaryRankId()); // UUID
+			ps.setObject(4, dto.getSecretaryRankId()); /** UUID */
 			ps.setBoolean(5, dto.isPmSecretary());
 			ps.setString(6, dto.getName());
 			ps.setString(7, dto.getNameRuby());
@@ -383,9 +376,9 @@ public class SecretaryDAO extends BaseDAO {
 		}
 	}
 
-	// ------------------------
-	// UPDATE
-	// ------------------------
+	/** ------------------------
+	 * UPDATE
+	 * ------------------------ */
 
 	/**
 	 * 秘書の基本情報を更新します（口座情報は含みません）。
@@ -398,7 +391,7 @@ public class SecretaryDAO extends BaseDAO {
 		try (PreparedStatement ps = conn.prepareStatement(SQL_UPDATE_BASIC)) {
 			ps.setString(1, dto.getSecretaryCode());
 			ps.setString(2, dto.getMail());
-			ps.setObject(3, dto.getSecretaryRankId()); // UUID
+			ps.setObject(3, dto.getSecretaryRankId()); /** UUID */
 			ps.setBoolean(4, dto.isPmSecretary());
 			ps.setString(5, dto.getName());
 			ps.setString(6, dto.getNameRuby());
@@ -434,7 +427,7 @@ public class SecretaryDAO extends BaseDAO {
 			ps.setString(i++, dto.getAddress1());
 			ps.setString(i++, dto.getAddress2());
 			ps.setString(i++, dto.getBuilding());
-			// 口座情報
+			/** 口座情報 */
 			ps.setString(i++, dto.getBankName());
 			ps.setString(i++, dto.getBankBranch());
 			ps.setString(i++, dto.getBankType());
@@ -447,9 +440,9 @@ public class SecretaryDAO extends BaseDAO {
 		}
 	}
 
-	// ------------------------
-	// DELETE（論理）
-	// ------------------------
+	/** ------------------------
+	 * DELETE（論理）
+	 * ------------------------ */
 
 	/**
 	 * 秘書を論理削除します（{@code deleted_at = CURRENT_TIMESTAMP}）。
@@ -466,9 +459,9 @@ public class SecretaryDAO extends BaseDAO {
 		}
 	}
 
-	// ------------------------
-	// 重複チェック
-	// ------------------------
+	/** ------------------------
+	 * 重複チェック
+	 * ------------------------ */
 
 	/**
 	 * メールアドレスの重複をチェックします。
@@ -508,7 +501,7 @@ public class SecretaryDAO extends BaseDAO {
 
 	/**
 	 * 自IDを除外して秘書コードの重複をチェックします（更新時に使用）。
-	 * <p>例：同じ {@code secretary_code} を持つ他レコードが存在するか。</p>
+	 * 例：同じ {@code secretary_code} を持つ他レコードが存在するか。
 	 *
 	 * @param code 秘書コード
 	 * @param excludeId 除外する自レコードID
@@ -547,13 +540,13 @@ public class SecretaryDAO extends BaseDAO {
 		}
 	}
 
-	// ------------------------
-	// ResultSet -> DTO 変換（private）
-	// ------------------------
+	/** ------------------------
+	 * ResultSet -> DTO 変換（private）
+	 * ------------------------ */
 
 	/**
 	 * {@code SQL_SELECT_BASIC} のカラム並びに基づき、{@link SecretaryDTO} を構築します。
-	 * <p>カラム構成（1-origin）: 1..4: s.*, 5..12: sr.*, 13..24: s.*（続き）</p>
+	 * カラム構成（1-origin）: 1..4: s.*, 5..12: sr.*, 13..24: s.*（続き）
 	 *
 	 * @param rs クエリ結果
 	 * @return 変換済み {@link SecretaryDTO}
@@ -646,8 +639,8 @@ public class SecretaryDAO extends BaseDAO {
 
 	/**
 	 * パスワードのみを更新します（パスワードリセット用）。
-	 * <p>{@code updated_at} はサーバー時刻で更新されます。</p>
-	 * <p>論理削除済みのレコードは対象外です。</p>
+	 * {@code updated_at} はサーバー時刻で更新されます。
+	 * 論理削除済みのレコードは対象外です。
 	 *
 	 * @param id             秘書ID（UUID）
 	 * @param hashedPassword ハッシュ化されたパスワード

@@ -6,6 +6,9 @@ import java.util.Date;
 import java.util.List;
 import java.util.UUID;
 
+/**
+ * 顧客（customers）テーブルのドメインモデル
+ */
 public class Customer implements Serializable{
 	private static final long serialVersionUID = 1L;
 	

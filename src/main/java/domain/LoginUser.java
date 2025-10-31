@@ -1,6 +1,11 @@
 package domain;
 
 import java.io.Serializable;
+
+/**
+ * ログインユーザー情報を保持するドメインモデル
+ * 権限に応じて秘書、システム管理者、顧客、顧客担当者のいずれかの情報を保持します
+ */
 public class LoginUser implements Serializable {
 	private static final long serialVersionUID = 1L;
 	

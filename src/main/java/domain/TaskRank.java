@@ -2,10 +2,12 @@ package domain;
 
 import java.io.Serializable;
 import java.math.BigDecimal;
-import java.time.LocalDateTime;
 import java.util.Date;
 import java.util.UUID;
 
+/**
+ * タスクランク（task_rank）テーブルのドメインモデル
+ */
 public class TaskRank implements Serializable{
 	private static final long serialVersionUID = 1L;
 	

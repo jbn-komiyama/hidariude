@@ -11,7 +11,7 @@ import java.util.UUID;
 
 /**
  * 入力バリデーションのユーティリティ。
- * <p>エラーメッセージは内部に蓄積され、{@link #hasErrorMsg()} と {@link #getErrorMsg()} で参照できます。</p>
+ * エラーメッセージは内部に蓄積され、{@link #hasErrorMsg()} と {@link #getErrorMsg()} で参照できます。
  */
 public class ValidationUtil {
 	private final List<String> errors = new ArrayList<>();
@@ -47,7 +47,8 @@ public class ValidationUtil {
     
     /**
      * yyyy-MM 形式かを判定します（メッセージは積みません）。
-     * <p>月(01..12) まで厳密にチェックします。</p>
+     * 月(01..12) まで厳密にチェックします。
+     *
      * @param s 入力値
      * @return 妥当なら true
      */
@@ -63,10 +64,9 @@ public class ValidationUtil {
     
     /**
      * 金額（0以上の整数）チェック。null/空はエラー扱い。
-     * <ul>
-     *   <li>カンマは許容し除去します（"1,234" → 1234）。</li>
-     *   <li>整数でない（小数点含む）、負数、非数値はエラー。</li>
-     * </ul>
+     * - カンマは許容し除去します（"1,234" → 1234）
+     * - 整数でない（小数点含む）、負数、非数値はエラー
+     *
      * @param label 表示名（例: "単価（顧客）"）
      * @param value 入力値
      */
@@ -76,7 +76,8 @@ public class ValidationUtil {
             return;
         }
         String t = value.trim().replace(",", "");
-        // 数字のみ
+
+        /** 数字のみ */
         if (!t.matches("^\\d+$")) {
             errors.add(label + " は 0 以上の整数で入力してください。");
             return;
@@ -86,7 +87,8 @@ public class ValidationUtil {
             if (bd.signum() < 0) {
                 errors.add(label + " は 0 以上の整数で入力してください。");
             }
-            // 小数チェック（整数のみ許容）
+
+            /** 小数チェック（整数のみ許容） */
             if (bd.scale() > 0) {
                 errors.add(label + " は 小数なしの整数で入力してください。");
             }
@@ -114,7 +116,7 @@ public class ValidationUtil {
     
     /**
      * 蓄積されたエラーメッセージを HTML 改行で連結して返します。
-     * <p>テンプレート側でリスト表示するなら本メソッドではなく {@link #getErrors()} を使ってください。</p>
+     * テンプレート側でリスト表示するなら本メソッドではなく {@link #getErrors()} を使ってください。
      */
     public String getErrorMsg() {
         return String.join("<br>", errors);
@@ -131,18 +133,43 @@ public class ValidationUtil {
     }
 
 
+	/**
+	 * 文字列長チェック。
+	 * 文字列の長さをチェックします。
+	 *
+	 * @param textName 表示名（例: "文字列"）
+	 * @param text 入力値
+	 * @param min 最小長
+	 * @param max 最大長
+	 */
 	public void length(String textName, String text, int min, int max) {
 		if (text == null || text.length() < min || text.length() > max) {
 			this.errors.add(textName + "は、" + min + "文字以上、" + max + "文字以内で入力してください");
 		}
 	}
 
+	/**
+	 * 文字列長チェック。
+	 * 文字列の長さをチェックします。
+	 *
+	 * @param textName 表示名（例: "文字列"）
+	 * @param text 入力値
+	 * @param max 最大長
+	 */
 	public void length(String textName, String text, int max) {
 		if (text == null || text.length() > max) {
 			this.errors.add(textName + "は、" + max + "文字以内で入力してください");
 		}
 	}
 
+	/**
+	 * 数値形式チェック。
+	 * 数値の形式をチェックします。
+	 *
+	 * @param textName 表示名（例: "数値"）
+	 * @param text 入力値
+	 * @return 数値形式が妥当なら true
+	 */
 	public boolean isNumber(String textName, String text) {
 		boolean flg = false;
 		try {
@@ -154,6 +181,14 @@ public class ValidationUtil {
 		return flg;
 	}
 
+	/**
+	 * 整数形式チェック。
+	 * 整数の形式をチェックします。
+	 *
+	 * @param textName 表示名（例: "整数"）
+	 * @param text 入力値
+	 * @return 整数形式が妥当なら true
+	 */
 	public boolean isInteger(String textName, String text) {
 		boolean flg = false;
 		try {
@@ -164,7 +199,14 @@ public class ValidationUtil {
 		}
 		return flg;
 	}
-
+	
+	/**
+	 * 郵便番号形式チェック。
+	 * 郵便番号の形式をチェックします。
+	 *
+	 * @param text 入力値
+	 * @return 郵便番号形式が妥当なら true
+	 */
 	public boolean isPostalCode(String text) {
 		if (text == null)
 			return false;
@@ -177,6 +219,13 @@ public class ValidationUtil {
 
 	}
 
+	/**
+	 * 電話番号形式チェック。
+	 * 電話番号の形式をチェックします。
+	 *
+	 * @param text 入力値
+	 * @return 電話番号形式が妥当なら true
+	 */
 	public boolean isPhoneNumber(String text) {
 		if (text == null)
 			return false;
@@ -190,6 +239,13 @@ public class ValidationUtil {
 		}
 	}
 
+	/**
+	 * メールアドレス形式チェック。
+	 * メールアドレスの形式をチェックします。
+	 *
+	 * @param text 入力値
+	 * @return メールアドレス形式が妥当なら true
+	 */
 	public boolean isEmail(String text) {
 		if (text == null)
 			return false;
@@ -201,6 +257,14 @@ public class ValidationUtil {
 		}
 	}
 
+	/**
+	 * 日付チェック。
+	 * 日付の形式をチェックします。
+	 *
+	 * @param textName 表示名（例: "日付"）
+	 * @param text 入力値
+	 * @return 日付
+	 */
 	public Date isDate(String textName, String text) {
 		Date date = null;
 		try {
@@ -214,11 +278,11 @@ public class ValidationUtil {
 
 	/**
 	 * パスワード強度チェック。
-	 *   ・8文字以上
-	 *   ・英大文字 (A-Z) 1文字以上
-	 *   ・英小文字 (a-z) 1文字以上
-	 *   ・数字 (0-9) 1文字以上
-	 * 
+	 * - 8文字以上
+	 * - 英大文字 (A-Z) 1文字以上
+	 * - 英小文字 (a-z) 1文字以上
+	 * - 数字 (0-9) 1文字以上
+	 *
 	 * @param password パスワード
 	 * @return 強度要件を満たす場合true
 	 */
@@ -247,8 +311,8 @@ public class ValidationUtil {
 
 	/**
 	 * パスワード一致チェック。
-	 * <p>パスワードと確認用パスワードが一致するかを確認します。</p>
-	 * 
+	 * パスワードと確認用パスワードが一致するかを確認します。
+	 *
 	 * @param password        パスワード
 	 * @param confirmPassword 確認用パスワード
 	 * @return 一致する場合true
@@ -269,18 +333,18 @@ public class ValidationUtil {
 
 	/**
 	 * パスワードリセット申請のバリデーション。
-	 * <p>メールアドレスの必須チェックと形式チェックを行います。</p>
-	 * 
+	 * メールアドレスの必須チェックと形式チェックを行います。
+	 *
 	 * @param email メールアドレス
 	 * @return バリデーションに成功した場合true
 	 */
 	public boolean validatePasswordResetRequest(String email) {
-		// 必須チェック
+		/** 必須チェック */
 		if (isNull("メールアドレス", email)) {
 			return false;
 		}
 		
-		// メールアドレス形式チェック
+		/** メールアドレス形式チェック */
 		if (!isEmail(email)) {
 			return false;
 		}
@@ -290,20 +354,20 @@ public class ValidationUtil {
 
 	/**
 	 * パスワード再設定のバリデーション。
-	 * <p>トークン、新パスワード、確認用パスワードのバリデーションを行います。</p>
-	 * 
+	 * トークン、新パスワード、確認用パスワードのバリデーションを行います。
+	 *
 	 * @param token           トークン
 	 * @param newPassword     新パスワード
 	 * @param confirmPassword 確認用パスワード
 	 * @return バリデーションに成功した場合true
 	 */
 	public boolean validatePasswordReset(String token, String newPassword, String confirmPassword) {
-		// トークン必須チェック
+		/** トークン必須チェック */
 		if (isNull("トークン", token)) {
 			return false;
 		}
 		
-		// パスワード必須チェック
+		/** パスワード必須チェック */
 		if (isNull("新しいパスワード", newPassword)) {
 			return false;
 		}
@@ -311,12 +375,12 @@ public class ValidationUtil {
 			return false;
 		}
 		
-		// パスワード強度チェック
+		/** パスワード強度チェック */
 		if (!isStrongPassword(newPassword)) {
 			return false;
 		}
 		
-		// パスワード一致チェック
+		/** パスワード一致チェック */
 		if (!isPasswordMatch(newPassword, confirmPassword)) {
 			return false;
 		}

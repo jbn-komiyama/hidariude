@@ -4,6 +4,9 @@ import java.math.BigDecimal;
 import java.sql.Timestamp;
 import java.util.UUID;
 
+/**
+ * 秘書月次サマリ（secretary_monthly_summaries）テーブルのDTO
+ */
 public class SecretaryMonthlySummaryDTO implements Serializable {
 	private static final long serialVersionUID = 1L;
 	

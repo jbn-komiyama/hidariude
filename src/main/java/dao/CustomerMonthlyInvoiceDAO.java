@@ -17,23 +17,19 @@ import dto.PivotRowDTO;
 
 /**
  * 顧客月次請求（{@code customer_monthly_invoices}）の集計・参照・UPSERT を司る DAO。
- * <p>
- * tasks / assignments から「顧客×月」単位で集計し、CMI テーブルへ DRAFT で UPSERT します。<br>
+ * tasks / assignments から「顧客×月」単位で集計し、CMI テーブルへ DRAFT で UPSERT します。
  * 参照系は論理削除（{@code deleted_at IS NULL}）を自動で考慮します。
- * </p>
  *
- * <h2>クラス構成</h2>
- * <ol>
- *   <li>フィールド（SQL）</li>
- *   <li>フィールド、コンストラクタ</li>
- *   <li>メソッド（SELECT／UPSERT／サマリ）</li>
- * </ol>
+ * クラス構成：
+ * 1. フィールド（SQL）
+ * 2. フィールド、コンストラクタ
+ * 3. メソッド（SELECT／UPSERT／サマリ）
  */
 public class CustomerMonthlyInvoiceDAO extends BaseDAO {
 
-    // ========================
-    // ① フィールド（SQL 定義）
-    // ========================
+    /** ========================
+     * ① フィールド（SQL 定義）
+     * ======================== */
 
     /** 顧客×月の売上（合算）を取得（期間指定） */
     private static final String SQL_SALES_BY_CUSTOMER_MONTH =
@@ -48,7 +44,7 @@ public class CustomerMonthlyInvoiceDAO extends BaseDAO {
 
     /**
      * 当月の「顧客ごと合計」を tasks / assignments から集計（顧客単価ベース）。
-     * <br>※時間課金：{@code (base_pay_customer + increase_base_pay_customer + customer_based_incentive_for_customer) * (work_minute / 60.0)}
+     * 時間課金：{@code (base_pay_customer + increase_base_pay_customer + customer_based_incentive_for_customer) * (work_minute / 60.0)}
      */
     private static final String SQL_AGG_BY_CUSTOMER_MONTH =
         "SELECT a.customer_id, " +
@@ -87,7 +83,7 @@ public class CustomerMonthlyInvoiceDAO extends BaseDAO {
 
     /**
      * 〜指定YM（但し今月/来月を上限にクランプ）の累計（件数／金額／合計稼働分）。
-     * <p>クランプの意図：未来に過度な集計が進まないようにするため。</p>
+     * クランプの意図：未来に過度な集計が進まないようにするため。
      */
     private static final String SQL_SUM_UPTO_YM =
         "WITH eff AS ( " +
@@ -124,9 +120,9 @@ public class CustomerMonthlyInvoiceDAO extends BaseDAO {
         "  AND cmi.target_year_month <= (SELECT ym FROM eff) " +
         "ORDER BY cmi.target_year_month DESC";
 
-    // ========================
-    // ② フィールド、コンストラクタ
-    // ========================
+    /** ========================
+     * ② フィールド、コンストラクタ
+     * ======================== */
 
     /**
      * コンストラクタ。
@@ -137,20 +133,16 @@ public class CustomerMonthlyInvoiceDAO extends BaseDAO {
         super(conn);
     }
 
-    // ========================
-    // ③ メソッド
-    // ========================
-
-    // =========================
-    // SELECT（集計ビュー系）
-    // =========================
+    /** ========================
+     * ③ メソッド
+     * =========================
+     * SELECT（集計ビュー系）
+     * ========================= */
 
     /**
      * 指定範囲（{@code fromYm}〜{@code toYm}）の「顧客×月」売上をピボット行 DTO として取得します。
-     * <p>
      * 返却は顧客ごと 1 行（{@link PivotRowDTO}）で、列は {@code months} に与えた yyyy-MM をキーにした
      * 金額マップ（存在しない月は 0 初期化）、および行合計 {@code rowTotal} を含みます。
-     * </p>
      *
      * @param fromYm  期間開始（含む, yyyy-MM）
      * @param toYm    期間終了（含む, yyyy-MM）
@@ -163,7 +155,7 @@ public class CustomerMonthlyInvoiceDAO extends BaseDAO {
             ps.setString(1, fromYm);
             ps.setString(2, toYm);
 
-            // 顧客IDごとに行を保持（LinkedHashMap で安定順）
+            /** 顧客IDごとに行を保持（LinkedHashMap で安定順） */
             Map<UUID, PivotRowDTO> map = new LinkedHashMap<>();
             try (ResultSet rs = ps.executeQuery()) {
                 while (rs.next()) {
@@ -177,7 +169,7 @@ public class CustomerMonthlyInvoiceDAO extends BaseDAO {
                         row = new PivotRowDTO();
                         row.setId(cid);
                         row.setLabel(cname);
-                        // 列穴あきを避けるため、先に全月を 0 埋め
+                        /** 列穴あきを避けるため、先に全月を 0 埋め */
                         for (String m : months) {
                             row.getAmountByYm().put(m, BigDecimal.ZERO);
                         }
@@ -186,7 +178,7 @@ public class CustomerMonthlyInvoiceDAO extends BaseDAO {
                     row.getAmountByYm().put(ym, amt == null ? BigDecimal.ZERO : amt);
                 }
             }
-            // 行合計
+            /** 行合計 */
             for (PivotRowDTO r : map.values()) {
                 BigDecimal sum = BigDecimal.ZERO;
                 for (String ym : months) {
@@ -200,13 +192,13 @@ public class CustomerMonthlyInvoiceDAO extends BaseDAO {
         }
     }
 
-    // =========================
-    // SELECT（単月参照）
-    // =========================
+    /** =========================
+     * SELECT（単月参照）
+     * ========================= */
 
     /**
      * 指定顧客・指定年月（yyyy-MM）の CMI 合計金額を返します。
-     * <p>レコードが存在しない場合は {@code null} を返します。</p>
+     * レコードが存在しない場合は {@code null} を返します。
      *
      * @param customerId 顧客ID
      * @param yearMonth  年月（yyyy-MM）
@@ -225,21 +217,19 @@ public class CustomerMonthlyInvoiceDAO extends BaseDAO {
         } catch (SQLException e) {
             throw new DAOException("E:CMI01 月次請求（CMI）の取得に失敗しました。", e);
         }
-        return null; // 該当なし
+        return null; /** 該当なし */
     }
 
-    // =========================
-    // UPSERT（集計→CMI）
-    // =========================
+    /** =========================
+     * UPSERT（集計→CMI）
+     * ========================= */
 
     /**
      * 指定年月（yyyy-MM）のタスク群を assignments と結合して集計し、
      * 顧客×年月の CMI を DRAFT で UPSERT します。
-     * <ul>
-     *   <li>金額は顧客単価ベースで算出</li>
-     *   <li>対象タスクは {@code deleted_at IS NULL} のみ</li>
-     *   <li>UPSERT 後、影響行数（INSERT/UPDATE 合計）を返す</li>
-     * </ul>
+     * - 金額は顧客単価ベースで算出
+     * - 対象タスクは {@code deleted_at IS NULL} のみ
+     * - UPSERT 後、影響行数（INSERT/UPDATE 合計）を返す
      *
      * @param yearMonth 対象年月（yyyy-MM）
      * @return 影響行数（INSERT + UPDATE の合計）
@@ -276,17 +266,15 @@ public class CustomerMonthlyInvoiceDAO extends BaseDAO {
         }
     }
 
-    // =========================
-    // SUMMARY / REPORT
-    // =========================
+    /** =========================
+     * SUMMARY / REPORT
+     * ========================= */
 
     /**
      * 〜指定年月（yyyy-MM）までの累計サマリーを返します。
-     * <p>
-     * 指定年月は「今月または来月」を上限にクランプされます（未来集計の走り過ぎ防止）。<br>
+     * 指定年月は「今月または来月」を上限にクランプされます（未来集計の走り過ぎ防止）。
      * 返却の {@link Summary#totalAmount} / {@link Summary#count} / {@link Summary#totalWorkMinutes}
      * を利用してヘッダKPI等に表示できます。
-     * </p>
      *
      * @param customerId 顧客ID
      * @param upToYm     集計上限（yyyy-MM）
@@ -296,8 +284,8 @@ public class CustomerMonthlyInvoiceDAO extends BaseDAO {
     public Summary selectSummaryUpToYm(UUID customerId, String upToYm) {
         try (PreparedStatement ps = conn.prepareStatement(SQL_SUM_UPTO_YM)) {
             int p = 1;
-            ps.setString(p++, upToYm); // クランプ評価用1
-            ps.setString(p++, upToYm); // クランプ評価用2
+            ps.setString(p++, upToYm); /** クランプ評価用1 */
+            ps.setString(p++, upToYm); /** クランプ評価用2 */
             ps.setObject(p++, customerId);
 
             try (ResultSet rs = ps.executeQuery()) {
@@ -316,10 +304,8 @@ public class CustomerMonthlyInvoiceDAO extends BaseDAO {
 
     /**
      * 指定年月（yyyy-MM）までの直近12か月分の CMI を降順で取得します（最新月→過去）。
-     * <p>
-     * 返却 DTO は customers の会社コード・会社名も最低限セットします。<br>
+     * 返却 DTO は customers の会社コード・会社名も最低限セットします。
      * フロントの折れ線・カラムチャートや表明細に適用可能です。
-     * </p>
      *
      * @param customerId 顧客ID
      * @param upToYm     上限年月（yyyy-MM） ※内部で今月/来月にクランプ
@@ -330,8 +316,8 @@ public class CustomerMonthlyInvoiceDAO extends BaseDAO {
         List<CustomerMonthlyInvoiceDTO> list = new ArrayList<>();
         try (PreparedStatement ps = conn.prepareStatement(SQL_LAST12_UPTO_YM)) {
             int p = 1;
-            ps.setString(p++, upToYm); // クランプ評価用1
-            ps.setString(p++, upToYm); // クランプ評価用2
+            ps.setString(p++, upToYm); /** クランプ評価用1 */
+            ps.setString(p++, upToYm); /** クランプ評価用2 */
             ps.setObject(p++, customerId);
 
             try (ResultSet rs = ps.executeQuery()) {
@@ -340,7 +326,7 @@ public class CustomerMonthlyInvoiceDAO extends BaseDAO {
                     CustomerMonthlyInvoiceDTO d = new CustomerMonthlyInvoiceDTO();
                     d.setId(rs.getObject(i++, UUID.class));
 
-                    // 顧客最小情報（ID/コード/名称）
+                    /** 顧客最小情報（ID/コード/名称） */
                     UUID cid = rs.getObject(i++, UUID.class);
                     CustomerDTO c = new CustomerDTO();
                     c.setId(cid);
@@ -355,7 +341,7 @@ public class CustomerMonthlyInvoiceDAO extends BaseDAO {
                     d.setUpdatedAt(rs.getTimestamp(i++));
                     d.setDeletedAt(rs.getTimestamp(i++));
 
-                    // customers 由来
+                    /** customers 由来 */
                     c.setCompanyCode(rs.getString(i++));
                     c.setCompanyName(rs.getString(i++));
 
@@ -368,9 +354,9 @@ public class CustomerMonthlyInvoiceDAO extends BaseDAO {
         return list;
     }
 
-    // =========================
-    // 内部型
-    // =========================
+    /** =========================
+     * 内部型
+     * ========================= */
 
     /**
      * 合計サマリー（件数／金額／合計稼働分）を表す簡易 DTO。

@@ -8,13 +8,13 @@ import java.sql.Statement;
  * パスワードリセット用トークンテーブルを作成するマイグレーション
  *
  * 実行内容:
- *   ・password_reset_tokens テーブルを作成（全ロール対応）
- *   ・トークン検索用のインデックスを作成
- *   ・ユーザーID検索用のインデックスを作成
+ *   - password_reset_tokens テーブルを作成（全ロール対応）
+ *   - トークン検索用のインデックスを作成
+ *   - ユーザーID検索用のインデックスを作成
  *
  * テーブル設計:
- *   ・user_type: 'admin', 'secretary', 'customer' のいずれか
- *   ・user_id: 各ロールのテーブルのID（外部キー制約なし、アプリケーション側で管理）
+ *   - user_type: 'admin', 'secretary', 'customer' のいずれか
+ *   - user_id: 各ロールのテーブルのID（外部キー制約なし、アプリケーション側で管理）
  *
  * 実行日: 2025-10-30
  */
@@ -44,11 +44,11 @@ public class Migration_20251030_CreatePasswordResetTokens implements Migration {
             "ON password_reset_tokens(user_type, user_id)";
 
         try (Statement stmt = conn.createStatement()) {
-            // テーブル作成
+            /** テーブル作成 */
             stmt.executeUpdate(createTableSql);
             System.out.println("    - password_reset_tokens テーブル作成完了");
 
-            // インデックス作成
+            /** インデックス作成 */
             stmt.executeUpdate(createTokenIndexSql);
             System.out.println("    - トークン用インデックス作成完了");
 

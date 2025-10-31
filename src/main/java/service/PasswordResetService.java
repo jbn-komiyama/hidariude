@@ -28,42 +28,45 @@ import util.PasswordUtil;
 
 /**
  * パスワードリセット機能のサービスクラス。
- * <p>
+ *
  * 全ロール（admin / secretary / customer）向けのパスワードリセット機能を提供します。
  * メールアドレス入力、トークン生成・メール送信、新パスワード設定の各処理を実行します。
- * </p>
- * 
- * <h2>画面フロー</h2>
- * <ol>
- *   <li>リセット申請画面表示 → {@link #showResetRequestForm(String)}</li>
- *   <li>リセット申請処理 → {@link #processResetRequest(String)}</li>
- *   <li>パスワード再設定画面表示 → {@link #showResetForm(String)}</li>
- *   <li>パスワード再設定処理 → {@link #processPasswordReset(String)}</li>
- * </ol>
+ *
+ * 画面フロー:
+ * - リセット申請画面表示 → {@link #showResetRequestForm(String)}
+ * - リセット申請処理 → {@link #processResetRequest(String)}
+ * - パスワード再設定画面表示 → {@link #showResetForm(String)}
+ * - パスワード再設定処理 → {@link #processPasswordReset(String)}
  */
 public class PasswordResetService extends BaseService {
 
-    // =========================
-    // ① 定数
-    // =========================
+    /**
+     * ① 定数
+     */
 
-    // ---- Request parameter keys ----
+    /**
+     * Request parameter keys
+     */
     private static final String P_EMAIL            = "email";
     private static final String P_TOKEN            = "token";
     private static final String P_NEW_PASSWORD     = "newPassword";
     private static final String P_CONFIRM_PASSWORD = "confirmPassword";
 
-    // ---- Attribute keys ----
+    /**
+     * Attribute keys
+     */
     private static final String A_ERROR = "errorMsg";
     private static final String A_EMAIL = "email";
 
-    // ---- トークン有効期限（24時間 = 86400000ミリ秒） ----
+    /**
+     * トークン有効期限（24時間 = 86400000ミリ秒）
+     */
     private static final long TOKEN_EXPIRY_HOURS = 24;
     private static final long TOKEN_EXPIRY_MILLIS = TOKEN_EXPIRY_HOURS * 60 * 60 * 1000;
 
-    // =========================
-    // ② コンストラクタ
-    // =========================
+    /**
+     * ② コンストラクタ
+     */
 
     /**
      * コンストラクタ。
@@ -75,9 +78,9 @@ public class PasswordResetService extends BaseService {
         super(req, useDB);
     }
 
-    // =========================
-    // ③ メソッド
-    // =========================
+    /**
+     * ③ メソッド
+     */
 
     /**
      * パスワードリセット申請画面を表示します。
@@ -91,11 +94,9 @@ public class PasswordResetService extends BaseService {
 
     /**
      * パスワードリセット申請処理を実行します。
-     * <p>
      * メールアドレスの存在確認、トークン生成、メール送信を行います。
      * セキュリティのため、メールアドレスが存在しない場合も同じメッセージを表示します。
-     * </p>
-     * 
+     *
      * @param userType ユーザータイプ（'admin', 'secretary', 'customer'）
      * @return ビューパス（成功時：完了画面、失敗時：入力画面）
      */
@@ -110,7 +111,7 @@ public class PasswordResetService extends BaseService {
         }
 
         try (TransactionManager tm = new TransactionManager()) {
-            // 期限切れトークンを削除（クリーンアップ）
+            /** 期限切れトークンを削除（クリーンアップ） */
             PasswordResetTokenDAO tokenDAO = new PasswordResetTokenDAO(tm.getConnection());
             int deletedCount = tokenDAO.deleteExpiredTokens();
             if (deletedCount > 0) {
@@ -119,25 +120,26 @@ public class PasswordResetService extends BaseService {
             
             UUID userId = findUserIdByEmailAndType(tm, email, userType);
             
-            // ユーザーが存在する場合のみトークン生成・メール送信
+            /** ユーザーが存在する場合のみトークン生成・メール送信 */
             if (userId != null) {
-                // 既に有効なトークンが存在するかチェック
+                /** 既に有効なトークンが存在するかチェック */
                 PasswordResetTokenDTO existingToken = tokenDAO.selectValidByUser(userType, userId);
                 
                 if (existingToken.getId() != null) {
-                    // 既に有効なトークンが存在する場合はメール送信をスキップ
+                    /** 既に有効なトークンが存在する場合はメール送信をスキップ */
                     System.out.println("有効なトークンが既に存在します。メール送信をスキップします。");
                     System.out.println("  ユーザーID: " + userId);
                     System.out.println("  ユーザータイプ: " + userType);
-                    // セキュリティのため、ユーザーには成功メッセージを表示
+
+                    /** セキュリティのため、ユーザーには成功メッセージを表示 */
                 } else {
-                    // 新規トークン生成
+                    /** 新規トークン生成 */
                     String token = UUID.randomUUID().toString();
                     Timestamp expiresAt = new Timestamp(
                         System.currentTimeMillis() + TOKEN_EXPIRY_MILLIS
                     );
                     
-                    // トークンをデータベースに保存
+                    /** トークンをデータベースに保存 */
                     PasswordResetTokenDTO tokenDTO = new PasswordResetTokenDTO();
                     tokenDTO.setUserType(userType);
                     tokenDTO.setUserId(userId);
@@ -146,14 +148,14 @@ public class PasswordResetService extends BaseService {
                     
                     tokenDAO.insert(tokenDTO);
                     
-                    // メール送信
+                    /** メール送信 */
                     sendPasswordResetEmail(email, token, userType);
                 }
                 
                 tm.commit();
             }
             
-            // セキュリティのため、存在しない場合も同じメッセージを表示
+            /** セキュリティのため、存在しない場合も同じメッセージを表示 */
             return getViewPath(userType, "password_reset_sent");
             
         } catch (Exception e) {
@@ -169,17 +171,15 @@ public class PasswordResetService extends BaseService {
 
     /**
      * パスワード再設定画面を表示します。
-     * <p>
      * トークンの検証を行い、有効な場合のみ画面を表示します。
-     * </p>
-     * 
+     *
      * @param userType ユーザータイプ（'admin', 'secretary', 'customer'）
      * @return ビューパス（成功時：再設定画面、失敗時：エラー画面）
      */
     public String showResetForm(String userType) {
         String token = req.getParameter(P_TOKEN);
 
-        // トークンの必須チェック
+        /** トークンの必須チェック */
         if (token == null || token.isEmpty()) {
             validation.addErrorMsg("無効なリンクです。");
             req.setAttribute(A_ERROR, validation.getErrorMsg());
@@ -198,7 +198,7 @@ public class PasswordResetService extends BaseService {
                 return getViewPath(userType, "password_reset_request");
             }
 
-            // トークンを画面に渡す（hiddenフィールドで次の画面へ）
+            /** トークンを画面に渡す（hiddenフィールドで次の画面へ） */
             req.setAttribute(P_TOKEN, token);
             return getViewPath(userType, "password_reset_form");
             
@@ -214,10 +214,8 @@ public class PasswordResetService extends BaseService {
 
     /**
      * パスワード再設定処理を実行します。
-     * <p>
      * トークンの検証、パスワードのバリデーション、パスワード更新を行います。
-     * </p>
-     * 
+     *
      * @param userType ユーザータイプ（'admin', 'secretary', 'customer'）
      * @return ビューパス（成功時：完了画面、失敗時：入力画面）
      */
@@ -245,20 +243,20 @@ public class PasswordResetService extends BaseService {
                 return getViewPath(userType, "password_reset_request");
             }
 
-            // パスワードをハッシュ化
+            /** パスワードをハッシュ化 */
             String hashedPassword = PasswordUtil.hashPassword(newPassword);
 
-            // パスワード更新（ロール別のDAOを使用）
+            /** パスワード更新（ロール別のDAOを使用） */
             int updated = updatePasswordByUserType(tm, tokenDTO.getUserId(), hashedPassword, userType);
 
             if (updated == 0) {
                 throw new RuntimeException("パスワードの更新に失敗しました。");
             }
 
-            // トークンを使用済みにマーク
+            /** トークンを使用済みにマーク */
             tokenDAO.markAsUsed(token);
 
-            // そのユーザーの過去のトークンもすべて削除
+            /** そのユーザーの過去のトークンもすべて削除 */
             int deletedCount = tokenDAO.deleteByUser(userType, tokenDTO.getUserId());
             if (deletedCount > 0) {
                 System.out.println("ユーザーの過去のトークンを削除しました: " + deletedCount + "件");
@@ -279,9 +277,9 @@ public class PasswordResetService extends BaseService {
         }
     }
 
-    // =========================
-    // ④ ヘルパーメソッド
-    // =========================
+    /**
+     * ④ ヘルパーメソッド
+     */
 
     /**
      * ユーザータイプに応じたビューパスを生成します。
@@ -350,9 +348,9 @@ public class PasswordResetService extends BaseService {
         };
     }
 
-    // =========================
-    // ⑤ トークン検証メソッド
-    // =========================
+    /**
+     * ⑤ トークン検証メソッド
+     */
 
     /**
      * トークンの検証。
@@ -385,9 +383,9 @@ public class PasswordResetService extends BaseService {
         return null; // OK
     }
 
-    // =========================
-    // ⑥ メール送信メソッド
-    // =========================
+    /**
+     * ⑥ メール送信メソッド
+     */
 
     /**
      * パスワードリセット用のメールを送信します。
@@ -399,27 +397,27 @@ public class PasswordResetService extends BaseService {
      */
     private void sendPasswordResetEmail(String toEmail, String token, String userType) {
         try {
-            // 送信元情報
+            /** 送信元情報 */
             Email from = new Email(MailConfig.getFromEmail(), MailConfig.getFromName());
             
-            // 送信先情報
+            /** 送信先情報 */
             Email to = new Email(toEmail);
             
-            // 件名（ロールに応じて変更）
+            /** 件名（ロールに応じて変更） */
             String roleLabel = getRoleLabel(userType);
             String subject = "【Hidariude】パスワードリセットのご案内（" + roleLabel + "）";
             
-            // パスワードリセット用URL
+            /** パスワードリセット用URL */
             String resetUrl = MailConfig.getPasswordResetUrl(token, userType);
             
-            // メール本文（テキスト形式）
+            /** メール本文（テキスト形式） */
             String textContent = buildPasswordResetEmailBody(resetUrl, roleLabel);
             Content content = new Content("text/plain", textContent);
             
-            // メールオブジェクトを作成
+            /** メールオブジェクトを作成 */
             Mail mail = new Mail(from, subject, to, content);
             
-            // SendGrid APIでメール送信
+            /** SendGrid APIでメール送信 */
             SendGrid sg = new SendGrid(MailConfig.getSendGridApiKey());
             Request request = new Request();
             
@@ -429,12 +427,12 @@ public class PasswordResetService extends BaseService {
             
             Response response = sg.api(request);
             
-            // ログ出力
+            /** ログ出力 */
             System.out.println("パスワードリセットメール送信:");
             System.out.println("  宛先: " + toEmail);
             System.out.println("  ステータスコード: " + response.getStatusCode());
             
-            // SendGridは2xx系のステータスコードで成功を示す
+            /** SendGridは2xx系のステータスコードで成功を示す */
             if (response.getStatusCode() >= 200 && response.getStatusCode() < 300) {
                 System.out.println("  結果: 送信成功");
             } else {

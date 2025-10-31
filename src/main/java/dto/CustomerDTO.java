@@ -5,8 +5,9 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
-
-
+/**
+ * 顧客（customers）テーブルのDTO
+ */
 public class CustomerDTO implements Serializable {
 	private static final long serialVersionUID = 1L;
 	

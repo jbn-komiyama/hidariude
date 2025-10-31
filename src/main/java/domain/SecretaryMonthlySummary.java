@@ -5,6 +5,9 @@ import java.math.BigDecimal;
 import java.util.Date;
 import java.util.UUID;
 
+/**
+ * 秘書月次サマリ（secretary_monthly_summaries）テーブルのドメインモデル
+ */
 public class SecretaryMonthlySummary implements Serializable{
 	private static final long serialVersionUID = 1L;
 	

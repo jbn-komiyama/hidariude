@@ -4,24 +4,27 @@ import java.io.Serializable;
 import java.math.BigDecimal;
 import java.util.UUID;
 
+/**
+ * 請求情報を集約したDTO
+ */
 public class InvoiceDTO implements Serializable {
 	private static final long serialVersionUID = 1L;
 
-	// customers
-	private UUID customerId; // c.id
-	private String customerCompanyName; // c.company_name
+	/** customers */
+	private UUID customerId; /** c.id */
+	private String customerCompanyName; /** c.company_name */
 
-	// secretaries
-	private String secretaryName; // s.name
+	/** secretaries */
+	private String secretaryName; /** s.name */
 
-	// tasks
+	/** tasks */
 	private int totalMinute;
 
-	// assignments
+	/** assignments */
 	private BigDecimal hourlyPay;
 	private String targetYM;
 
-	// task_rank
+	/** task_rank */
 	private String taskRankName;
 
 	private BigDecimal fee;

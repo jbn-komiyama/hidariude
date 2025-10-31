@@ -42,7 +42,7 @@ public class Profile implements Serializable{
     private Date updatedAt;
     private Date deletedAt;
 
-    // --- getter / setter ---
+    /** --- getter / setter --- */
     public UUID getId() { return id; }
     public void setId(UUID id) { this.id = id; }
 

@@ -7,20 +7,18 @@ import java.nio.file.Paths;
 
 /**
  * メール送信の設定を管理するクラス。
- * <p>
  * SendGrid API を使用したメール送信に必要な設定値を提供します。
  * 設定値は.envファイルまたは環境変数から取得され、環境に応じて適切な値が使用されます。
- * </p>
  */
 public class MailConfig {
 
     private static final Dotenv dotenv;
     
     static {
-        // .envファイルを読み込む（存在しない場合はスキップ）
+        /** .envファイルを読み込む（存在しない場合はスキップ） */
         var builder = Dotenv.configure().ignoreIfMissing();
         
-        // .envファイルのパスを明示的に指定（複数の場所を順番に試す）
+        /** .envファイルのパスを明示的に指定（複数の場所を順番に試す） */
         String envFileDir = findEnvFileDirectory();
         if (envFileDir != null) {
             builder = builder.directory(envFileDir);
@@ -35,13 +33,13 @@ public class MailConfig {
      * @return .envファイルが見つかったディレクトリのパス、見つからない場合はnull
      */
     private static String findEnvFileDirectory() {
-        // 1. システムプロパティまたは環境変数から指定されたディレクトリを試す
+        /** 1. システムプロパティまたは環境変数から指定されたディレクトリを試す */
         String customDir = System.getProperty("hidariude.env.dir");
         if (customDir == null || customDir.isEmpty()) {
             customDir = System.getenv("HIDARIUDE_ENV_DIR");
         }
         if (customDir == null || customDir.isEmpty()) {
-            // ファイルパスが指定されている場合も対応
+            /** ファイルパスが指定されている場合も対応 */
             String customPath = System.getProperty("hidariude.env.path");
             if (customPath == null || customPath.isEmpty()) {
                 customPath = System.getenv("HIDARIUDE_ENV_PATH");
@@ -51,7 +49,7 @@ public class MailConfig {
                 if (Files.exists(path) && Files.isRegularFile(path)) {
                     return path.getParent().toString();
                 }
-                // ディレクトリパスとして解釈
+                /** ディレクトリパスとして解釈 */
                 if (Files.exists(path) && Files.isDirectory(path)) {
                     customDir = customPath;
                 }
@@ -65,40 +63,39 @@ public class MailConfig {
             }
         }
         
-        // 2. 本番環境のデフォルトパス（/opt/hidariude/.env）を試す
+        /** 2. 本番環境のデフォルトパス（/opt/hidariude/.env）を試す */
         Path productionPath = Paths.get("/opt/hidariude/.env");
         if (Files.exists(productionPath) && Files.isRegularFile(productionPath)) {
             return productionPath.getParent().toString();
         }
         
-        // 3. カレントディレクトリの.envを試す（開発環境用）
+        /** 3. カレントディレクトリの.envを試す（開発環境用） */
         String currentDir = System.getProperty("user.dir");
         Path currentDirPath = Paths.get(currentDir, ".env");
         if (Files.exists(currentDirPath) && Files.isRegularFile(currentDirPath)) {
             return currentDir;
         }
         
-        // 4. クラスパスから見つかった場合は、その親ディレクトリを探す
-        // （開発環境でMavenプロジェクトルートから実行される場合）
+        /** 4. クラスパスから見つかった場合は、その親ディレクトリを探す（開発環境でMavenプロジェクトルートから実行される場合） */
         try {
             String classPath = MailConfig.class.getProtectionDomain()
                 .getCodeSource()
                 .getLocation()
                 .getPath();
             
-            // WARファイル内の場合は、Tomcatの作業ディレクトリから探す
+            /** WARファイル内の場合は、Tomcatの作業ディレクトリから探す */
             if (classPath.contains(".war") || classPath.contains("WEB-INF")) {
-                // Tomcatから実行される場合、/opt/hidariude/.envを再確認
+                /** Tomcatから実行される場合、/opt/hidariude/.envを再確認 */
                 Path warProductionPath = Paths.get("/opt/hidariude/.env");
                 if (Files.exists(warProductionPath) && Files.isRegularFile(warProductionPath)) {
                     return warProductionPath.getParent().toString();
                 }
             }
         } catch (Exception e) {
-            // エラーが発生しても続行
+            /** エラーが発生しても続行 */
         }
         
-        // .envファイルが見つからない場合はnullを返す（ignoreIfMissingで処理される）
+        /** .envファイルが見つからない場合はnullを返す（ignoreIfMissingで処理される） */
         return null;
     }
 
@@ -109,13 +106,13 @@ public class MailConfig {
      * @return 環境変数の値
      */
     private static String getEnvValue(String key) {
-        // 1. システム環境変数から取得を試みる
+        /** 1. システム環境変数から取得を試みる */
         String value = System.getenv(key);
         if (value != null && !value.isEmpty()) {
             return value;
         }
         
-        // 2. .envファイルから取得を試みる
+        /** 2. .envファイルから取得を試みる */
         if (dotenv != null) {
             value = dotenv.get(key);
         }
@@ -153,25 +150,18 @@ public class MailConfig {
 
     /**
      * アプリケーションのベースURL（環境変数 APP_BASE_URL または.envファイルから取得）
-     * <p>
      * 環境変数が設定されていない場合は、開発環境用のデフォルトURL
      * （http://localhost:8080/hidariude）を使用します。
-     * </p>
-     * <p>
      * 本番環境では以下のように.envファイルまたは環境変数を設定してください：
-     * <pre>
-     * .envファイルの場合:
-     * APP_BASE_URL=http://ik1-224-81260.vs.sakura.ne.jp:8080/hidariude
+     * .envファイルの場合: APP_BASE_URL=http://ik1-224-81260.vs.sakura.ne.jp:8080/hidariude
+     * または環境変数の場合: export APP_BASE_URL=http://ik1-224-81260.vs.sakura.ne.jp:8080/hidariude
      * 
-     * または環境変数の場合:
-     * export APP_BASE_URL=http://ik1-224-81260.vs.sakura.ne.jp:8080/hidariude
-     * </pre>
-     * </p>
+     * @return ベースURL
      */
     public static String getBaseUrl() {
         String baseUrl = getEnvValue("APP_BASE_URL");
         if (baseUrl == null || baseUrl.isEmpty()) {
-            // デフォルト：開発環境用URL
+            /** デフォルト：開発環境用URL */
             return "http://localhost:8080/hidariude";
         }
         return baseUrl;

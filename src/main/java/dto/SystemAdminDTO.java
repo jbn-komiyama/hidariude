@@ -3,6 +3,9 @@ import java.io.Serializable;
 import java.sql.Timestamp;
 import java.util.UUID;
 
+/**
+ * システム管理者（system_admins）テーブルのDTO
+ */
 public class SystemAdminDTO implements Serializable {
 	private static final long serialVersionUID = 1L;
 	

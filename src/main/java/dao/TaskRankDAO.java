@@ -10,11 +10,15 @@ import java.util.UUID;
 
 import dto.TaskRankDTO;
 
+/**
+ * タスクランク（task_rank）テーブルを扱う DAO。
+ * タスクランクの取得を担当します。
+ */
 public class TaskRankDAO extends BaseDAO {
 	
-	// ========================
-    // SQL 定義
-    // ========================
+	/** ========================
+     * SQL 定義
+     * ======================== */
     /** 削除されていないランクの基本SELECT（id, rank_name, base_pay_* ほか） */
 	
     private static final String SQL_SELECT_BASE =
@@ -26,10 +30,21 @@ public class TaskRankDAO extends BaseDAO {
     /** PM想定ランク（rank_no = 0）を取得するための条件 */
     private static final String SQL_WHERE_PM = " AND rank_no = 0";
 	
+	/**
+	 * コンストラクタ。
+	 *
+	 * @param conn 呼び出し側が管理する JDBC コネクション
+	 */
 	public TaskRankDAO(Connection conn) {
 		super(conn);
 	}
 	
+	/**
+	 * 削除されていないタスクランクを全件取得します。
+	 *
+	 * @return タスクランクDTOのリスト
+	 * @throws DAOException 取得に失敗した場合
+	 */
 	public List<TaskRankDTO> selectAll() {
 		List<TaskRankDTO> dtos = new ArrayList<>();
 		
@@ -51,12 +66,18 @@ public class TaskRankDAO extends BaseDAO {
 			}
 			return dtos;
 		} catch(SQLException e) {
-			String errorMsg = "E:B11 Secretaryテーブルに不正なSELECT処理が行われました。";
+			String errorMsg = "E:B11 task_rankテーブルに不正なSELECT処理が行われました。";
 			e.printStackTrace();
 			throw new DAOException(errorMsg, e);
 		}
 	}
 	
+	/**
+	 * PM想定ランク（rank_no = 0）を1件取得します。
+	 *
+	 * @return タスクランクDTO（該当なしの場合は空のDTO）
+	 * @throws DAOException 取得に失敗した場合
+	 */
 	public TaskRankDTO selectPM() {
 		TaskRankDTO dto = new TaskRankDTO();
 		
@@ -76,7 +97,7 @@ public class TaskRankDAO extends BaseDAO {
 			}
 			return dto;
 		} catch(SQLException e) {
-			String errorMsg = "E:B11 Secretaryテーブルに不正なSELECT処理が行われました。";
+			String errorMsg = "E:B11 task_rankテーブルに不正なSELECT処理が行われました。";
 			e.printStackTrace();
 			throw new DAOException(errorMsg, e);
 		}

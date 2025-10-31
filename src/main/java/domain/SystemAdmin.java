@@ -3,6 +3,9 @@ import java.io.Serializable;
 import java.util.Date;
 import java.util.UUID;
 
+/**
+ * システム管理者（system_admins）テーブルのドメインモデル
+ */
 public class SystemAdmin implements Serializable{
 	private static final long serialVersionUID = 1L;
 	

@@ -3,6 +3,9 @@ import java.math.BigDecimal;
 import java.util.Date;
 import java.util.UUID;
 
+/**
+ * 秘書ランク（secretary_rank）テーブルのドメインモデル
+ */
 public class SecretaryRank {
     private UUID id;
     private String rankName;

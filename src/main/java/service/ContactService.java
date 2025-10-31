@@ -19,16 +19,16 @@ import util.PasswordUtil;
 
 /**
  * 顧客担当者（CustomerContact）のユースケースサービス。
- * <p>一覧／登録（画面→確認→確定）／編集（画面→確認→確定）／削除、および顧客マイページの編集フローを提供。</p>
- * <p>ビュー名・属性名・パラメータ名は定数に集約し、ハードコードを排除。DBは {@link TransactionManager} を使用。</p>
+ * 一覧／登録（画面→確認→確定）／編集（画面→確認→確定）／削除、および顧客マイページの編集フローを提供。
+ * ビュー名・属性名・パラメータ名は定数に集約し、ハードコードを排除。DBは {@link TransactionManager} を使用。
  */
 public class ContactService extends BaseService {
 
-    // =========================
-    // ① 定数（ビュー/属性/パラメータ）
-    // =========================
+    /** =========================
+     * ① 定数（ビュー/属性/パラメータ）
+     * ========================= */
 
-    // ---- View (admin/customer) ----
+    /** ---- View (admin/customer) ---- */
     private static final String VIEW_HOME              = "contact/admin/home";
     private static final String VIEW_REGISTER          = "contact/admin/register";
     private static final String VIEW_REGISTER_CK       = "contact/admin/register_check";
@@ -37,19 +37,19 @@ public class ContactService extends BaseService {
     private static final String VIEW_EDIT_CK           = "contact/admin/edit_check";
     private static final String VIEW_EDIT_DN           = "contact/admin/edit_done";
 
-    // ---- View (customer mypage) ----
+    /** ---- View (customer mypage) ---- */
     private static final String VIEW_MYPAGE            = "mypage/customer/home";
     private static final String VIEW_MYPAGE_EDIT       = "mypage/customer/edit";
     private static final String VIEW_MYPAGE_EDIT_CHECK = "mypage/customer/edit_check";
 
-    // ---- Request Attributes ----
+    /** ---- Request Attributes ---- */
     private static final String A_CUSTOMER  = "customer";
     private static final String A_CONTACTS  = "contacts";
     private static final String A_CONTACT   = "contact";
     private static final String A_ERROR_MSG = "errorMsg";
     private static final String A_MESSAGE   = "message";
 
-    // ---- Request Parameters ----
+    /** ---- Request Parameters ---- */
     private static final String P_CUSTOMER_ID = "customerId";
     private static final String P_ID          = "id";
     private static final String P_NAME        = "name";
@@ -60,7 +60,7 @@ public class ContactService extends BaseService {
     private static final String P_PHONE       = "phone";
     private static final String P_IS_PRIMARY  = "isPrimary";
 
-    // 会社 + マイページ用
+    /** 会社 + マイページ用 */
     private static final String P_COMPANY_NAME   = "companyName";
     private static final String P_POSTAL_CODE    = "postalCode";
     private static final String P_ADDRESS1       = "address1";
@@ -69,16 +69,16 @@ public class ContactService extends BaseService {
     private static final String P_COMPANY_MAIL   = "companyMail";
     private static final String P_COMPANY_PHONE  = "companyPhone";
 
-    // マイページ（担当者）
+    /** マイページ（担当者） */
     private static final String P_CONTACT_NAME       = "contactName";
     private static final String P_CONTACT_NAME_RUBY  = "contactNameRuby";
     private static final String P_CONTACT_DEPT       = "contactDepartment";
     private static final String P_CONTACT_MAIL       = "contactMail";
     private static final String P_CONTACT_PHONE      = "contactPhone";
 
-    // =========================
-    // ② フィールド／コンストラクタ
-    // =========================
+    /** =========================
+     * ② フィールド／コンストラクタ
+     * ========================= */
 
     /** DTO↔Domain の相互変換 */
     private final ConvertUtil conv = new ConvertUtil();
@@ -92,14 +92,14 @@ public class ContactService extends BaseService {
         super(req, useDB);
     }
 
-    // =========================
-    // ③ コントローラ呼び出しメソッド
-    // ====== 【admin】担当者（顧客別） ======
-    // =========================
+    /** =========================
+     * ③ コントローラ呼び出しメソッド
+     * ====== 【admin】担当者（顧客別） ======
+     * ========================= */
 
-    // -------------------------
-    // 「【admin】 機能：担当者一覧」
-    // -------------------------
+    /** -------------------------
+     * 「【admin】 機能：担当者一覧」
+     * ------------------------- */
     /**
      * 指定顧客の担当者一覧を表示。
      * - customerId: request param 'customerId'（必須, UUID）
@@ -137,9 +137,9 @@ public class ContactService extends BaseService {
         }
     }
 
-    // -------------------------
-    // 「【admin】 機能：担当者登録（画面）」
-    // -------------------------
+    /** -------------------------
+     * 「【admin】 機能：担当者登録（画面）」
+     * ------------------------- */
     /**
      * 担当者登録画面の表示。
      * - customerId: request param 'customerId'（必須, UUID）
@@ -150,9 +150,9 @@ public class ContactService extends BaseService {
         return VIEW_REGISTER;
     }
 
-    // -------------------------
-    // 「【admin】 機能：担当者登録（確認）」
-    // -------------------------
+    /** -------------------------
+     * 「【admin】 機能：担当者登録（確認）」
+     * ------------------------- */
     /**
      * 担当者登録の確認。
      * - 必須: customerId, name, mail, password
@@ -193,9 +193,9 @@ public class ContactService extends BaseService {
         return VIEW_REGISTER_CK;
     }
 
-    // -------------------------
-    // 「【admin】 機能：担当者登録（確定）」
-    // -------------------------
+    /** -------------------------
+     * 「【admin】 機能：担当者登録（確定）」
+     * ------------------------- */
     /**
      * 担当者登録の確定。
      * - 重複再検証: mail（グローバル）
@@ -270,9 +270,9 @@ public class ContactService extends BaseService {
         }
     }
 
-    // -------------------------
-    // 「【admin】 機能：担当者編集（画面）」
-    // -------------------------
+    /** -------------------------
+     * 「【admin】 機能：担当者編集（画面）」
+     * ------------------------- */
     /**
      * 担当者編集画面の表示。
      * - id, customerId: request param（必須, UUID）
@@ -305,9 +305,9 @@ public class ContactService extends BaseService {
         }
     }
 
-    // -------------------------
-    // 「【admin】 機能：担当者編集（確認）」
-    // -------------------------
+    /** -------------------------
+     * 「【admin】 機能：担当者編集（確認）」
+     * ------------------------- */
     /**
      * 担当者編集の確認。
      * - 必須: id, customerId, name, mail
@@ -353,9 +353,9 @@ public class ContactService extends BaseService {
         return VIEW_EDIT_CK;
     }
 
-    // -------------------------
-    // 「【admin】 機能：担当者編集（確定）」
-    // -------------------------
+    /** -------------------------
+     * 「【admin】 機能：担当者編集（確定）」
+     * ------------------------- */
     /**
      * 担当者編集の確定。
      * - 一意再検証: mail（自ID除外）
@@ -432,9 +432,9 @@ public class ContactService extends BaseService {
         }
     }
 
-    // -------------------------
-    // 「【admin】 機能：担当者削除」
-    // -------------------------
+    /** -------------------------
+     * 「【admin】 機能：担当者削除」
+     * ------------------------- */
     /**
      * 担当者の物理削除。
      * - id, customerId: request param（必須, UUID）
@@ -464,13 +464,13 @@ public class ContactService extends BaseService {
         }
     }
 
-    // =========================
-    // ====== 【customer】マイページ ======
-    // =========================
+    /** =========================
+     * ====== 【customer】マイページ ======
+     * ========================= */
 
-    // -------------------------
-    // 「【customer】 機能：マイページ表示」
-    // -------------------------
+    /** -------------------------
+     * 「【customer】 機能：マイページ表示」
+     * ------------------------- */
     /**
      * 顧客マイページ表示。
      * - セッション: loginUser.customerContact から顧客IDを取得
@@ -510,9 +510,9 @@ public class ContactService extends BaseService {
         }
     }
 
-    // -------------------------
-    // 「【customer】 機能：マイページ編集（画面）」
-    // -------------------------
+    /** -------------------------
+     * 「【customer】 機能：マイページ編集（画面）」
+     * ------------------------- */
     /**
      * 顧客マイページ編集画面の表示。
      * - セッション: 顧客ID / 担当者ID 必須
@@ -548,9 +548,9 @@ public class ContactService extends BaseService {
         }
     }
 
-    // -------------------------
-    // 「【customer】 機能：マイページ編集（確認）」
-    // -------------------------
+    /** -------------------------
+     * 「【customer】 機能：マイページ編集（確認）」
+     * ------------------------- */
     /**
      * 顧客マイページ編集の確認。
      * - 担当者: 氏名/メール必須、メール形式＆重複（自ID除外）、電話形式
@@ -575,18 +575,18 @@ public class ContactService extends BaseService {
         final String ph   = req.getParameter(P_COMPANY_PHONE);
         final String pc   = req.getParameter(P_POSTAL_CODE);
 
-        // 担当者
+        /** 担当者 */
         validation.isNull("氏名", cn);
         validation.isNull("メールアドレス（担当者）", cm);
         if (notBlank(cm))  validation.isEmail(cm);
         if (notBlank(cph)) validation.isPhoneNumber(cph);
-        // 会社
+        /** 会社 */
         validation.isNull("会社名", comp);
         if (notBlank(em))  validation.isEmail(em);
         if (notBlank(ph))  validation.isPhoneNumber(ph);
         if (notBlank(pc))  validation.isPostalCode(pc);
 
-        // メール重複（自ID除外）
+        /** メール重複（自ID除外） */
         if (!validation.hasErrorMsg()) {
             try (TransactionManager tm = new TransactionManager()) {
                 CustomerContactDAO ccDao = new CustomerContactDAO(tm.getConnection());
@@ -606,9 +606,9 @@ public class ContactService extends BaseService {
         return VIEW_MYPAGE_EDIT_CHECK;
     }
 
-    // -------------------------
-    // 「【customer】 機能：マイページ編集（確定）」
-    // -------------------------
+    /** -------------------------
+     * 「【customer】 機能：マイページ編集（確定）」
+     * ------------------------- */
     /**
      * 顧客マイページ編集の確定。
      * - 会社情報: Customer を UPDATE
@@ -624,12 +624,12 @@ public class ContactService extends BaseService {
             req.setAttribute(A_ERROR_MSG, validation.getErrorMsg());
             return req.getContextPath() + req.getServletPath() + "/error";
         }
-        // ※ バリデーションは myPageEditCheck() と同等に行う想定（省略可）
+        /** ※ バリデーションは myPageEditCheck() と同等に行う想定（省略可） */
         try (TransactionManager tm = new TransactionManager()) {
             CustomerDAO cDao  = new CustomerDAO(tm.getConnection());
             CustomerContactDAO ccDao = new CustomerContactDAO(tm.getConnection());
 
-            // 会社 UPDATE
+            /** 会社 UPDATE */
             CustomerDTO cur = cDao.selectByUUId(customerId);
             CustomerDTO cUpdate = new CustomerDTO();
             cUpdate.setId(cur.getId());
@@ -644,7 +644,7 @@ public class ContactService extends BaseService {
             cUpdate.setBuilding(req.getParameter(P_BUILDING));
             cDao.update(cUpdate);
 
-            // 担当者 UPDATE（主担当には触れない）
+            /** 担当者 UPDATE（主担当には触れない） */
             CustomerContactDTO ccUpdate = new CustomerContactDTO();
             ccUpdate.setId(contactId);
             ccUpdate.setName(req.getParameter(P_CONTACT_NAME));
@@ -656,7 +656,7 @@ public class ContactService extends BaseService {
 
             tm.commit();
 
-            // セッションも更新
+            /** セッションも更新 */
             HttpSession session = req.getSession(false);
             if (session != null) {
                 Object u = session.getAttribute("loginUser");
@@ -677,16 +677,16 @@ public class ContactService extends BaseService {
         }
     }
 
-    // =========================
-    // ④ ヘルパー
-    // =========================
+    /** =========================
+     * ④ ヘルパー
+     * ========================= */
 
-    /** 空白以外を判定するユーティリティ。 */
+    /** 空白以外を判定するユーティリティ */
     private boolean notBlank(String s) { return s != null && !s.isBlank(); }
 
     /**
-     * 入力値を request 属性へ積み直し（登録/編集フォームの入力保持）。
-     * JSP 側は「属性優先→既存値」で表示する想定。
+     * 入力値を request 属性へ積み直し（登録/編集フォームの入力保持）
+     * JSP 側は「属性優先→既存値」で表示する想定
      */
     private void pushFormBackToRequest() {
         req.setAttribute(P_CUSTOMER_ID, req.getParameter(P_CUSTOMER_ID));
@@ -700,15 +700,15 @@ public class ContactService extends BaseService {
         req.setAttribute(P_IS_PRIMARY,  req.getParameter(P_IS_PRIMARY));
     }
 
-    /** マイページ（会社/担当者）の入力保持をまとめて積む。 */
+    /** マイページ（会社/担当者）の入力保持をまとめて積む */
     private void pushCustomerAndContactFormBackToRequest() {
-        // Contact
+        /** Contact */
         req.setAttribute(P_CONTACT_NAME,      req.getParameter(P_CONTACT_NAME));
         req.setAttribute(P_CONTACT_NAME_RUBY, req.getParameter(P_CONTACT_NAME_RUBY));
         req.setAttribute(P_CONTACT_DEPT,      req.getParameter(P_CONTACT_DEPT));
         req.setAttribute(P_CONTACT_MAIL,      req.getParameter(P_CONTACT_MAIL));
         req.setAttribute(P_CONTACT_PHONE,     req.getParameter(P_CONTACT_PHONE));
-        // Company
+        /** Company */
         req.setAttribute(P_COMPANY_NAME,  req.getParameter(P_COMPANY_NAME));
         req.setAttribute(P_COMPANY_MAIL,  req.getParameter(P_COMPANY_MAIL));
         req.setAttribute(P_COMPANY_PHONE, req.getParameter(P_COMPANY_PHONE));
@@ -719,7 +719,7 @@ public class ContactService extends BaseService {
     }
 
     /**
-     * 顧客ヘッダ表示のため、request に 'customer' を積む。
+     * 顧客ヘッダ表示のため、request に 'customer' を積む
      * @return true: 成功／false: 失敗（errorMsg 設定済み）
      */
     private boolean ensureCustomerOnRequest() {
@@ -742,7 +742,7 @@ public class ContactService extends BaseService {
         }
     }
 
-    /** セッションの loginUser.customerContact から「顧客ID」を取得（なければ null）。 */
+    /** セッションの loginUser.customerContact から「顧客ID」を取得（なければ null） */
     private UUID currentCustomerContactId() {
         HttpSession session = req.getSession(false);
         if (session == null) return null;
@@ -753,7 +753,7 @@ public class ContactService extends BaseService {
         return null;
     }
 
-    /** セッションの loginUser.customerContact から「担当者ID」を取得（なければ null）。 */
+    /** セッションの loginUser.customerContact から「担当者ID」を取得（なければ null） */
     private UUID currentContactId() {
         HttpSession session = req.getSession(false);
         if (session == null) return null;

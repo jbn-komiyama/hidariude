@@ -8,8 +8,8 @@ import java.sql.Statement;
  * 秘書向け金額を税込み（+10%）に更新するマイグレーション
  * 
  * 更新対象:
- *   ・secretary_rank.increase_base_pay_secretary を1.1倍に更新
- *   ・task_rank.base_pay_secretary を1.1倍に更新
+ *   - secretary_rank.increase_base_pay_secretary を1.1倍に更新
+ *   - task_rank.base_pay_secretary を1.1倍に更新
  * 
  * 実行日: 2025-10-29
  */
@@ -19,7 +19,7 @@ public class Migration_20251029_UpdateSecretaryPayWithTax implements Migration {
     public void up(Connection conn) throws SQLException {
         System.out.println("  [Migration] Updating secretary pay amounts to include 10% tax...");
         
-        // 1. 秘書ランクマスタの increase_base_pay_secretary を1.1倍に更新
+        /** 1. 秘書ランクマスタの increase_base_pay_secretary を1.1倍に更新 */
         String sql1 = "UPDATE secretary_rank " +
                       "SET increase_base_pay_secretary = ROUND(increase_base_pay_secretary * 1.1, 2), " +
                       "    updated_at = CURRENT_TIMESTAMP " +
@@ -30,7 +30,7 @@ public class Migration_20251029_UpdateSecretaryPayWithTax implements Migration {
             System.out.println("    - Updated " + count1 + " secretary rank records (increase_base_pay_secretary * 1.1)");
         }
         
-        // 2. 業務ランクマスタの base_pay_secretary を1.1倍に更新
+        /** 2. 業務ランクマスタの base_pay_secretary を1.1倍に更新 */
         String sql2 = "UPDATE task_rank " +
                       "SET base_pay_secretary = ROUND(base_pay_secretary * 1.1, 2), " +
                       "    updated_at = CURRENT_TIMESTAMP " +
