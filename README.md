@@ -278,6 +278,7 @@ hidariude/
 ├── src/
 │   ├── main/
 │   │   ├── java/
+│   │   │   ├── config/         # アプリケーション設定
 │   │   │   ├── controller/     # フロントコントローラー
 │   │   │   ├── dao/            # データアクセス層
 │   │   │   ├── domain/         # ドメインオブジェクト
@@ -299,10 +300,12 @@ hidariude/
 ├── docs/                  # プロジェクトドキュメント
 │   ├── コード分析/        # Claude Code によるコード分析
 │   └── 機能定義/          # 機能仕様書
+├── .env                   # 環境変数設定ファイル
+├── .gitignore             # Git 除外設定
 ├── pom.xml                # Maven 設定
 ├── CLAUDE.md              # Claude Code 向けガイド
 ├── Git運用ルール.md        # Git 運用ルール
-└── README.md              # このファイル
+├── README.md              # このファイル
 └── deploy.sh              # デプロイスクリプト
 ```
 
@@ -323,7 +326,59 @@ cd hidariude
 code .
 ```
 
-### 2. VS Code での初期設定
+### 2. 環境変数の設定（.env ファイル）
+
+プロジェクトルートに `.env` ファイルを作成し、必要な環境変数を設定してください。
+
+#### .env ファイルの作成方法
+
+1. プロジェクトルートに `.env` ファイルを作成
+2. 以下の内容を記述して保存：
+
+```properties
+# SendGrid API設定
+SENDGRID_API_KEY=your_sendgrid_api_key_here(※管理者に確認してください)
+
+# アプリケーション設定
+# 開発環境: http://localhost:8080/hidariude
+# 本番環境: http://ik1-224-81260.vs.sakura.ne.jp:8080/hidariude
+APP_BASE_URL=http://localhost:8080/hidariude
+```
+
+3. `SENDGRID_API_KEY` に実際の SendGrid API キーを設定してください
+
+> **重要**:
+>
+> -   `.env` ファイルは Git にコミットされません（`.gitignore` に登録済み）
+> -   本番環境では、実際の SendGrid API キーと適切な `APP_BASE_URL` を設定してください
+> -   `.env.example` ファイルがテンプレートとして用意されています
+
+#### 環境変数の説明
+
+| 変数名             | 説明                                   | デフォルト値                      |
+| ------------------ | -------------------------------------- | --------------------------------- |
+| `SENDGRID_API_KEY` | SendGrid のメール送信 API キー（必須） | なし                              |
+| `APP_BASE_URL`     | アプリケーションのベース URL           | `http://localhost:8080/hidariude` |
+
+#### 本番環境での設定
+
+本番環境では、以下のいずれかの方法で環境変数を設定できます：
+
+1. **.env ファイルを使用**（推奨）:
+
+    ```bash
+    cd /opt/hidariude
+    vi .env
+    # 上記の内容を記述
+    ```
+
+2. **システム環境変数を使用**:
+    ```bash
+    export SENDGRID_API_KEY=your_actual_key_here
+    export APP_BASE_URL=http://ik1-224-81260.vs.sakura.ne.jp:8080/hidariude
+    ```
+
+### 3. VS Code での初期設定
 
 VS Code でプロジェクトを開くと、自動的に以下が実行されます：
 
@@ -331,7 +386,7 @@ VS Code でプロジェクトを開くと、自動的に以下が実行されま
 -   Maven 依存関係の解決
 -   プロジェクト設定の適用
 
-### 3. Maven 依存関係の更新
+### 4. Maven 依存関係の更新
 
 **Ctrl+Shift+P** でコマンドパレットを開き：
 
@@ -341,7 +396,9 @@ Java: Reload Projects
 
 を実行してください。
 
-### 4. データベースの初期化
+> **注意**: 初回は dotenv-java ライブラリのダウンロードに時間がかかる場合があります。
+
+### 5. データベースの初期化
 
 データベースのテーブル作成と初期データ投入は、**初回 Tomcat デプロイ時に自動的に実行されます**。
 
@@ -641,7 +698,35 @@ git clone <repository-url> hidariude
 cd hidariude
 ```
 
-### 2. データベースの初期化
+### 2. 環境変数の設定（.env ファイル）
+
+本番環境でも `.env` ファイルを使用して環境変数を設定します。
+
+```bash
+# プロジェクトルートに.envファイルを作成
+cd /opt/hidariude
+vi .env
+```
+
+以下の内容を記述：
+
+```properties
+# SendGrid API設定
+SENDGRID_API_KEY=your_actual_sendgrid_api_key_here
+
+# アプリケーション設定（本番環境URL）
+APP_BASE_URL=http://ik1-224-81260.vs.sakura.ne.jp:8080/hidariude
+```
+
+> **重要**:
+>
+> -   `SENDGRID_API_KEY` には実際の SendGrid API キーを設定してください
+> -   `.env` ファイルのパーミッションを適切に設定することを推奨します：
+>     ```bash
+>     chmod 600 .env
+>     ```
+
+### 3. データベースの初期化
 
 データベースのテーブル作成と初期データ投入は、**初回 Tomcat デプロイ時に自動的に実行されます**。
 
@@ -663,7 +748,7 @@ cd hidariude
 > -   データベースをリセットしたい場合は、PostgreSQL で全テーブルを削除してから Tomcat を再起動してください
 > -   初期化処理は `DatabaseInitListener` により自動実行されます（`src/main/java/listener/DatabaseInitListener.java`）
 
-### 3. アプリケーションのデプロイ
+### 4. アプリケーションのデプロイ
 
 ```bash
 # 更新内容を破棄して最新のコードを取得
@@ -688,7 +773,7 @@ chmod +x deploy.sh
 
 初回デプロイ時は、Tomcat 起動後に `DatabaseInitListener` が自動的にデータベースを初期化します。
 
-### 4. アプリケーションへのアクセス
+### 5. アプリケーションへのアクセス
 
 デプロイ完了後、以下の URL でアクセス可能：
 
