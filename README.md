@@ -340,9 +340,9 @@ code .
 SENDGRID_API_KEY=your_sendgrid_api_key_here(※管理者に確認してください)
 
 # アプリケーション設定
-# 開発環境: http://localhost:8080/hidariude
-# 本番環境: http://ik1-224-81260.vs.sakura.ne.jp:8080/hidariude
-APP_BASE_URL=http://localhost:8080/hidariude
+# 開発環境: http://localhost:8080
+# 本番環境: http://ik1-224-81260.vs.sakura.ne.jp:8080
+APP_BASE_URL=http://localhost:8080
 ```
 
 3. `SENDGRID_API_KEY` に実際の SendGrid API キーを設定してください
@@ -355,10 +355,10 @@ APP_BASE_URL=http://localhost:8080/hidariude
 
 #### 環境変数の説明
 
-| 変数名             | 説明                                   | デフォルト値                      |
-| ------------------ | -------------------------------------- | --------------------------------- |
-| `SENDGRID_API_KEY` | SendGrid のメール送信 API キー（必須） | なし                              |
-| `APP_BASE_URL`     | アプリケーションのベース URL           | `http://localhost:8080/hidariude` |
+| 変数名             | 説明                                   | デフォルト値            |
+| ------------------ | -------------------------------------- | ----------------------- |
+| `SENDGRID_API_KEY` | SendGrid のメール送信 API キー（必須） | なし                    |
+| `APP_BASE_URL`     | アプリケーションのベース URL           | `http://localhost:8080` |
 
 #### 本番環境での設定
 
@@ -375,7 +375,7 @@ APP_BASE_URL=http://localhost:8080/hidariude
 2. **システム環境変数を使用**:
     ```bash
     export SENDGRID_API_KEY=your_actual_key_here
-    export APP_BASE_URL=http://ik1-224-81260.vs.sakura.ne.jp:8080/hidariude
+    export APP_BASE_URL=http://ik1-224-81260.vs.sakura.ne.jp:8080
     ```
 
 ### 3. VS Code での初期設定
@@ -485,7 +485,7 @@ Tomcat Deploy
 Tomcat 起動後、以下の URL でアプリケーションにアクセスできます：
 
 ```
-http://localhost:8080/hidariude/
+http://localhost:8080
 ```
 
 ---
@@ -715,7 +715,7 @@ vi .env
 SENDGRID_API_KEY=your_actual_sendgrid_api_key_here
 
 # アプリケーション設定（本番環境URL）
-APP_BASE_URL=http://ik1-224-81260.vs.sakura.ne.jp:8080/hidariude
+APP_BASE_URL=http://ik1-224-81260.vs.sakura.ne.jp:8080
 ```
 
 > **重要**:
@@ -778,10 +778,10 @@ chmod +x deploy.sh
 デプロイ完了後、以下の URL でアクセス可能：
 
 ```
-http://localhost:8080/hidariude
-http://<サーバーのIPアドレス>:8080/hidariude
+http://localhost:8080
+http://<サーバーのIPアドレス>:8080
 
-curl -i http://localhost:8080/hidariude
+curl -i http://localhost:8080
 ```
 
 ## トラブルシューティング

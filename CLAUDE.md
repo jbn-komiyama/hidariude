@@ -190,7 +190,7 @@ mvnDebug cargo:run             # デバッグモード（ポート 8000）
 -   Maven Clean / Maven Package
 -   Tomcat Deploy / Tomcat Debug Deploy（F5 でアタッチ）
 
-**アクセス**: http://localhost:8080/hidariude/
+**アクセス**: http://localhost:8080/
 
 **デフォルト認証情報**（全てパスワード: `Password1`）:
 
