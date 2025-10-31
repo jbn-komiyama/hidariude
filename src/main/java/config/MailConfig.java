@@ -1,6 +1,9 @@
 package config;
 
 import io.github.cdimascio.dotenv.Dotenv;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 
 /**
  * メール送信の設定を管理するクラス。
@@ -15,9 +18,88 @@ public class MailConfig {
     
     static {
         // .envファイルを読み込む（存在しない場合はスキップ）
-        dotenv = Dotenv.configure()
-            .ignoreIfMissing()
-            .load();
+        var builder = Dotenv.configure().ignoreIfMissing();
+        
+        // .envファイルのパスを明示的に指定（複数の場所を順番に試す）
+        String envFileDir = findEnvFileDirectory();
+        if (envFileDir != null) {
+            builder = builder.directory(envFileDir);
+        }
+        
+        dotenv = builder.load();
+    }
+    
+    /**
+     * .envファイルがあるディレクトリを探す（複数の場所を順番に確認）
+     * 
+     * @return .envファイルが見つかったディレクトリのパス、見つからない場合はnull
+     */
+    private static String findEnvFileDirectory() {
+        // 1. システムプロパティまたは環境変数から指定されたディレクトリを試す
+        String customDir = System.getProperty("hidariude.env.dir");
+        if (customDir == null || customDir.isEmpty()) {
+            customDir = System.getenv("HIDARIUDE_ENV_DIR");
+        }
+        if (customDir == null || customDir.isEmpty()) {
+            // ファイルパスが指定されている場合も対応
+            String customPath = System.getProperty("hidariude.env.path");
+            if (customPath == null || customPath.isEmpty()) {
+                customPath = System.getenv("HIDARIUDE_ENV_PATH");
+            }
+            if (customPath != null && !customPath.isEmpty()) {
+                Path path = Paths.get(customPath);
+                if (Files.exists(path) && Files.isRegularFile(path)) {
+                    return path.getParent().toString();
+                }
+                // ディレクトリパスとして解釈
+                if (Files.exists(path) && Files.isDirectory(path)) {
+                    customDir = customPath;
+                }
+            }
+        }
+        if (customDir != null && !customDir.isEmpty()) {
+            Path dirPath = Paths.get(customDir);
+            Path envFile = dirPath.resolve(".env");
+            if (Files.exists(envFile) && Files.isRegularFile(envFile)) {
+                return dirPath.toString();
+            }
+        }
+        
+        // 2. 本番環境のデフォルトパス（/opt/hidariude/.env）を試す
+        Path productionPath = Paths.get("/opt/hidariude/.env");
+        if (Files.exists(productionPath) && Files.isRegularFile(productionPath)) {
+            return productionPath.getParent().toString();
+        }
+        
+        // 3. カレントディレクトリの.envを試す（開発環境用）
+        String currentDir = System.getProperty("user.dir");
+        Path currentDirPath = Paths.get(currentDir, ".env");
+        if (Files.exists(currentDirPath) && Files.isRegularFile(currentDirPath)) {
+            return currentDir;
+        }
+        
+        // 4. クラスパスから見つかった場合は、その親ディレクトリを探す
+        // （開発環境でMavenプロジェクトルートから実行される場合）
+        try {
+            String classPath = MailConfig.class.getProtectionDomain()
+                .getCodeSource()
+                .getLocation()
+                .getPath();
+            
+            // WARファイル内の場合は、Tomcatの作業ディレクトリから探す
+            if (classPath.contains(".war") || classPath.contains("WEB-INF")) {
+                // Tomcatから実行される場合、/opt/hidariude/.envを再確認
+                Path warProductionPath = Paths.get("/opt/hidariude/.env");
+                if (Files.exists(warProductionPath) && Files.isRegularFile(warProductionPath)) {
+                    return warProductionPath.getParent().toString();
+                }
+            }
+        } catch (Exception e) {
+            // エラーが発生しても続行
+        }
+        
+        // .envファイルが見つからない場合はnullを返す（ignoreIfMissingで処理される）
+        return null;
     }
 
     /**
