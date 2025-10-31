@@ -694,9 +694,22 @@ sudo -u postgres psql -p 5433 -d hidariude -c "SELECT gen_random_uuid();"
 
 HTTPS 化とログイン回数制限を実装するため、nginx リバースプロキシを設定します。
 
-詳細な手順は `nginx/README_NGINX.md` を参照してください。
+### 前提条件
 
-### クイックセットアップ
+-   ドメイン `ourdesk.n-learning.jp` の DNS 設定が完了していること（A レコードがサーバーの IP アドレスを指していること）
+-   root または sudo 権限があること
+
+### セットアップ方法
+
+#### 方法 1: セットアップスクリプトを使用（推奨）
+
+```bash
+cd /opt/hidariude
+chmod +x nginx/setup_nginx.sh
+sudo ./nginx/setup_nginx.sh
+```
+
+#### 方法 2: 手動セットアップ
 
 ```bash
 # 1. nginxとcertbotをインストール
@@ -735,8 +748,93 @@ sudo systemctl reload nginx
 -   **HTTPS 化**: Let's Encrypt 証明書を使用した SSL/TLS 暗号化
 -   **ログイン回数制限**: `/admin/login`, `/secretary/login`, `/customer/login` への POST リクエストを 1 分間に 10 回までに制限
 -   **セキュリティヘッダー**: HSTS、XSS 対策、クリックジャッキング対策など
+-   **プロキシ先**: `http://localhost:8080/hidariude`
 
-詳細は `nginx/README_NGINX.md` を参照してください。
+### DNS 設定の確認
+
+```bash
+# DNS解決確認
+nslookup ourdesk.n-learning.jp
+# または
+dig ourdesk.n-learning.jp +short
+
+# サーバーのIPアドレス確認
+hostname -I
+```
+
+### 動作確認
+
+```bash
+# HTTPSアクセス確認
+curl -I https://ourdesk.n-learning.jp
+
+# 証明書の有効期限確認
+echo | openssl s_client -connect ourdesk.n-learning.jp:443 -servername ourdesk.n-learning.jp 2>/dev/null | openssl x509 -noout -dates
+
+# ログインレート制限のテスト
+for i in {1..15}; do
+  curl -X POST https://ourdesk.n-learning.jp/admin/login \
+    -H "Content-Type: application/x-www-form-urlencoded" \
+    -d "email=test@example.com&password=test" \
+    -w "\nHTTP Status: %{http_code}\n" \
+    -s -o /dev/null
+  sleep 1
+done
+```
+
+### ログ確認
+
+```bash
+# nginxアクセスログ
+sudo tail -f /var/log/nginx/hidariude_access.log
+
+# nginxエラーログ
+sudo tail -f /var/log/nginx/hidariude_error.log
+
+# ログイン試行ログ（レート制限対象）
+sudo tail -f /var/log/nginx/hidariude_login_attempts.log
+```
+
+### トラブルシューティング
+
+#### 証明書取得失敗
+
+1. DNS 設定を確認（上記の「DNS 設定の確認」を参照）
+2. ポート 80 が開いているか確認：
+    ```bash
+    sudo firewall-cmd --list-all
+    sudo netstat -tlnp | grep :80
+    ```
+3. 手動で証明書取得を試行：
+    ```bash
+    sudo certbot certonly --standalone -d ourdesk.n-learning.jp
+    ```
+
+#### nginx 設定エラー
+
+```bash
+# 設定をテスト
+sudo nginx -t
+
+# エラーがある場合は設定ファイルを確認
+sudo vi /etc/nginx/conf.d/hidariude.conf
+
+# 設定変更後は再読み込み
+sudo nginx -t && sudo systemctl reload nginx
+```
+
+#### Tomcat への接続エラー
+
+```bash
+# Tomcatが起動しているか確認
+sudo systemctl status tomcat
+
+# ポート8080でリッスンしているか確認
+sudo netstat -tlnp | grep :8080
+
+# ローカルから直接アクセステスト
+curl http://localhost:8080/hidariude
+```
 
 ## デプロイ手順
 
@@ -837,8 +935,8 @@ https://ourdesk.n-learning.jp
 **直接アクセス（開発・デバッグ用）**:
 
 ```
-http://localhost:8080
-http://<サーバーのIPアドレス>:8080
+http://localhost:8080/hidariude
+http://<サーバーのIPアドレス>:8080/hidariude
 ```
 
 **動作確認**:
