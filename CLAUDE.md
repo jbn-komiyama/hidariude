@@ -244,3 +244,128 @@ cd /opt/hidariude && ./deploy.sh
     3. `DatabaseInitListener.runMigrations()` に登録
     4. アプリケーション再起動で自動実行
 -   詳細: README.md の Part 3 を参照
+
+### Java コメント記述規約
+
+このプロジェクトでは、以下のコメント記述スタイルを使用します。
+
+**1. クラスレベルの Javadoc コメント**
+
+-   すべての public クラスには Javadoc コメント（`/** */`）を記述
+-   クラスの責務、概要、設計メモを記載
+-   `{@link}` タグで関連クラスへの参照を明記
+
+```java
+/**
+ * タスク（tasks）に関するデータアクセスを担うDAO。
+ *
+ * 責務：
+ * - タスクの検索（秘書／顧客／月別、状態別、キーワード条件）
+ * - タスクの単一取得
+ * - タスクの登録・更新・論理削除・承認/承認取消/差戻し
+ *
+ * 設計メモ：
+ * - 本DAOは呼び出し側から渡される {@link Connection} に依存
+ * - DB例外は {@link DAOException} にラップして送出
+ */
+public class TaskDAO extends BaseDAO {
+```
+
+**2. メソッドレベルの Javadoc コメント**
+
+-   すべての public メソッドには Javadoc コメントを記述
+-   `@param`: パラメータの説明（必須）
+-   `@return`: 戻り値の説明（戻り値がある場合）
+-   `@throws`: 例外の説明（例外をスローする場合）
+-   メソッドの動作、前提条件、注意事項を記載
+
+```java
+/**
+ * 必須チェック。空／null ならエラーメッセージを積み、true を返します。
+ * @param label 表示名（例: "会社名"）
+ * @param value 入力値
+ * @return 必須エラーがあれば true
+ */
+public boolean isNull(String label, String value) {
+```
+
+**3. フィールドのコメント**
+
+-   定数、private static final フィールドにはコメントを記述
+-   Javadoc スタイル（`/** */`）を使用
+-   1 行で説明できる場合は 1 行コメント、複数行の説明が必要な場合は複数行コメント
+
+```java
+/** 年月フォーマッタ（yyyy-MM） */
+private static final DateTimeFormatter YM_FMT = DateTimeFormatter.ofPattern("yyyy-MM");
+
+/**
+ * 秘書ID・顧客ID・年月(YYYY-MM)でタスク取得（tasks + assignments + task_rank）。
+ * 並び順：t.start_time
+ */
+private static final String SQL_SELECT_BY_SEC_CUST_MONTH = "SELECT ...";
+```
+
+**4. SQL 定義のコメント**
+
+-   SQL 定数（`SQL_XXX`）の直前に Javadoc コメントで説明を記述
+-   複数行にわたる SQL は、内部で `/** ---- セクション名 ---- */` を使用して構造化
+-   複雑な条件や JOIN にはインラインコメント（`/** */`）で説明を追加
+
+```java
+/**
+ * 秘書ID・顧客ID・年月(YYYY-MM)でタスク取得（tasks + assignments + task_rank）。
+ * 並び順：t.start_time
+ */
+private static final String SQL_SELECT_BY_SEC_CUST_MONTH = "SELECT "
+        /** ---- tasks.* と差戻し情報 ---- */
+        + "  t.id AS t_id, t.assignment_id AS t_assignment_id, ..."
+        /** ---- assignments.* ---- */
+        + "  a.id AS a_id, a.customer_id AS a_customer_id, ..."
+        + "WHERE a.secretary_id = ? "
+        + "  AND t.work_date <  (to_date(?, 'YYYY-MM') + INTERVAL '1 month') " + /** 翌月月初 */
+        + " ORDER BY t.work_date DESC";
+```
+
+**5. インラインコメント**
+
+-   コード内の説明には `/** */` または `//` を使用
+-   `/** */` は複数行にわたる説明や、より重要な説明に使用
+-   `//` は簡潔な 1 行の説明に使用（使用頻度は低め）
+
+```java
+/** 数字のみ */
+if (!t.matches("^\\d+$")) {
+    errors.add(label + " は 0 以上の整数で入力してください。");
+    return;
+}
+```
+
+**6. セクション区切りコメント**
+
+-   クラス内の構造化されたセクションを明示するために使用
+-   `/** ======================== */` 形式で区切り線を使用
+-   例: フィールド定義、コンストラクタ、メソッド（アクター別）などのセクション
+
+```java
+/** ========================
+ * ① フィールド（SQL 定義）
+ * ======================== */
+
+/** ========================
+ * ② フィールド／コンストラクタ
+ * ======================== */
+
+/** ========================
+ * ③ メソッド（アクター別）
+ * ---------- secretary 用 ----------
+ * ========================= */
+```
+
+**7. コメント記述のベストプラクティス**
+
+-   **明確性**: コードを読むだけで理解できる場合はコメント不要。複雑なロジックや意図が明確でない場合にのみコメントを追加
+-   **日本語**: すべてのコメントは日本語で記述
+-   **簡潔性**: 必要最小限の情報を提供し、冗長な説明は避ける
+-   **保守性**: コード変更時は、関連するコメントも必ず更新する
+-   **Javadoc タグ**: `{@link}`, `{@code}` などのタグを適切に使用して、IDE の支援を活用
