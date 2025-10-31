@@ -662,6 +662,8 @@ echo %PATH%   # Windows
     -   systemctl で自動起動設定済み
     -   TCP 接続（localhost:5433）が許可されていること（pg_hba.conf）
     -   **postgresql15-contrib パッケージ**がインストール済み（UUID 生成用の pgcrypto 拡張に必要）
+-   **nginx** - リバースプロキシと HTTPS 化用（推奨）
+-   **ドメイン** - `ourdesk.n-learning.jp` の DNS 設定が完了していること（A レコード）
 
 ### PostgreSQL の追加設定（重要）
 
@@ -687,6 +689,54 @@ sudo -u postgres psql -p 5433 -d hidariude -c "SELECT gen_random_uuid();"
 > ```
 >
 > このエラーが発生した場合は、上記のコマンドで `postgresql15-contrib` をインストールしてください。
+
+## nginx リバースプロキシ設定（推奨）
+
+HTTPS 化とログイン回数制限を実装するため、nginx リバースプロキシを設定します。
+
+詳細な手順は `nginx/README_NGINX.md` を参照してください。
+
+### クイックセットアップ
+
+```bash
+# 1. nginxとcertbotをインストール
+sudo dnf install -y nginx certbot python3-certbot-nginx
+
+# 2. ファイアウォール設定
+sudo firewall-cmd --permanent --add-service=http
+sudo firewall-cmd --permanent --add-service=https
+sudo firewall-cmd --reload
+
+# 3. certbot用ディレクトリを作成
+sudo mkdir -p /var/www/certbot
+
+# 4. nginx設定ファイルをコピー
+cd /opt/hidariude
+sudo cp nginx/hidariude.conf /etc/nginx/conf.d/hidariude.conf
+
+# 5. nginx設定をテスト
+sudo nginx -t
+
+# 6. nginxを起動・有効化
+sudo systemctl enable nginx
+sudo systemctl start nginx
+
+# 7. Let's Encrypt証明書を取得
+sudo certbot --nginx -d ourdesk.n-learning.jp
+
+# 8. 最終的な設定ファイルを再適用（ログイン制限を含む）
+sudo cp nginx/hidariude.conf /etc/nginx/conf.d/hidariude.conf
+sudo nginx -t
+sudo systemctl reload nginx
+```
+
+### 設定内容
+
+-   **HTTPS 化**: Let's Encrypt 証明書を使用した SSL/TLS 暗号化
+-   **ログイン回数制限**: `/admin/login`, `/secretary/login`, `/customer/login` への POST リクエストを 1 分間に 10 回までに制限
+-   **セキュリティヘッダー**: HSTS、XSS 対策、クリックジャッキング対策など
+
+詳細は `nginx/README_NGINX.md` を参照してください。
 
 ## デプロイ手順
 
@@ -715,7 +765,8 @@ vi .env
 SENDGRID_API_KEY=your_actual_sendgrid_api_key_here
 
 # アプリケーション設定（本番環境URL）
-APP_BASE_URL=http://ik1-224-81260.vs.sakura.ne.jp:8080
+# nginxリバースプロキシを使用する場合はHTTPS URLに変更
+APP_BASE_URL=https://ourdesk.n-learning.jp
 ```
 
 > **重要**:
@@ -777,11 +828,27 @@ chmod +x deploy.sh
 
 デプロイ完了後、以下の URL でアクセス可能：
 
+**nginx リバースプロキシ経由（推奨）**:
+
+```
+https://ourdesk.n-learning.jp
+```
+
+**直接アクセス（開発・デバッグ用）**:
+
 ```
 http://localhost:8080
 http://<サーバーのIPアドレス>:8080
+```
 
-curl -i http://localhost:8080
+**動作確認**:
+
+```bash
+# HTTPSアクセス確認
+curl -I https://ourdesk.n-learning.jp
+
+# 証明書確認
+echo | openssl s_client -connect ourdesk.n-learning.jp:443 -servername ourdesk.n-learning.jp 2>/dev/null | openssl x509 -noout -dates
 ```
 
 ## トラブルシューティング
@@ -855,10 +922,17 @@ systemctl restart postgresql-15
 # ファイアウォール確認
 firewall-cmd --list-all
 
-# ポート8080を開放
+# nginxを使用する場合（推奨）
+firewall-cmd --permanent --add-service=http
+firewall-cmd --permanent --add-service=https
+firewall-cmd --reload
+
+# または、直接Tomcatにアクセスする場合（開発・デバッグ用のみ）
 firewall-cmd --permanent --add-port=8080/tcp
 firewall-cmd --reload
 ```
+
+> **注意**: 本番環境では、直接ポート 8080 を開放せず、nginx リバースプロキシ経由でアクセスすることを推奨します。
 
 ### デプロイ失敗時の対処
 
@@ -902,6 +976,41 @@ sudo systemctl restart postgresql-15
 # 再デプロイ
 cd /opt/hidariude
 ./deploy.sh
+```
+
+5. nginx 設定エラーの場合
+
+```bash
+# nginx設定をテスト
+sudo nginx -t
+
+# nginxログを確認
+sudo tail -f /var/log/nginx/hidariude_error.log
+
+# nginx設定ファイルを確認
+sudo vi /etc/nginx/conf.d/hidariude.conf
+
+# 設定変更後は再読み込み
+sudo nginx -t && sudo systemctl reload nginx
+```
+
+6. ログイン回数制限のテスト
+
+レート制限が正しく機能しているか確認：
+
+```bash
+# 連続リクエストを送信（11回目以降で429エラーが返るはず）
+for i in {1..15}; do
+  curl -X POST https://ourdesk.n-learning.jp/admin/login \
+    -H "Content-Type: application/x-www-form-urlencoded" \
+    -d "email=test@example.com&password=test" \
+    -w "\nHTTP Status: %{http_code}\n" \
+    -s -o /dev/null
+  sleep 1
+done
+
+# ログイン試行ログを確認
+sudo tail -f /var/log/nginx/hidariude_login_attempts.log
 ```
 
 ---
