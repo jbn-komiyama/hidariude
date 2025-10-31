@@ -145,16 +145,16 @@ public class MailConfig {
      * メール送信元名
      */
     public static String getFromName() {
-        return "Our Desk";
+        return "Hidariude";
     }
 
     /**
      * アプリケーションのベースURL（環境変数 APP_BASE_URL または.envファイルから取得）
      * 環境変数が設定されていない場合は、開発環境用のデフォルトURL
-     * （http://localhost:8080/）を使用します。
+     * （http://localhost:8080/hidariude）を使用します。
      * 本番環境では以下のように.envファイルまたは環境変数を設定してください：
-     * .envファイルの場合: APP_BASE_URL=http://ik1-224-81260.vs.sakura.ne.jp:8080/
-     * または環境変数の場合: export APP_BASE_URL=http://ik1-224-81260.vs.sakura.ne.jp:8080/
+     * .envファイルの場合: APP_BASE_URL=http://ik1-224-81260.vs.sakura.ne.jp:8080/hidariude
+     * または環境変数の場合: export APP_BASE_URL=http://ik1-224-81260.vs.sakura.ne.jp:8080/hidariude
      * 
      * @return ベースURL
      */
@@ -162,7 +162,7 @@ public class MailConfig {
         String baseUrl = getEnvValue("APP_BASE_URL");
         if (baseUrl == null || baseUrl.isEmpty()) {
             /** デフォルト：開発環境用URL */
-            return "http://localhost:8080/";
+            return "http://localhost:8080/hidariude";
         }
         return baseUrl;
     }

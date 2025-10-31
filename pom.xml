@@ -49,7 +49,7 @@
                       <artifactId>${project.artifactId}</artifactId>
                       <type>war</type>
                       <properties>
-                          <context>/</context>
+                          <context>/hidariude</context>
                       </properties>
                   </deployable>
               </deployables>
