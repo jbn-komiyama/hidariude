@@ -120,6 +120,18 @@
 		      <artifactId>jbcrypt</artifactId>
 		      <version>0.4</version>
 		    </dependency>
+	    <!-- SendGrid for email sending -->
+	    <dependency>
+	      <groupId>com.sendgrid</groupId>
+	      <artifactId>sendgrid-java</artifactId>
+	      <version>4.10.3</version>
+	    </dependency>
+	    <!-- dotenv-java for .env file support -->
+	    <dependency>
+	      <groupId>io.github.cdimascio</groupId>
+	      <artifactId>dotenv-java</artifactId>
+	      <version>3.0.0</version>
+	    </dependency>
     </dependencies>
    
 </project>

@@ -7,7 +7,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>管理者ログイン</title>
+  <title>パスワード再設定</title>
   <style>
     * {
       margin: 0;
@@ -23,32 +23,39 @@
       align-items: center;
       padding: 20px;
     }
-    .login-container {
+    .reset-container {
       background: #ffffff;
       padding: 2.5rem;
       border-radius: 20px;
       box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
       border: 1px solid rgba(0, 0, 0, 0.06);
       width: 100%;
-      max-width: 420px;
+      max-width: 480px;
     }
-    .login-title {
-      font-size: 2rem;
+    .reset-title {
+      font-size: 1.8rem;
       font-weight: 700;
       color: #2c3e50;
       text-align: center;
+      margin-bottom: 1rem;
+      letter-spacing: 0.5px;
+    }
+    .reset-description {
+      color: #6c757d;
+      text-align: center;
       margin-bottom: 2rem;
-      letter-spacing: 1px;
+      font-size: 0.95rem;
+      line-height: 1.6;
     }
     .role-badge {
       display: inline-block;
       background: linear-gradient(135deg, #dc3545, #c82333);
       color: #ffffff;
-      padding: 0.5rem 1.2rem;
+      padding: 0.4rem 1rem;
       border-radius: 20px;
-      font-size: 0.9rem;
+      font-size: 0.85rem;
       font-weight: 600;
-      margin-bottom: 2rem;
+      margin-bottom: 1.5rem;
       letter-spacing: 0.5px;
     }
     .error-message {
@@ -60,6 +67,15 @@
       margin-bottom: 1.5rem;
       font-size: 0.9rem;
     }
+    .info-box {
+      background: #fff3cd;
+      border-left: 4px solid #ffc107;
+      padding: 1rem;
+      border-radius: 8px;
+      margin-bottom: 1.5rem;
+      font-size: 0.9rem;
+      color: #856404;
+    }
     .form-group {
       margin-bottom: 1.5rem;
     }
@@ -70,7 +86,6 @@
       font-size: 0.95rem;
       font-weight: 500;
     }
-    input[type="email"],
     input[type="password"] {
       width: 100%;
       padding: 0.9rem;
@@ -81,7 +96,6 @@
       font-size: 1rem;
       transition: all 0.3s ease;
     }
-    input[type="email"]:focus,
     input[type="password"]:focus {
       outline: none;
       border-color: #dc3545;
@@ -104,22 +118,6 @@
       transition: all 0.3s ease;
       letter-spacing: 0.5px;
       box-shadow: 0 4px 12px rgba(220, 53, 69, 0.25);
-      position: relative;
-      overflow: hidden;
-    }
-    .submit-btn::before {
-      content: '';
-      position: absolute;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      background: rgba(255,255,255,0.15);
-      transform: translateX(-100%);
-      transition: transform 0.3s ease;
-    }
-    .submit-btn:hover::before {
-      transform: translateX(0);
     }
     .submit-btn:hover {
       transform: translateY(-2px);
@@ -128,82 +126,46 @@
     .submit-btn:active {
       transform: translateY(0);
     }
-    .back-link {
-      text-align: center;
-      margin-top: 1.5rem;
-    }
-    .back-link a {
-      color: #6c757d;
-      text-decoration: none;
-      font-size: 0.9rem;
-      transition: color 0.3s ease;
-    }
-    .back-link a:hover {
-      color: #495057;
-    }
-    .password-reset-section {
-      text-align: center;
-      margin-top: 1.5rem;
-      padding: 1.2rem;
-      background: #fff5f5;
-      border-radius: 12px;
-      border: 1px solid #ffd4d4;
-    }
-    .password-reset-link {
-      display: inline-flex;
-      align-items: center;
-      gap: 0.5rem;
-      color: #dc3545;
-      text-decoration: none;
-      font-size: 0.95rem;
-      font-weight: 600;
-      transition: all 0.3s ease;
-      padding: 0.5rem 1rem;
-      border-radius: 8px;
-    }
-    .password-reset-link:hover {
-      background: #ffffff;
-      color: #c82333;
-      transform: translateY(-1px);
-    }
-    .password-reset-icon {
-      font-size: 1.1rem;
-    }
   </style>
 </head>
 <body>
-  <div class="login-container">
-    <div class="login-title">
+  <div class="reset-container">
+    <div style="text-align: center;">
       <div class="role-badge">管理者</div>
-      <div>ログイン</div>
+    </div>
+    
+    <h1 class="reset-title">新しいパスワード設定</h1>
+    
+    <div class="reset-description">
+      新しいパスワードを入力してください。
     </div>
 
     <c:if test="${not empty errorMsg}">
       <div class="error-message">${errorMsg}</div>
     </c:if>
 
-    <form method="post" action="<%=request.getContextPath()%>/admin/login">
+    <div class="info-box">
+      <strong>パスワードの条件：</strong><br>
+      ・8文字以上<br>
+      ・英大文字、英小文字、数字をそれぞれ含む
+    </div>
+
+    <form method="post" action="<%=request.getContextPath()%>/admin/password_reset/reset">
+      <input type="hidden" name="token" value="${token}">
+      
       <div class="form-group">
-        <label>メールアドレス</label>
-        <input type="email" name="loginId" required>
+        <label>新しいパスワード</label>
+        <input type="password" name="newPassword" placeholder="新しいパスワードを入力" required>
       </div>
+      
       <div class="form-group">
-        <label>パスワード</label>
-        <input type="password" name="password" required>
+        <label>新しいパスワード（確認）</label>
+        <input type="password" name="confirmPassword" placeholder="もう一度入力してください" required>
       </div>
-      <button type="submit" class="submit-btn">ログイン</button>
+      
+      <button type="submit" class="submit-btn">パスワードを設定</button>
     </form>
-
-    <div class="password-reset-section">
-      <a href="<%=request.getContextPath()%>/admin/password_reset" class="password-reset-link">
-        <span class="password-reset-icon">🔑</span>
-        <span>パスワードをお忘れの方はこちら</span>
-      </a>
-    </div>
-
-    <div class="back-link" style="margin-top: 1rem;">
-      <a href="<%=request.getContextPath()%>/">← ログイン選択に戻る</a>
-    </div>
   </div>
 </body>
 </html>
+

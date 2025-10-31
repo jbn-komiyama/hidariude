@@ -245,4 +245,83 @@ public class ValidationUtil {
 		return true;
 	}
 
+	/**
+	 * パスワード一致チェック。
+	 * <p>パスワードと確認用パスワードが一致するかを確認します。</p>
+	 * 
+	 * @param password        パスワード
+	 * @param confirmPassword 確認用パスワード
+	 * @return 一致する場合true
+	 */
+	public boolean isPasswordMatch(String password, String confirmPassword) {
+		if (password == null || confirmPassword == null) {
+			errors.add("パスワードと確認用パスワードを入力してください。");
+			return false;
+		}
+		
+		if (!password.equals(confirmPassword)) {
+			errors.add("パスワードと確認用パスワードが一致しません。");
+			return false;
+		}
+		
+		return true;
+	}
+
+	/**
+	 * パスワードリセット申請のバリデーション。
+	 * <p>メールアドレスの必須チェックと形式チェックを行います。</p>
+	 * 
+	 * @param email メールアドレス
+	 * @return バリデーションに成功した場合true
+	 */
+	public boolean validatePasswordResetRequest(String email) {
+		// 必須チェック
+		if (isNull("メールアドレス", email)) {
+			return false;
+		}
+		
+		// メールアドレス形式チェック
+		if (!isEmail(email)) {
+			return false;
+		}
+		
+		return true;
+	}
+
+	/**
+	 * パスワード再設定のバリデーション。
+	 * <p>トークン、新パスワード、確認用パスワードのバリデーションを行います。</p>
+	 * 
+	 * @param token           トークン
+	 * @param newPassword     新パスワード
+	 * @param confirmPassword 確認用パスワード
+	 * @return バリデーションに成功した場合true
+	 */
+	public boolean validatePasswordReset(String token, String newPassword, String confirmPassword) {
+		// トークン必須チェック
+		if (isNull("トークン", token)) {
+			return false;
+		}
+		
+		// パスワード必須チェック
+		if (isNull("新しいパスワード", newPassword)) {
+			return false;
+		}
+		if (isNull("確認用パスワード", confirmPassword)) {
+			return false;
+		}
+		
+		// パスワード強度チェック
+		if (!isStrongPassword(newPassword)) {
+			return false;
+		}
+		
+		// パスワード一致チェック
+		if (!isPasswordMatch(newPassword, confirmPassword)) {
+			return false;
+		}
+		
+		return true;
+	}
+
 }
