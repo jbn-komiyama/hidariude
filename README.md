@@ -750,6 +750,69 @@ sudo systemctl reload nginx
 -   **セキュリティヘッダー**: HSTS、XSS 対策、クリックジャッキング対策など
 -   **プロキシ先**: `http://localhost:8080/hidariude`
 
+### nginx 設定の再適用
+
+設定ファイルを変更した場合は、以下のコマンドで再設定を実行してください：
+
+```bash
+cd /opt/hidariude
+sudo ./nginx/setup_nginx.sh
+```
+
+このスクリプトは以下を実行します：
+
+-   nginx と certbot のインストール確認
+-   ファイアウォール設定（HTTP/HTTPS ポート開放）
+-   設定ファイルの配置（`nginx/hidariude.conf` → `/etc/nginx/conf.d/hidariude.conf`）
+-   nginx 設定のテストと再読み込み
+-   Let's Encrypt 証明書の取得・更新（必要に応じて）
+
+> **注意**: 設定ファイルを直接編集した場合は、`sudo nginx -t && sudo systemctl reload nginx` で再読み込みできますが、セットアップスクリプトを実行することを推奨します。
+
+### プロキシ設定の詳細
+
+nginx は以下のようにリクエストを Tomcat に転送します：
+
+#### プロキシ設定の概要
+
+-   **外部 URL**: `https://ourdesk.n-learning.jp/hidariude/...`
+-   **内部 URL**: `http://localhost:8080/hidariude/...`
+-   **転送方式**: `/hidariude` で始まるパスをそのまま Tomcat に転送（パス変換なし）
+
+#### パスマッピング
+
+| 外部からのアクセス           | Tomcat への転送先             | 説明                        |
+| ---------------------------- | ----------------------------- | --------------------------- |
+| `/hidariude/`                | `/hidariude/`                 | トップページ（index.jsp）   |
+| `/hidariude/admin`           | `/hidariude/admin`            | 管理者ログイン画面（GET）   |
+| `/hidariude/admin/login`     | `/hidariude/admin/login`      | 管理者ログイン処理（POST）  |
+| `/hidariude/secretary`       | `/hidariude/secretary`        | 秘書ログイン画面（GET）     |
+| `/hidariude/secretary/login` | `/hidariude/secretary/login`  | 秘書ログイン処理（POST）    |
+| `/hidariude/customer`        | `/hidariude/customer`         | 顧客ログイン画面（GET）     |
+| `/hidariude/customer/login`  | `/hidariude/customer/login`   | 顧客ログイン処理（POST）    |
+| `/hidariude/...`（その他）   | `/hidariude/...`              | そのまま転送                |
+| `/`（ルートパス）            | `/hidariude/`（リダイレクト） | `/hidariude/`にリダイレクト |
+
+#### レート制限
+
+以下のエンドポイントにはレート制限が適用されます：
+
+-   **ログイン画面（GET）**: `/hidariude/admin`, `/hidariude/secretary`, `/hidariude/customer`
+    -   1 分間に 10 リクエストまで（バースト 2）
+-   **ログイン処理（POST）**: `/hidariude/admin/login`, `/hidariude/secretary/login`, `/hidariude/customer/login`
+    -   1 分間に 10 リクエストまで（バースト 2）
+    -   試行ログを `/var/log/nginx/hidariude_login_attempts.log` に記録
+
+制限を超えた場合、HTTP ステータス 429（Too Many Requests）が返されます。
+
+#### リダイレクト処理
+
+-   **HTTP から HTTPS**: `http://ourdesk.n-learning.jp/` → `https://ourdesk.n-learning.jp/hidariude/`
+-   **ルートパス**: `https://ourdesk.n-learning.jp/` → `https://ourdesk.n-learning.jp/hidariude/`
+-   **Tomcat からのリダイレクト**: `/hidariude/...` のまま転送（変換なし）
+
+外部 URL と内部 URL が同じパス構造のため、リダイレクトの変換は不要です。
+
 ### DNS 設定の確認
 
 ```bash
@@ -773,7 +836,7 @@ echo | openssl s_client -connect ourdesk.n-learning.jp:443 -servername ourdesk.n
 
 # ログインレート制限のテスト
 for i in {1..15}; do
-  curl -X POST https://ourdesk.n-learning.jp/admin/login \
+  curl -X POST https://ourdesk.n-learning.jp/hidariude/admin/login \
     -H "Content-Type: application/x-www-form-urlencoded" \
     -d "email=test@example.com&password=test" \
     -w "\nHTTP Status: %{http_code}\n" \
@@ -929,7 +992,7 @@ chmod +x deploy.sh
 **nginx リバースプロキシ経由（推奨）**:
 
 ```
-https://ourdesk.n-learning.jp
+https://ourdesk.n-learning.jp/hidariude/
 ```
 
 **直接アクセス（開発・デバッグ用）**:
@@ -1099,7 +1162,7 @@ sudo nginx -t && sudo systemctl reload nginx
 ```bash
 # 連続リクエストを送信（11回目以降で429エラーが返るはず）
 for i in {1..15}; do
-  curl -X POST https://ourdesk.n-learning.jp/admin/login \
+  curl -X POST https://ourdesk.n-learning.jp/hidariude/admin/login \
     -H "Content-Type: application/x-www-form-urlencoded" \
     -d "email=test@example.com&password=test" \
     -w "\nHTTP Status: %{http_code}\n" \
