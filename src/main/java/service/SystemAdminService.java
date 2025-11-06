@@ -5,9 +5,11 @@ import java.util.List;
 import java.util.UUID;
 
 import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpSession;
 
 import dao.SystemAdminDAO;
 import dao.TransactionManager;
+import domain.LoginUser;
 import dto.SystemAdminDTO;
 import util.PasswordUtil;
 
@@ -75,6 +77,7 @@ public class SystemAdminService extends BaseService {
     /**
      * 「管理者一覧」表示。
      * - 取得データは {@code admins} として JSP へ渡す。
+     * - 自分自身のアカウントは一覧から除外する。
      * - 例外時は {@code errorMsg} を設定し共通エラーへ。
      *
      * @return 一覧ビュー（/WEB-INF/jsp/systemadmin/admin/home.jsp）
@@ -82,7 +85,15 @@ public class SystemAdminService extends BaseService {
     public String systemAdminList() {
         try (TransactionManager tm = new TransactionManager()) {
             SystemAdminDAO dao = new SystemAdminDAO(tm.getConnection());
-            List<SystemAdminDTO> list = dao.selectAll();
+            UUID currentAdminId = currentSystemAdminId();
+            List<SystemAdminDTO> list;
+            if (currentAdminId != null) {
+                /** 自分自身を除外して取得 */
+                list = dao.selectAllExceptId(currentAdminId);
+            } else {
+                /** セッション情報がない場合は全件取得（通常は発生しない） */
+                list = dao.selectAll();
+            }
             /** JSP 側で安全に扱えるよう ArrayList で渡す */
             req.setAttribute(A_ADMINS, new ArrayList<>(list));
             return VIEW_HOME;
@@ -401,5 +412,19 @@ public class SystemAdminService extends BaseService {
         req.setAttribute(P_NAME_RUBY, nameRuby);
         req.setAttribute(P_MAIL, mail);
         req.setAttribute(P_PASSWORD, password);
+    }
+
+    /**
+     * セッションからログイン中のシステム管理者IDを取得。
+     * @return UUID（未ログイン時は null）
+     */
+    private UUID currentSystemAdminId() {
+        HttpSession session = req.getSession(false);
+        if (session == null) return null;
+        Object user = session.getAttribute("loginUser");
+        if (user instanceof LoginUser loginUser && loginUser.getSystemAdmin() != null) {
+            return loginUser.getSystemAdmin().getId();
+        }
+        return null;
     }
 }

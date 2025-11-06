@@ -64,6 +64,10 @@ public class SystemAdminDAO extends BaseDAO {
     private static final String SQL_SELECT_ALL =
         SQL_SELECT_BASE + " WHERE deleted_at IS NULL ORDER BY created_at";
 
+    /** 全件（論理未削除、指定ID除外）取得：作成日時順 */
+    private static final String SQL_SELECT_ALL_EXCEPT_ID =
+        SQL_SELECT_BASE + " WHERE deleted_at IS NULL AND id <> ? ORDER BY created_at";
+
     /** mail の重複（論理未削除のみ） */
     private static final String SQL_COUNT_BY_MAIL =
         "SELECT COUNT(*) FROM system_admins WHERE deleted_at IS NULL AND mail = ?";
@@ -118,6 +122,28 @@ public class SystemAdminDAO extends BaseDAO {
 
         } catch (SQLException e) {
             throw new DAOException("E:A01 system_admins 全件取得に失敗しました。", e);
+        }
+    }
+
+    /**
+     * システム管理者の一覧を取得します（指定IDを除外、論理未削除のみ、作成日時昇順）。
+     * 自分自身を一覧から除外する際に使用します。
+     *
+     * @param excludeId 除外する管理者ID（自分自身のID）
+     * @return {@link SystemAdminDTO} のリスト（0件可）
+     * @throws DAOException 取得に失敗した場合
+     */
+    public List<SystemAdminDTO> selectAllExceptId(UUID excludeId) {
+        try (PreparedStatement ps = conn.prepareStatement(SQL_SELECT_ALL_EXCEPT_ID)) {
+            ps.setObject(1, excludeId);
+            try (ResultSet rs = ps.executeQuery()) {
+                List<SystemAdminDTO> list = new ArrayList<>();
+                /** 1行ずつ DTO へマップ */
+                while (rs.next()) list.add(mapRow(rs));
+                return list;
+            }
+        } catch (SQLException e) {
+            throw new DAOException("E:A02 system_admins 全件取得（除外）に失敗しました。", e);
         }
     }
 
