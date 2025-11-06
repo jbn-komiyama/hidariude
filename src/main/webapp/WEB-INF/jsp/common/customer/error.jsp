@@ -20,7 +20,7 @@
     <div class="card-body">
 
       <c:choose>
-        <!-- 複数エラーメッセージ（List） -->
+        <%-- 複数エラーメッセージ（List） --%>
         <c:when test="${not empty errorMsg and fn:length(errorMsg) > 0 and not empty errorMsg[0]}">
           <ul class="mb-0">
             <c:forEach var="msg" items="${errorMsg}">
@@ -28,7 +28,7 @@
             </c:forEach>
           </ul>
         </c:when>
-        <!-- 単一エラーメッセージ（String） -->
+        <%-- 単一エラーメッセージ（String） --%>
         <c:when test="${not empty errorMsg}">
           <p class="mb-0"><c:out value="${errorMsg}"/></p>
         </c:when>
