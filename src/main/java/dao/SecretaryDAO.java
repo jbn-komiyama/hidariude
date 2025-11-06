@@ -102,8 +102,8 @@ public class SecretaryDAO extends BaseDAO {
 	private static final String SQL_DELETE_LOGICAL = "UPDATE secretaries SET deleted_at = CURRENT_TIMESTAMP WHERE id = ?";
 
 	/** 重複チェック（コード／メール） */
-	private static final String SQL_COUNT_BY_CODE = "SELECT COUNT(*) FROM secretaries WHERE secretary_code = ?";
-	private static final String SQL_COUNT_BY_MAIL = "SELECT COUNT(*) FROM secretaries WHERE mail = ?";
+	private static final String SQL_COUNT_BY_CODE = "SELECT COUNT(*) FROM secretaries WHERE deleted_at IS NULL AND secretary_code = ?";
+	private static final String SQL_COUNT_BY_MAIL = "SELECT COUNT(*) FROM secretaries WHERE deleted_at IS NULL AND mail = ?";
 
 	/** ランク全件取得 */
 	private static final String SQL_SELECT_RANK_ALL = "SELECT id, rank_name, description, "
@@ -112,8 +112,8 @@ public class SecretaryDAO extends BaseDAO {
 			+ "  FROM secretary_rank";
 
 	/** 自ID除外つき重複チェック（更新時用） */
-	private static final String SQL_COUNT_BY_CODE_EXCEPT_ID = "SELECT COUNT(*) FROM secretaries WHERE secretary_code = ? AND id <> ?";
-	private static final String SQL_COUNT_BY_MAIL_EXCEPT_ID = "SELECT COUNT(*) FROM secretaries WHERE mail = ? AND id <> ?";
+	private static final String SQL_COUNT_BY_CODE_EXCEPT_ID = "SELECT COUNT(*) FROM secretaries WHERE deleted_at IS NULL AND secretary_code = ? AND id <> ?";
+	private static final String SQL_COUNT_BY_MAIL_EXCEPT_ID = "SELECT COUNT(*) FROM secretaries WHERE deleted_at IS NULL AND mail = ? AND id <> ?";
 
 	/** 最終ログイン時刻の更新 */
 	private static final String SQL_UPDATE_LAST_LOGIN_AT = "UPDATE secretaries SET last_login_at = CURRENT_TIMESTAMP WHERE id = ?";
