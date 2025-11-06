@@ -80,6 +80,9 @@ public class CustomerDAO extends BaseDAO {
 
 	/** 顧客の論理削除（deleted_at のみ更新） */
 	private static final String SQL_DELETE_CUSTOMER_LOGICAL = "UPDATE customers SET deleted_at = CURRENT_TIMESTAMP WHERE id = ?";
+	
+	/** 顧客担当者DAO（顧客削除時に使用） */
+	private CustomerContactDAO contactDAO;
 
 	/** customers + assignments（指定YYYY-MM）結合取得 */
 	private static final String SQL_SELECT_WITH_ASSIGNMENT = "SELECT "
@@ -154,6 +157,7 @@ public class CustomerDAO extends BaseDAO {
     
 	public CustomerDAO(Connection conn) {
 		super(conn);
+		this.contactDAO = new CustomerContactDAO(conn);
 	}
 
 	/** =========================================================
@@ -554,14 +558,21 @@ public class CustomerDAO extends BaseDAO {
 
 	/**
 	 * 顧客の論理削除を行います（{@code deleted_at} を現在時刻で更新）。
+	 * 同時に、その顧客に紐づく担当者（customer_contacts）も論理削除します。
 	 *
 	 * @param id 顧客ID（UUID）
 	 * @throws DAOException UPDATE に失敗した場合
 	 */
 	public void delete(UUID id) {
-		try (PreparedStatement ps = conn.prepareStatement(SQL_DELETE_CUSTOMER_LOGICAL)) {
-			ps.setObject(1, id);
-			ps.executeUpdate();
+		try {
+			/** まず、紐づく担当者を論理削除 */
+			contactDAO.deleteByCustomerId(id);
+			
+			/** 次に、顧客を論理削除 */
+			try (PreparedStatement ps = conn.prepareStatement(SQL_DELETE_CUSTOMER_LOGICAL)) {
+				ps.setObject(1, id);
+				ps.executeUpdate();
+			}
 		} catch (SQLException e) {
 			String errorMsg = "E:C16 Customers 論理DELETE 中にエラーが発生しました。";
 			throw new DAOException(errorMsg, e);

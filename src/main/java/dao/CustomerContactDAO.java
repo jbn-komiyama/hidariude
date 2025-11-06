@@ -63,6 +63,10 @@ public class CustomerContactDAO extends BaseDAO {
     /** 論理削除（deleted_at を現在時刻に設定） */
     private static final String SQL_DELETE_LOGICAL =
         "UPDATE customer_contacts SET deleted_at = CURRENT_TIMESTAMP WHERE id = ?";
+    
+    /** 顧客IDで担当者を一括論理削除（deleted_at を現在時刻に設定） */
+    private static final String SQL_DELETE_BY_CUSTOMER_ID =
+        "UPDATE customer_contacts SET deleted_at = CURRENT_TIMESTAMP WHERE customer_id = ? AND deleted_at IS NULL";
 
     /** mail グローバル重複チェック（論理未削除のみ） */
     private static final String SQL_COUNT_MAIL =
@@ -233,6 +237,23 @@ public class CustomerContactDAO extends BaseDAO {
             ps.executeUpdate();
         } catch (SQLException e) {
             throw new DAOException("E:CC32 論理DELETE に失敗しました。", e);
+        }
+    }
+
+    /**
+     * 指定顧客IDに紐づく担当者を一括論理削除します（{@code deleted_at} に現在時刻を設定）。
+     * 顧客削除時に使用します。
+     *
+     * @param customerId 顧客ID
+     * @return 影響行数（削除された担当者数）
+     * @throws DAOException UPDATE（論理削除）に失敗した場合
+     */
+    public int deleteByCustomerId(UUID customerId) {
+        try (PreparedStatement ps = conn.prepareStatement(SQL_DELETE_BY_CUSTOMER_ID)) {
+            ps.setObject(1, customerId);
+            return ps.executeUpdate();
+        } catch (SQLException e) {
+            throw new DAOException("E:CC33 顧客IDによる担当者一括論理DELETE に失敗しました。", e);
         }
     }
 
