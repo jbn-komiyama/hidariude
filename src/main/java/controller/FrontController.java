@@ -334,21 +334,26 @@ public class FrontController extends HttpServlet {
 			case "/home"->{
 				nextPath = new CommonService(req, false).adminHome();
 			}
-			case "/mypage"->{
-				nextPath = new CommonService(req, false).adminMyPage();
-			}
-			case "/id_edit"->{
-				nextPath = new CommonService(req, false).adminIdEditForm();
-			}
-			case "/id_edit_done"->{
-				nextPath = new CommonService(req, false).adminIdEditSubmit();
-			}
-			case "/master"->{
-				nextPath = new CommonService(req, true).adminMasterList();
-			}
 			case "/error"->{
 				nextPath = "common/admin/error";
 			}
+
+			/**
+			 * A04 マイページ編集業務
+			 * 
+			 */
+            case "/mypage/home"->{
+                nextPath = new CommonService(req, true).adminMyPageHome();
+            }
+            case "/mypage/edit"->{
+                nextPath = new CommonService(req, true).adminMyPageEdit();
+            }
+            case "/mypage/edit_check"->{
+                nextPath = new CommonService(req, true).adminMyPageEditCheck();
+            }
+            case "/mypage/edit_done"->{
+                nextPath = new CommonService(req, true).adminMyPageEditDone();
+            }
 
 			/**
 			 * A01_93 パスワードリセット
@@ -586,6 +591,15 @@ public class FrontController extends HttpServlet {
 			}
 			
 			/**
+			 * A08 マスタ管理業務
+			 * 
+			 */
+			case "/master"->{
+				nextPath = new CommonService(req, true).adminMasterList();
+			}
+
+			
+			/**
 			 * それ以外
 			 * 
 			 */
@@ -622,7 +636,6 @@ public class FrontController extends HttpServlet {
 			case "/logout"->{
 				nextPath = new CommonService(req, false).secretaryLogout();
 			}
-			
 			case "/home"->{
 				nextPath = new CommonService(req, true).secretaryHome();
 			}
@@ -764,7 +777,6 @@ public class FrontController extends HttpServlet {
 			case "/logout"->{
 				nextPath = new CommonService(req, false).customerLogout();
 			}
-			
 			case "/home"->{
 				nextPath = new CommonService(req, true).customerHome();
 			}
