@@ -105,7 +105,7 @@
 					</a>
 					<ul class="dropdown-menu user-dropdown-menu" aria-labelledby="userDropdown">
 						<li>
-							<a class="dropdown-item" href="<c:url value='/admin/mypage'/>">
+                            <a class="dropdown-item" href="<c:url value='/admin/mypage/home'/>">
 								<i class="bi bi-person-fill me-2"></i>マイページ
 							</a>
 						</li>

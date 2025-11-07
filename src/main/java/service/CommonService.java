@@ -79,13 +79,15 @@ public class CommonService extends BaseService {
     private static final String PATH_CUSTOMER_LOGIN  = "/customer";
     private static final String PATH_CUSTOMER_LOGIN_FORM = "common/customer/login";
     private static final String PATH_CUSTOMER_HOME   = "/customer/home";
-    private static final String PATH_ADMIN_MYPAGE    = "mypage/admin/home";
-    private static final String PATH_ADMIN_ID_EDIT   = "mypage/admin/edit";
+    private static final String PATH_ADMIN_MYPAGE_HOME = "mypage/admin/home";
+    private static final String PATH_ADMIN_MYPAGE_EDIT = "mypage/admin/edit";
+    private static final String PATH_ADMIN_MYPAGE_EDIT_CHECK = "mypage/admin/edit_check";
 
     /** ---- Attributes ---- */
     private static final String ATTR_LOGIN_USER = "loginUser";
     private static final String ATTR_ADMIN      = "admin";
     private static final String ATTR_FORM       = "form";
+    private static final String FLASH_SUCCESS_MSG = "flashSuccessMsg";
 
     /** ---- Date / Time ---- */
     private static final ZoneId Z_TOKYO = ZoneId.of("Asia/Tokyo");
@@ -342,138 +344,206 @@ public class CommonService extends BaseService {
     /** =========================
      * 「【admin】 機能：マイページ表示」
      * ========================= */
-    /**
-     * 管理者マイページ表示。
-     * - セッション必須：{@code loginUser.systemAdmin}
-     * - setAttribute: 'admin'
-     * - 未ログイン時：/admin へリダイレクト
-     */
-    public String adminMyPage() {
-        HttpSession session = req.getSession(false);
-        if (session == null) return req.getContextPath() + PATH_ADMIN_LOGIN;
-        LoginUser lu = (LoginUser) session.getAttribute(ATTR_LOGIN_USER);
-        if (lu == null || lu.getSystemAdmin() == null || lu.getSystemAdmin().getId() == null) {
-            return req.getContextPath() + PATH_ADMIN_LOGIN;
+    public String adminMyPageHome() {
+        UUID adminId = currentAdminId();
+        if (adminId == null) return req.getContextPath() + PATH_ADMIN_LOGIN;
+
+        try (TransactionManager tm = new TransactionManager()) {
+            SystemAdminDAO dao = new SystemAdminDAO(tm.getConnection());
+            SystemAdminDTO dto = dao.selectById(adminId);
+            if (dto.getId() == null) {
+                return req.getContextPath() + PATH_ADMIN_LOGIN;
+            }
+
+            SystemAdmin admin = conv.toDomain(dto);
+            HttpSession session = req.getSession(false);
+            if (session != null) {
+                Object user = session.getAttribute(ATTR_LOGIN_USER);
+                if (user instanceof LoginUser lu) {
+                    lu.setSystemAdmin(admin);
+                    session.setAttribute(ATTR_LOGIN_USER, lu);
+                }
+                Object flash = session.getAttribute(FLASH_SUCCESS_MSG);
+                if (flash instanceof String msg && !msg.isBlank()) {
+                    req.setAttribute("successMsg", msg);
+                    session.removeAttribute(FLASH_SUCCESS_MSG);
+                }
+            }
+
+            req.setAttribute(ATTR_ADMIN, admin);
+            return PATH_ADMIN_MYPAGE_HOME;
+        } catch (RuntimeException e) {
+            e.printStackTrace();
+            return req.getContextPath() + req.getServletPath() + "/error";
         }
-        req.setAttribute(ATTR_ADMIN, lu.getSystemAdmin());
-        return PATH_ADMIN_MYPAGE;
     }
 
     /** =========================
-     * 「【admin】 機能：マイページ編集（画面）」
+     * 「【admin】 機能：マイページ編集（入力）」
      * ========================= */
-    /**
-     * 管理者ID編集フォーム表示。
-     * - セッション必須：{@code loginUser.systemAdmin}
-     * - 既存値（mail/name/nameRuby）を 'form' に詰めて JSP 初期表示に利用
-     */
-    public String adminIdEditForm() {
-        HttpSession session = req.getSession(false);
-        if (session == null) return req.getContextPath() + PATH_ADMIN_LOGIN;
-        LoginUser lu = (LoginUser) session.getAttribute(ATTR_LOGIN_USER);
-        if (lu == null || lu.getSystemAdmin() == null || lu.getSystemAdmin().getId() == null) {
-            return req.getContextPath() + PATH_ADMIN_LOGIN;
+    public String adminMyPageEdit() {
+        UUID adminId = currentAdminId();
+        if (adminId == null) return req.getContextPath() + PATH_ADMIN_LOGIN;
+
+        try (TransactionManager tm = new TransactionManager()) {
+            SystemAdminDAO dao = new SystemAdminDAO(tm.getConnection());
+            SystemAdminDTO dto = dao.selectById(adminId);
+            if (dto.getId() == null) {
+                validation.addErrorMsg("アカウント情報が取得できませんでした。");
+                req.setAttribute("errorMsg", validation.getErrorMsg());
+                return req.getContextPath() + req.getServletPath() + "/error";
+            }
+
+            SystemAdmin admin = conv.toDomain(dto);
+            req.setAttribute(ATTR_ADMIN, admin);
+            req.setAttribute(ATTR_FORM, buildAdminForm(admin));
+            return PATH_ADMIN_MYPAGE_EDIT;
+        } catch (RuntimeException e) {
+            e.printStackTrace();
+            validation.addErrorMsg("データベースに不正な操作が行われました");
+            req.setAttribute("errorMsg", validation.getErrorMsg());
+            return req.getContextPath() + req.getServletPath() + "/error";
         }
+    }
+
+    /** =========================
+     * 「【admin】 機能：マイページ編集（確認）」
+     * ========================= */
+    public String adminMyPageEditCheck() {
+        UUID adminId = currentAdminId();
+        if (adminId == null) return req.getContextPath() + PATH_ADMIN_LOGIN;
+
+        try (TransactionManager tm = new TransactionManager()) {
+            SystemAdminDAO dao = new SystemAdminDAO(tm.getConnection());
+            SystemAdminDTO dto = dao.selectById(adminId);
+            if (dto.getId() == null) {
+                validation.addErrorMsg("アカウント情報が取得できませんでした。");
+                req.setAttribute("errorMsg", validation.getErrorMsg());
+                return req.getContextPath() + req.getServletPath() + "/error";
+            }
+
+            SystemAdmin admin = conv.toDomain(dto);
+            Map<String, String> form = buildAdminForm(admin);
+            String mail = form.get("mail");
+            String name = form.get("name");
+            String password = form.get("password");
+
+            validation.isNull("メールアドレス", mail);
+            validation.isNull("氏名", name);
+
+            if (!validation.hasErrorMsg() && dao.mailExistsExceptId(mail, adminId)) {
+                validation.addErrorMsg("入力されたメールアドレスは既に使用されています。");
+            }
+
+            if (!validation.hasErrorMsg() && notBlank(password)) {
+                if (!validation.isStrongPassword(password)) {
+                    // エラーはユーティリティ側で登録
+                }
+            }
+
+            req.setAttribute(ATTR_ADMIN, admin);
+            req.setAttribute(ATTR_FORM, form);
+
+            if (validation.hasErrorMsg()) {
+                req.setAttribute("errorMsg", validation.getErrorMsg());
+                return PATH_ADMIN_MYPAGE_EDIT;
+            }
+
+            req.setAttribute("willChangePassword", notBlank(password));
+            return PATH_ADMIN_MYPAGE_EDIT_CHECK;
+        } catch (RuntimeException e) {
+            e.printStackTrace();
+            validation.addErrorMsg("データベースに不正な操作が行われました");
+            req.setAttribute("errorMsg", validation.getErrorMsg());
+            return req.getContextPath() + req.getServletPath() + "/error";
+        }
+    }
+
+    /** =========================
+     * 「【admin】 機能：マイページ編集（確定）」
+     * ========================= */
+    public String adminMyPageEditDone() {
+        UUID adminId = currentAdminId();
+        if (adminId == null) return req.getContextPath() + PATH_ADMIN_LOGIN;
+
         Map<String, String> form = new LinkedHashMap<>();
-        form.put("mail",     lu.getSystemAdmin().getMail());
-        form.put("name",     lu.getSystemAdmin().getName());
-        form.put("nameRuby", lu.getSystemAdmin().getNameRuby());
-        req.setAttribute(ATTR_FORM, form);
-        return PATH_ADMIN_ID_EDIT;
-    }
+        form.put("mail", trimOrEmpty(req.getParameter("mail")));
+        form.put("name", trimOrEmpty(req.getParameter("name")));
+        form.put("nameRuby", trimOrEmpty(req.getParameter("nameRuby")));
+        String rawPassword = req.getParameter("password");
+        form.put("password", rawPassword == null ? "" : rawPassword);
 
-    /** =========================
-     * 「【admin】 機能：ID情報編集（送信）」
-     * ========================= */
-    /**
-     * 管理者ID編集の送信処理。
-     * - 入力：mail（必須）, name（必須）, nameRuby, password（空なら据え置き）
-     * - メール重複チェック（自ID除外）
-     * - 成功時：セッションの admin 情報も更新し、/admin/mypage へリダイレクト（successMsg 設定）
-     */
-    public String adminIdEditSubmit() {
-        HttpSession session = req.getSession(false);
-        if (session == null) return req.getContextPath() + PATH_ADMIN_LOGIN;
-        LoginUser lu = (LoginUser) session.getAttribute(ATTR_LOGIN_USER);
-        if (lu == null || lu.getSystemAdmin() == null || lu.getSystemAdmin().getId() == null) {
-            return req.getContextPath() + PATH_ADMIN_LOGIN;
-        }
-        UUID adminId = lu.getSystemAdmin().getId();
-
-        /** 入力 */
-        String mail     = req.getParameter("mail");
-        String password = req.getParameter("password"); /** 空なら据え置き */
-        String name     = req.getParameter("name");
-        String nameRuby = req.getParameter("nameRuby");
+        String mail = form.get("mail");
+        String name = form.get("name");
+        String nameRuby = form.get("nameRuby");
+        String password = rawPassword == null ? "" : rawPassword;
 
         validation.isNull("メールアドレス", mail);
         validation.isNull("氏名", name);
 
-        Map<String, String> form = new LinkedHashMap<>();
-        form.put("mail", mail);
-        form.put("name", name);
-        form.put("nameRuby", nameRuby);
-        req.setAttribute(ATTR_FORM, form);
-
-        if (validation.hasErrorMsg()) {
-            req.setAttribute("errorMsg", validation.getErrorMsg());
-            return PATH_ADMIN_ID_EDIT;
+        if (notBlank(password) && !validation.isStrongPassword(password)) {
+            // エラーはユーティリティ側で登録
         }
 
         try (TransactionManager tm = new TransactionManager()) {
             SystemAdminDAO dao = new SystemAdminDAO(tm.getConnection());
-
-            /** 自分以外でメール重複が無いか */
-            if (dao.mailExistsExceptId(mail, adminId)) {
-                req.setAttribute("errorMsg", "入力されたメールアドレスは既に使用されています。");
-                return PATH_ADMIN_ID_EDIT;
-            }
-
             SystemAdminDTO current = dao.selectById(adminId);
             if (current.getId() == null) {
-                req.setAttribute("errorMsg", "対象の管理者が見つかりません。");
-                return PATH_ADMIN_ID_EDIT;
+                validation.addErrorMsg("アカウント情報が取得できませんでした。");
             }
 
-            /** 更新 DTO（パスワードは空なら据え置き） */
+            if (!validation.hasErrorMsg() && dao.mailExistsExceptId(mail, adminId)) {
+                validation.addErrorMsg("入力されたメールアドレスは既に使用されています。");
+            }
+
+            SystemAdmin admin = conv.toDomain(current);
+            req.setAttribute(ATTR_ADMIN, admin);
+            req.setAttribute(ATTR_FORM, form);
+
+            if (validation.hasErrorMsg()) {
+                req.setAttribute("errorMsg", validation.getErrorMsg());
+                return PATH_ADMIN_MYPAGE_EDIT;
+            }
+
             SystemAdminDTO upd = new SystemAdminDTO();
             upd.setId(adminId);
             upd.setMail(mail);
-            if (password != null && !password.isBlank()) {
-                /** パスワード変更時は強度チェック */
-                if (!validation.isStrongPassword(password)) {
-                    req.setAttribute("errorMsg", validation.getErrorMsg());
-                    req.setAttribute(ATTR_FORM, form);
-                    return PATH_ADMIN_ID_EDIT;
-                }
+            upd.setName(name);
+            upd.setNameRuby(nameRuby.isBlank() ? null : nameRuby);
+            if (notBlank(password)) {
                 upd.setPassword(PasswordUtil.hashPassword(password));
             } else {
                 upd.setPassword(current.getPassword());
             }
-            upd.setName(name);
-            upd.setNameRuby(nameRuby);
 
-            int cnt = dao.update(upd);
-            if (cnt != 1) {
-                req.setAttribute("errorMsg", "更新に失敗しました。");
-                return PATH_ADMIN_ID_EDIT;
+            int count = dao.update(upd);
+            if (count != 1) {
+                validation.addErrorMsg("更新に失敗しました。");
+                req.setAttribute("errorMsg", validation.getErrorMsg());
+                return PATH_ADMIN_MYPAGE_EDIT;
             }
+
+            SystemAdminDTO refreshed = dao.selectById(adminId);
+            SystemAdmin refreshedAdmin = conv.toDomain(refreshed);
 
             tm.commit();
 
-            /** セッションの Domain も更新 */
-            lu.getSystemAdmin().setMail(mail);
-            lu.getSystemAdmin().setName(name);
-            lu.getSystemAdmin().setNameRuby(nameRuby);
-            session.setAttribute(ATTR_LOGIN_USER, lu);
+            HttpSession session = req.getSession(false);
+            if (session != null) {
+                Object user = session.getAttribute(ATTR_LOGIN_USER);
+                if (user instanceof LoginUser lu) {
+                    lu.setSystemAdmin(refreshedAdmin);
+                    session.setAttribute(ATTR_LOGIN_USER, lu);
+                }
+                session.setAttribute(FLASH_SUCCESS_MSG, "アカウント情報を更新しました。");
+            }
 
-            req.setAttribute("successMsg", "アカウント情報を更新しました。");
-            req.setAttribute(ATTR_ADMIN, lu.getSystemAdmin());
-            return req.getContextPath() + "/admin/mypage";
+            return req.getContextPath() + "/admin/mypage/home";
         } catch (RuntimeException e) {
             e.printStackTrace();
-            req.setAttribute("errorMsg", "予期せぬエラーが発生しました。");
-            return PATH_ADMIN_ID_EDIT;
+            validation.addErrorMsg("予期せぬエラーが発生しました。");
+            req.setAttribute("errorMsg", validation.getErrorMsg());
+            return PATH_ADMIN_MYPAGE_EDIT;
         }
     }
 
@@ -738,6 +808,39 @@ public class CommonService extends BaseService {
     /** =========================================================
      * ④ ヘルパー
      * ========================================================= */
+
+    private UUID currentAdminId() {
+        HttpSession session = req.getSession(false);
+        if (session == null) return null;
+        Object user = session.getAttribute(ATTR_LOGIN_USER);
+        if (user instanceof LoginUser lu && lu.getSystemAdmin() != null) {
+            return lu.getSystemAdmin().getId();
+        }
+        return null;
+    }
+
+    private Map<String, String> buildAdminForm(SystemAdmin admin) {
+        Map<String, String> form = new LinkedHashMap<>();
+        form.put("mail", trimOrEmpty(paramOr("mail", admin != null ? admin.getMail() : "")));
+        form.put("name", trimOrEmpty(paramOr("name", admin != null ? admin.getName() : "")));
+        form.put("nameRuby", trimOrEmpty(paramOr("nameRuby", admin != null ? admin.getNameRuby() : "")));
+        String passwordParam = req.getParameter("password");
+        form.put("password", passwordParam == null ? "" : passwordParam);
+        return form;
+    }
+
+    private String paramOr(String name, String fallback) {
+        String value = req.getParameter(name);
+        return value != null ? value : fallback;
+    }
+
+    private String trimOrEmpty(String value) {
+        return value == null ? "" : value.trim();
+    }
+
+    private boolean notBlank(String s) {
+        return s != null && !s.isBlank();
+    }
 
     /** セッションへ LoginUser を格納（セッション新規作成あり） */
     private void putLoginUserToSession(LoginUser loginUser) {

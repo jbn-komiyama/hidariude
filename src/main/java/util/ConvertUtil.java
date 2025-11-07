@@ -16,6 +16,7 @@ import domain.SecretaryRank;
 import domain.SecretaryTotals;
 import domain.Task;
 import domain.TaskRank;
+import domain.SystemAdmin;
 import dto.AssignmentDTO;
 import dto.CustomerContactDTO;
 import dto.CustomerDTO;
@@ -27,6 +28,7 @@ import dto.SecretaryRankDTO;
 import dto.SecretaryTotalsDTO;
 import dto.TaskDTO;
 import dto.TaskRankDTO;
+import dto.SystemAdminDTO;
 
 /**
  * DTO -> Domain 変換クラス。
@@ -399,6 +401,22 @@ public class ConvertUtil {
         s.setUpdatedAt(d.getUpdatedAt());
         s.setDeletedAt(d.getDeletedAt());
         return s;
+    }
+
+    public SystemAdmin toDomain(SystemAdminDTO dto) {
+        if (dto == null) return null;
+
+        SystemAdmin admin = new SystemAdmin();
+        admin.setId(dto.getId());
+        admin.setMail(dto.getMail());
+        admin.setPassword(dto.getPassword());
+        admin.setName(dto.getName());
+        admin.setNameRuby(dto.getNameRuby());
+        admin.setCreatedAt(ts2date(dto.getCreatedAt()));
+        admin.setUpdatedAt(ts2date(dto.getUpdatedAt()));
+        admin.setDeletedAt(ts2date(dto.getDeletedAt()));
+        admin.setLastLoginAt(ts2date(dto.getLastLoginAt()));
+        return admin;
     }
 
     public SecretaryTotals toDomain(SecretaryTotalsDTO d) {
