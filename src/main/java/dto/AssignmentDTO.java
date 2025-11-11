@@ -18,7 +18,7 @@ public class AssignmentDTO implements Serializable {
 	private String customerCompanyName; /** c.company_name */
 
 	/** assignments */
-	private UUID Id; /** a.id */
+	private UUID assignmentId; /** a.id */
 	private UUID assignmentCustomerId; /** a.customer_id */
 	private UUID assignmentSecretaryId; /** a.secretary_id */
 	private UUID taskRankId; /** a.task_rank_id */
@@ -76,11 +76,11 @@ public class AssignmentDTO implements Serializable {
 	}
 
 	public UUID getAssignmentId() {
-		return Id;
+		return assignmentId;
 	}
 
 	public void setAssignmentId(UUID assignmentId) {
-		this.Id = Id;
+		this.assignmentId = assignmentId;
 	}
 
 	public UUID getAssignmentCustomerId() {
