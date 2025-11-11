@@ -8,7 +8,7 @@ BackDesk は秘書・顧客・アサイン・業務を管理するための Java
 
 **技術スタック**: Java 24, Jakarta Servlet 6.1, JSP 4.0, PostgreSQL 15 (ポート 5433), Maven, Tomcat 10.1
 
-**データベース接続**: `TransactionManager.java` に設定 - `jdbc:postgresql://localhost:5433/BackDesk`
+**データベース接続**: `TransactionManager.java` に設定 - `jdbc:postgresql://localhost:5433/backdesk`
 
 ## 主要なドメイン概念
 

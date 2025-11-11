@@ -229,10 +229,10 @@ pgAdmin を起動し、以下の SQL を実行してデータベースとユー�
 
 ```sql
 -- PostgreSQL に接続して実行
-CREATE DATABASE BackDesk;
+CREATE DATABASE backdesk;
 CREATE USER postgres WITH PASSWORD 'password';
 ALTER USER postgres WITH PASSWORD 'password';
-GRANT ALL PRIVILEGES ON DATABASE BackDesk TO postgres;
+GRANT ALL PRIVILEGES ON DATABASE backdesk TO postgres;
 ```
 
 #### (3) 接続設定の確認
@@ -240,7 +240,7 @@ GRANT ALL PRIVILEGES ON DATABASE BackDesk TO postgres;
 データベース接続設定は `src/main/java/dao/TransactionManager.java` で管理されています：
 
 ```java
-private static final String DB_URL = "jdbc:postgresql://localhost:5433/BackDesk";
+private static final String DB_URL = "jdbc:postgresql://localhost:5433/backdesk";
 private static final String SCHEMA = "?currentSchema=public";
 private static final String DB_USER = "postgres";
 private static final String DB_PASSWORD = "password";
@@ -626,7 +626,7 @@ echo %PATH%   # Windows
 
 3. **データベースとユーザーが作成されているか確認**
 
-    - pgAdmin で `BackDesk` データベースが存在するか確認
+    - pgAdmin で `backdesk` データベースが存在するか確認
     - `postgres` ユーザーが存在し、パスワードが `password` であることを確認
     - 作成手順は「**7. PostgreSQL データベースセットアップ**」を参照
 
@@ -657,7 +657,7 @@ echo %PATH%   # Windows
 -   **Apache Tomcat 10.1.46** - `/opt/tomcat/apache-tomcat-10.1.46`
     -   systemctl で自動起動設定済み
 -   **PostgreSQL 15** - ポート 5433 で稼働
-    -   データベース `BackDesk` 作成済み
+-   データベース `backdesk` 作成済み
     -   ユーザー `postgres` / パスワード `password`
     -   systemctl で自動起動設定済み
     -   TCP 接続（localhost:5433）が許可されていること（pg_hba.conf）
@@ -677,8 +677,8 @@ sudo dnf install -y postgresql15-contrib
 sudo systemctl restart postgresql-15
 
 # pgcrypto 拡張が利用可能か確認
-sudo -u postgres psql -p 5433 -d BackDesk -c "CREATE EXTENSION IF NOT EXISTS pgcrypto;"
-sudo -u postgres psql -p 5433 -d BackDesk -c "SELECT gen_random_uuid();"
+sudo -u postgres psql -p 5433 -d backdesk -c "CREATE EXTENSION IF NOT EXISTS pgcrypto;"
+sudo -u postgres psql -p 5433 -d backdesk -c "SELECT gen_random_uuid();"
 ```
 
 > **重要**: `postgresql15-contrib` がインストールされていないと、テーブル作成時に以下のエラーが発生します：
@@ -1053,20 +1053,20 @@ systemctl restart tomcat
 systemctl status postgresql-15
 
 # データベース接続確認（peer認証）
-sudo -u postgres psql -p 5433 -d BackDesk
+sudo -u postgres psql -p 5433 -d backdesk
 
 # テーブル一覧
-sudo -u postgres psql -p 5433 -d BackDesk -c "\dt"
+sudo -u postgres psql -p 5433 -d backdesk -c "\dt"
 
 # TCP接続確認（Javaアプリケーションが使用）
-PGPASSWORD=password psql -h localhost -p 5433 -U postgres -d BackDesk -c "SELECT 1;"
+PGPASSWORD=password psql -h localhost -p 5433 -U postgres -d backdesk -c "SELECT 1;"
 ```
 
 > **注意**: Java アプリケーションは `localhost:5433` に TCP 接続します。`pg_hba.conf` で以下の設定が必要です：
 
 ```
 # IPv4 local connections:
-host    BackDesk       postgres        127.0.0.1/32            scram-sha-256
+host    backdesk       postgres        127.0.0.1/32            scram-sha-256
 ```
 
 設定後は PostgreSQL を再起動：
@@ -1120,7 +1120,7 @@ mvn clean package
 systemctl status postgresql-15
 
 # 接続テスト
-sudo -u postgres psql -p 5433 -d BackDesk -c "SELECT 1;"
+sudo -u postgres psql -p 5433 -d backdesk -c "SELECT 1;"
 ```
 
 4. pgcrypto 拡張機能エラーの場合
@@ -1182,9 +1182,9 @@ sudo tail -f /var/log/nginx/BackDesk_login_attempts.log
 
 2025 年 11 月の更新で、これまで個別のマイグレーションクラスで管理していたスキーマ変更は `DatabaseInitListener.executeDDL()` に統合されました。アプリケーションの初回起動時にこのメソッドが実行され、必要なテーブル・インデックス・制約がすべて一括で作成されます。
 
-- `password_reset_tokens` テーブルと関連インデックスを含めて初期化
-- 論理削除対応の部分一意インデックス（`system_admins`, `secretaries`, `customer_contacts`）を標準で作成
-- 旧マイグレーションファイル（`Migration_*`）は廃止済み
+-   `password_reset_tokens` テーブルと関連インデックスを含めて初期化
+-   論理削除対応の部分一意インデックス（`system_admins`, `secretaries`, `customer_contacts`）を標準で作成
+-   旧マイグレーションファイル（`Migration_*`）は廃止済み
 
 既存のデータベースに変更を適用したい場合は、手動で SQL を実行するか、必要に応じて新しい初期化手順を検討してください（開発環境ではデータベースをドロップして再初期化するのが最も簡単です）。
 
@@ -1216,13 +1216,13 @@ Database initialization completed successfully.
 
 ## よくある質問
 
-- **Q. 既存環境で制約を変更したい。どうすれば良いか？**  
-  A. `executeDDL()` に `ALTER TABLE ... DROP CONSTRAINT ...` などを追記して Tomcat を再起動する前に、対象テーブルを一旦削除（またはバックアップ→リストア）する必要があります。運用環境では慎重に対応してください。
+-   **Q. 既存環境で制約を変更したい。どうすれば良いか？**  
+    A. `executeDDL()` に `ALTER TABLE ... DROP CONSTRAINT ...` などを追記して Tomcat を再起動する前に、対象テーブルを一旦削除（またはバックアップ → リストア）する必要があります。運用環境では慎重に対応してください。
 
-- **Q. schema_migrations テーブルはまだ作成されるのか？**  
-  A. 将来の拡張を見据えて `executeDDL()` 内で作成されますが、現時点では自動マイグレーションの記録には使用していません。
+-   **Q. schema_migrations テーブルはまだ作成されるのか？**  
+    A. 将来の拡張を見据えて `executeDDL()` 内で作成されますが、現時点では自動マイグレーションの記録には使用していません。
 
-- **Q. 新しいスキーマ変更を共有したい**  
-  A. Pull Request では `DatabaseInitListener.executeDDL()` の変更内容と、既存環境への適用手順（必要であれば手動 SQL）を明記してください。
+-   **Q. 新しいスキーマ変更を共有したい**  
+    A. Pull Request では `DatabaseInitListener.executeDDL()` の変更内容と、既存環境への適用手順（必要であれば手動 SQL）を明記してください。
 
 ---
