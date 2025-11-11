@@ -53,10 +53,6 @@ public class DatabaseInitListener implements ServletContextListener {
                     /** 既存の制約を修正（口座情報の空欄を許可） */
                     updateBankTypeConstraint(conn);
                 }
-                
-                /** マイグレーション実行 */
-                runMigrations(conn);
-                
             }
             
         } catch (Exception e) {
@@ -70,117 +66,6 @@ public class DatabaseInitListener implements ServletContextListener {
     @Override
     public void contextDestroyed(ServletContextEvent sce) {
         /** クリーンアップ処理が必要な場合はここに記述 */
-    }
-
-    /**
-     * マイグレーション管理テーブルが存在するかチェック
-     */
-    private boolean migrationTableExists(Connection conn) throws SQLException {
-        return tableExists(conn, "schema_migrations");
-    }
-
-    /**
-     * マイグレーションが実行済みかチェック
-     */
-    private boolean isMigrationApplied(Connection conn, String migrationName) throws SQLException {
-        String sql = "SELECT COUNT(*) FROM schema_migrations WHERE migration_name = ?";
-        try (PreparedStatement ps = conn.prepareStatement(sql)) {
-            ps.setString(1, migrationName);
-            try (ResultSet rs = ps.executeQuery()) {
-                if (rs.next()) {
-                    return rs.getInt(1) > 0;
-                }
-            }
-        }
-        return false;
-    }
-
-    /**
-     * マイグレーション実行記録を保存
-     */
-    private void recordMigration(Connection conn, String migrationName) throws SQLException {
-        String sql = "INSERT INTO schema_migrations (migration_name) VALUES (?)";
-        try (PreparedStatement ps = conn.prepareStatement(sql)) {
-            ps.setString(1, migrationName);
-            ps.executeUpdate();
-        }
-    }
-
-    /**
-     * すべてのマイグレーションを実行
-     * 
-     * マイグレーション実行の判断基準:
-     *   ・listener パッケージ内の Migration インターフェースを実装したクラスを手動登録
-     *   ・クラス名の日付順（Migration_YYYYMMDD_*）にソートして実行
-     *   ・schema_migrations テーブルに記録がない場合のみ実行
-     *   ・実行成功後、schema_migrations テーブルにマイグレーション名と実行日時を記録
-     *   ・実行失敗時はロールバックされ、記録は残らない（次回起動時に再実行される）
-     */
-    private void runMigrations(Connection conn) throws SQLException {
-        System.out.println("Checking for pending migrations...");
-        
-        /** Step 1: schema_migrations テーブルが存在しない場合は、最初に作成マイグレーションを実行 */
-        if (!migrationTableExists(conn)) {
-            System.out.println("Migration table not found. Creating...");
-            Migration initMigration = new Migration_20251029_CreateSchemaMigrations();
-            System.out.println("Applying migration: " + initMigration.getName());
-            System.out.println("  Description: " + initMigration.getDescription());
-            
-            try {
-                initMigration.up(conn);
-                recordMigration(conn, initMigration.getName());
-                conn.commit();
-                System.out.println("Migration applied successfully: " + initMigration.getName());
-            } catch (SQLException e) {
-                conn.rollback();
-                System.err.println("Migration failed: " + initMigration.getName());
-                throw e;
-            }
-        }
-        
-        /** Step 2: 通常のマイグレーション一覧を定義（手動で追加）
-         * 新しいマイグレーションを追加する場合は、この配列に追加してください */
-        List<Migration> migrations = new ArrayList<>();
-        migrations.add(new Migration_20251029_CreateSchemaMigrations()); /** 初回以降はスキップされる */
-        migrations.add(new Migration_20251029_UpdateSecretaryPayWithTax());
-        migrations.add(new Migration_20251030_CreatePasswordResetTokens());
-        migrations.add(new Migration_20251030_RevertSecretaryPayWithTax());
-        migrations.add(new Migration_20251106_UpdateUniqueConstraintsForSoftDelete());
-        
-        /** 今後のマイグレーションをここに追加
-         * migrations.add(new Migration_YYYYMMDD_YourMigrationName()); */
-        
-        /** マイグレーション名順にソート（クラス名の日付部分でソート） */
-        migrations.sort((m1, m2) -> m1.getClass().getSimpleName().compareTo(m2.getClass().getSimpleName()));
-        
-        int appliedCount = 0;
-        int skippedCount = 0;
-        
-        for (Migration migration : migrations) {
-            String migrationName = migration.getName();
-            
-            if (!isMigrationApplied(conn, migrationName)) {
-                System.out.println("Applying migration: " + migrationName);
-                System.out.println("  Description: " + migration.getDescription());
-                
-                try {
-                    migration.up(conn);
-                    recordMigration(conn, migrationName);
-                    conn.commit();
-                    System.out.println("Migration applied successfully: " + migrationName);
-                    appliedCount++;
-                } catch (SQLException e) {
-                    conn.rollback();
-                    System.err.println("Migration failed: " + migrationName);
-                    throw e;
-                }
-            } else {
-                System.out.println("Migration already applied (skipped): " + migrationName);
-                skippedCount++;
-            }
-        }
-        
-        System.out.println("Migration check completed: " + appliedCount + " applied, " + skippedCount + " skipped.");
     }
 
     /**
@@ -237,7 +122,7 @@ public class DatabaseInitListener implements ServletContextListener {
         ddlStatements.add(
             "CREATE TABLE system_admins (" +
             "    id UUID PRIMARY KEY DEFAULT gen_random_uuid()," +
-            "    mail VARCHAR(255) UNIQUE NOT NULL," +
+            "    mail VARCHAR(255) NOT NULL," +
             "    password VARCHAR(255) NOT NULL," +
             "    name VARCHAR(255) NOT NULL," +
             "    name_ruby VARCHAR(255)," +
@@ -264,8 +149,8 @@ public class DatabaseInitListener implements ServletContextListener {
         ddlStatements.add(
             "CREATE TABLE secretaries (" +
             "    id UUID PRIMARY KEY DEFAULT gen_random_uuid()," +
-            "    secretary_code VARCHAR(255) UNIQUE NOT NULL," +
-            "    mail VARCHAR(255) UNIQUE NOT NULL," +
+            "    secretary_code VARCHAR(255) NOT NULL," +
+            "    mail VARCHAR(255) NOT NULL," +
             "    password VARCHAR(255) NOT NULL," +
             "    secretary_rank_id UUID REFERENCES secretary_rank(id)," +
             "    is_pm_secretary BOOLEAN DEFAULT FALSE," +
@@ -310,7 +195,7 @@ public class DatabaseInitListener implements ServletContextListener {
         ddlStatements.add(
             "CREATE TABLE customer_contacts (" +
             "    id UUID PRIMARY KEY DEFAULT gen_random_uuid()," +
-            "    mail VARCHAR(255) UNIQUE NOT NULL," +
+            "    mail VARCHAR(255) NOT NULL," +
             "    password VARCHAR(255) NOT NULL," +
             "    customer_id UUID NOT NULL," +
             "    name VARCHAR(255) NOT NULL," +
@@ -492,6 +377,54 @@ public class DatabaseInitListener implements ServletContextListener {
             "  CONSTRAINT ck_saturday_hours CHECK (saturday_work_hours IS NULL OR (saturday_work_hours >= 0 AND saturday_work_hours <= 24))," +
             "  CONSTRAINT ck_sunday_hours CHECK (sunday_work_hours IS NULL OR (sunday_work_hours >= 0 AND sunday_work_hours <= 24))," +
             "  CONSTRAINT ck_monthly_hours CHECK (monthly_work_hours IS NULL OR (monthly_work_hours >= 0 AND monthly_work_hours <= 744))" +
+            ")"
+        );
+        
+        /** パスワードリセットトークンとインデックス */
+        ddlStatements.add(
+            "CREATE TABLE IF NOT EXISTS password_reset_tokens (" +
+            "    id UUID PRIMARY KEY DEFAULT gen_random_uuid()," +
+            "    user_type VARCHAR(20) NOT NULL CHECK (user_type IN ('admin', 'secretary', 'customer'))," +
+            "    user_id UUID NOT NULL," +
+            "    token VARCHAR(255) UNIQUE NOT NULL," +
+            "    expires_at TIMESTAMP NOT NULL," +
+            "    used_at TIMESTAMP," +
+            "    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP" +
+            ")"
+        );
+        ddlStatements.add(
+            "CREATE INDEX IF NOT EXISTS idx_password_reset_tokens_token " +
+            "ON password_reset_tokens(token)"
+        );
+        ddlStatements.add(
+            "CREATE INDEX IF NOT EXISTS idx_password_reset_tokens_user " +
+            "ON password_reset_tokens(user_type, user_id)"
+        );
+        
+        /** 論理削除対応の部分一意インデックス */
+        ddlStatements.add(
+            "CREATE UNIQUE INDEX IF NOT EXISTS uq_system_admins_mail_active " +
+            "ON system_admins(mail) WHERE deleted_at IS NULL"
+        );
+        ddlStatements.add(
+            "CREATE UNIQUE INDEX IF NOT EXISTS uq_secretaries_mail_active " +
+            "ON secretaries(mail) WHERE deleted_at IS NULL"
+        );
+        ddlStatements.add(
+            "CREATE UNIQUE INDEX IF NOT EXISTS uq_secretaries_code_active " +
+            "ON secretaries(secretary_code) WHERE deleted_at IS NULL"
+        );
+        ddlStatements.add(
+            "CREATE UNIQUE INDEX IF NOT EXISTS uq_customer_contacts_mail_active " +
+            "ON customer_contacts(mail) WHERE deleted_at IS NULL"
+        );
+        
+        /** マイグレーション履歴テーブル（今後の拡張用） */
+        ddlStatements.add(
+            "CREATE TABLE IF NOT EXISTS schema_migrations (" +
+            "    id SERIAL PRIMARY KEY," +
+            "    migration_name VARCHAR(255) UNIQUE NOT NULL," +
+            "    applied_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP" +
             ")"
         );
         
