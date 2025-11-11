@@ -456,6 +456,34 @@ public class FrontController extends HttpServlet {
 			case "/contact/delete"->{ // A04_18: 顧客担当者削除
 				nextPath = new ContactService(req, true).contactDelete();
 			}
+
+			/**
+			 * A04 アカウント管理 > システム管理者管理 (A04_01~A04_04)
+			 */
+			case "/system_admin"->{ // A04_01: システム管理者一覧表示
+				nextPath = new SystemAdminService(req, true).systemAdminList();
+			}
+			case "/system_admin/register"->{ // A04_02: システム管理者新規登録（入力画面）
+				nextPath = new SystemAdminService(req, true).systemAdminRegister();
+			}
+			case "/system_admin/register_check"->{ // A04_02: システム管理者新規登録（確認画面）
+				nextPath = new SystemAdminService(req, true).systemAdminRegisterCheck();
+			}
+			case "/system_admin/register_done"->{ // A04_02: システム管理者新規登録（完了処理）
+				nextPath = new SystemAdminService(req, true).systemAdminRegisterDone();
+			}
+			case "/system_admin/edit"->{ // A04_03: システム管理者編集（入力画面）
+				nextPath = new SystemAdminService(req, true).systemAdminEdit();
+			}
+			case "/system_admin/edit_check"->{ // A04_03: システム管理者編集（確認画面）
+				nextPath = new SystemAdminService(req, true).systemAdminEditCheck();
+			}
+			case "/system_admin/edit_done"->{ // A04_03: システム管理者編集（完了処理）
+				nextPath = new SystemAdminService(req, true).systemAdminEditDone();
+			}
+			case "/system_admin/delete"->{ // A04_04: システム管理者削除
+				nextPath = new SystemAdminService(req, true).systemAdminDelete();
+			}
 			
 			/**
 			 * A05 アサイン管理 > アサイン管理 (A05_01~A05_91)
@@ -498,34 +526,6 @@ public class FrontController extends HttpServlet {
 			}
 			
 			/**
-			 * A04 アカウント管理 > システム管理者管理 (A04_01~A04_04)
-			 */
-			case "/system_admin"->{ // A04_01: システム管理者一覧表示
-				nextPath = new SystemAdminService(req, true).systemAdminList();
-			}
-			case "/system_admin/register"->{ // A04_02: システム管理者新規登録（入力画面）
-				nextPath = new SystemAdminService(req, true).systemAdminRegister();
-			}
-			case "/system_admin/register_check"->{ // A04_02: システム管理者新規登録（確認画面）
-				nextPath = new SystemAdminService(req, true).systemAdminRegisterCheck();
-			}
-			case "/system_admin/register_done"->{ // A04_02: システム管理者新規登録（完了処理）
-				nextPath = new SystemAdminService(req, true).systemAdminRegisterDone();
-			}
-			case "/system_admin/edit"->{ // A04_03: システム管理者編集（入力画面）
-				nextPath = new SystemAdminService(req, true).systemAdminEdit();
-			}
-			case "/system_admin/edit_check"->{ // A04_03: システム管理者編集（確認画面）
-				nextPath = new SystemAdminService(req, true).systemAdminEditCheck();
-			}
-			case "/system_admin/edit_done"->{ // A04_03: システム管理者編集（完了処理）
-				nextPath = new SystemAdminService(req, true).systemAdminEditDone();
-			}
-			case "/system_admin/delete"->{ // A04_04: システム管理者削除
-				nextPath = new SystemAdminService(req, true).systemAdminDelete();
-			}
-			
-			/**
 			 * A05 アサイン管理 > タスク管理 (A05_06~A05_25)
 			 */
 			case "/task/list_all"->{ // A05_06: 業務一覧表示（全て）
@@ -555,17 +555,7 @@ public class FrontController extends HttpServlet {
 			case "/task/alert_delete"->{ // A05_25: 業務確認申請取消し
 				nextPath = new TaskService(req, true).adminAlertDelete();
 			}
-			
-			/**
-			 * A06 売上管理 (A06_81~A06_82)
-			 */
-			case "/summary/costs"->{ // A06_82: 支出サマリー表示
-				nextPath = new SalesCostSummaryService(req, true).costSummary();
-			}
-			case "/summary/sales"->{ // A06_81: 売上サマリー表示
-				nextPath = new SalesCostSummaryService(req, true).salesSummary();
-			}
-			
+
 			/**
 			 * A05 アサイン管理 > 請求管理 (A05_81~A05_82)
 			 *
@@ -579,6 +569,16 @@ public class FrontController extends HttpServlet {
 			}
 			case "/invoice/costs"->{ // A05_82: 支払サマリー表示
 				nextPath = new InvoiceService(req, true).secretaryInvoiceSummary();
+			}
+			
+			/**
+			 * A06 売上管理 (A06_81~A06_82)
+			 */
+			case "/summary/costs"->{ // A06_82: 支出サマリー表示
+				nextPath = new SalesCostSummaryService(req, true).costSummary();
+			}
+			case "/summary/sales"->{ // A06_81: 売上サマリー表示
+				nextPath = new SalesCostSummaryService(req, true).salesSummary();
 			}
 			
 			/**
