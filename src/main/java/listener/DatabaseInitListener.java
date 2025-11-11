@@ -1,7 +1,6 @@
 package listener;
 
 import java.sql.Connection;
-import java.sql.DriverManager;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -9,6 +8,7 @@ import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.List;
 
+import dao.TransactionManager;
 import jakarta.servlet.ServletContextEvent;
 import jakarta.servlet.ServletContextListener;
 import jakarta.servlet.annotation.WebListener;
@@ -20,41 +20,36 @@ import util.PasswordUtil;
 @WebListener
 public class DatabaseInitListener implements ServletContextListener {
 
-    private static final String DRIVER_NAME = "org.postgresql.Driver";
-    private static final String DB_URL = "jdbc:postgresql://localhost:5433/backdesk";
-    private static final String SCHEMA = "?currentSchema=public";
-    private static final String DB_USER = "postgres";
-    private static final String DB_PASSWORD = "password";
-
     @Override
     public void contextInitialized(ServletContextEvent sce) {
         System.out.println("=== Database Initialization Start ===");
-        
-        try {
-            Class.forName(DRIVER_NAME);
-            
-            try (Connection conn = DriverManager.getConnection(DB_URL + SCHEMA, DB_USER, DB_PASSWORD)) {
-                conn.setAutoCommit(false);
-                
-                /** テーブルが存在するかチェック */
-                if (!tableExists(conn, "system_admins")) {
-                    System.out.println("Tables not found. Creating database schema and initial data...");
-                    
-                    /** DDL実行 */
-                    executeDDL(conn);
-                    
-                    /** 初期データ投入 */
-                    insertInitialData(conn);
-                    
-                    conn.commit();
-                    System.out.println("Database initialization completed successfully.");
-                } else {
-                    System.out.println("Tables already exist. Skipping initialization.");
-                    /** 既存の制約を修正（口座情報の空欄を許可） */
-                    updateBankTypeConstraint(conn);
-                }
+
+        try (TransactionManager tm = new TransactionManager()) {
+            Connection conn = tm.getConnection();
+
+            boolean commitRequired = false;
+
+            /** テーブルが存在するかチェック */
+            if (!tableExists(conn, "system_admins")) {
+                System.out.println("Tables not found. Creating database schema and initial data...");
+
+                /** DDL実行 */
+                executeDDL(conn);
+
+                /** 初期データ投入 */
+                insertInitialData(conn);
+
+                commitRequired = true;
+                System.out.println("Database initialization completed successfully.");
+            } else {
+                System.out.println("Tables already exist. Skipping initialization.");
+                /** 既存の制約を修正（口座情報の空欄を許可） */
+                commitRequired = updateBankTypeConstraint(conn);
             }
-            
+
+            if (commitRequired) {
+                tm.commit();
+            }
         } catch (Exception e) {
             System.err.println("Error during database initialization: " + e.getMessage());
             e.printStackTrace();
@@ -71,18 +66,19 @@ public class DatabaseInitListener implements ServletContextListener {
     /**
      * 既存のbank_type制約を更新して、空欄を許可する
      */
-    private void updateBankTypeConstraint(Connection conn) {
+    private boolean updateBankTypeConstraint(Connection conn) {
         try (Statement stmt = conn.createStatement()) {
             /** 既存の制約を削除 */
             stmt.execute("ALTER TABLE secretaries DROP CONSTRAINT IF EXISTS chk_secretaries_bank_type");
             /** 新しい制約を追加（空欄を許可） */
             stmt.execute("ALTER TABLE secretaries ADD CONSTRAINT chk_secretaries_bank_type " +
                         "CHECK (bank_type IS NULL OR bank_type = '' OR bank_type IN ('普通', '当座'))");
-            conn.commit();
             System.out.println("Updated bank_type constraint to allow empty values.");
+            return true;
         } catch (SQLException e) {
             System.err.println("Warning: Could not update bank_type constraint: " + e.getMessage());
             /** エラーが発生してもアプリケーションの起動は継続 */
+            return false;
         }
     }
 
