@@ -325,7 +325,7 @@ public class FrontController extends HttpServlet {
 			/**
 			 * A01 共通
 			 */
-			case "/login"->{
+			case "/signin"->{
 				nextPath = new CommonService(req, true).adminLogin();
 			}
 			case "/logout"->{
