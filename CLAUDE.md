@@ -4,11 +4,11 @@
 
 ## プロジェクト概要
 
-Hidariude は秘書・顧客・アサイン・業務を管理するための Java Servlet ベースの Web アプリケーションです。3 つのロール（システム管理者・秘書・顧客）を持つ秘書管理システムで、業務の承認ワークフロー、月次請求、報酬計算を処理します。
+BackDesk は秘書・顧客・アサイン・業務を管理するための Java Servlet ベースの Web アプリケーションです。3 つのロール（システム管理者・秘書・顧客）を持つ秘書管理システムで、業務の承認ワークフロー、月次請求、報酬計算を処理します。
 
 **技術スタック**: Java 24, Jakarta Servlet 6.1, JSP 4.0, PostgreSQL 15 (ポート 5433), Maven, Tomcat 10.1
 
-**データベース接続**: `TransactionManager.java` に設定 - `jdbc:postgresql://localhost:5433/hidariude`
+**データベース接続**: `TransactionManager.java` に設定 - `jdbc:postgresql://localhost:5433/BackDesk`
 
 ## 主要なドメイン概念
 
@@ -190,7 +190,7 @@ mvnDebug cargo:run             # デバッグモード（ポート 8000）
 -   Maven Clean / Maven Package
 -   Tomcat Deploy / Tomcat Debug Deploy（F5 でアタッチ）
 
-**アクセス**: http://localhost:8080/hidariude/
+**アクセス**: http://localhost:8080/BackDesk/
 
 **デフォルト認証情報**（全てパスワード: `Password1`）:
 
@@ -201,7 +201,7 @@ mvnDebug cargo:run             # デバッグモード（ポート 8000）
 ### 本番デプロイ (AlmaLinux)
 
 ```bash
-cd /opt/hidariude && ./deploy.sh
+cd /opt/BackDesk && ./deploy.sh
 ```
 
 ## 開発メモ

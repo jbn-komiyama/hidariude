@@ -1,6 +1,6 @@
 #!/bin/bash
 #####################################################################
-# Hidariude デプロイスクリプト (AlmaLinux 10)
+# BackDesk デプロイスクリプト (AlmaLinux 10)
 # 
 # 概要: Gitリポジトリからプルし、Mavenでビルドして
 #       Tomcat 10にWARファイルをデプロイします
@@ -8,7 +8,7 @@
 # 前提条件:
 # - Java 24, Maven 3.9.11, Tomcat 10.1.46 がインストール済み
 # - PostgreSQL 15 がポート5433で稼働中
-# - データベース「hidariude」が作成済み
+# - データベース「BackDesk」が作成済み
 #####################################################################
 
 set -e  # エラー時に即座に終了
@@ -42,7 +42,7 @@ export MAVEN_HOME=/opt/apache-maven-3.9.11
 export PATH=$JAVA_HOME/bin:$MAVEN_HOME/bin:$PATH
 
 # プロジェクト設定
-PROJECT_NAME="hidariude"
+PROJECT_NAME="BackDesk"
 REPO_DIR="/opt/${PROJECT_NAME}"
 WAR_FILE_ORIGINAL="${PROJECT_NAME}-0.0.1-SNAPSHOT.war"
 WAR_FILE_DEPLOY="${PROJECT_NAME}.war"

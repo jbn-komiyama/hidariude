@@ -34,15 +34,15 @@ public class MailConfig {
      */
     private static String findEnvFileDirectory() {
         /** 1. システムプロパティまたは環境変数から指定されたディレクトリを試す */
-        String customDir = System.getProperty("hidariude.env.dir");
+        String customDir = System.getProperty("BackDesk.env.dir");
         if (customDir == null || customDir.isEmpty()) {
-            customDir = System.getenv("HIDARIUDE_ENV_DIR");
+            customDir = System.getenv("BACKDESK_ENV_DIR");
         }
         if (customDir == null || customDir.isEmpty()) {
             /** ファイルパスが指定されている場合も対応 */
-            String customPath = System.getProperty("hidariude.env.path");
+            String customPath = System.getProperty("BackDesk.env.path");
             if (customPath == null || customPath.isEmpty()) {
-                customPath = System.getenv("HIDARIUDE_ENV_PATH");
+                customPath = System.getenv("BACKDESK_ENV_PATH");
             }
             if (customPath != null && !customPath.isEmpty()) {
                 Path path = Paths.get(customPath);
@@ -63,8 +63,8 @@ public class MailConfig {
             }
         }
         
-        /** 2. 本番環境のデフォルトパス（/opt/hidariude/.env）を試す */
-        Path productionPath = Paths.get("/opt/hidariude/.env");
+        /** 2. 本番環境のデフォルトパス（/opt/BackDesk/.env）を試す */
+        Path productionPath = Paths.get("/opt/BackDesk/.env");
         if (Files.exists(productionPath) && Files.isRegularFile(productionPath)) {
             return productionPath.getParent().toString();
         }
@@ -85,8 +85,8 @@ public class MailConfig {
             
             /** WARファイル内の場合は、Tomcatの作業ディレクトリから探す */
             if (classPath.contains(".war") || classPath.contains("WEB-INF")) {
-                /** Tomcatから実行される場合、/opt/hidariude/.envを再確認 */
-                Path warProductionPath = Paths.get("/opt/hidariude/.env");
+                /** Tomcatから実行される場合、/opt/BackDesk/.envを再確認 */
+                Path warProductionPath = Paths.get("/opt/BackDesk/.env");
                 if (Files.exists(warProductionPath) && Files.isRegularFile(warProductionPath)) {
                     return warProductionPath.getParent().toString();
                 }
@@ -145,16 +145,13 @@ public class MailConfig {
      * メール送信元名
      */
     public static String getFromName() {
-        return "Hidariude";
+        return "BackDesk";
     }
 
     /**
      * アプリケーションのベースURL（環境変数 APP_BASE_URL または.envファイルから取得）
      * 環境変数が設定されていない場合は、開発環境用のデフォルトURL
-     * （http://localhost:8080/hidariude）を使用します。
-     * 本番環境では以下のように.envファイルまたは環境変数を設定してください：
-     * .envファイルの場合: APP_BASE_URL=http://ik1-224-81260.vs.sakura.ne.jp:8080/hidariude
-     * または環境変数の場合: export APP_BASE_URL=http://ik1-224-81260.vs.sakura.ne.jp:8080/hidariude
+     * （http://localhost:8080/BackDesk）を使用します。
      * 
      * @return ベースURL
      */
@@ -162,7 +159,7 @@ public class MailConfig {
         String baseUrl = getEnvValue("APP_BASE_URL");
         if (baseUrl == null || baseUrl.isEmpty()) {
             /** デフォルト：開発環境用URL */
-            return "http://localhost:8080/hidariude";
+            return "http://localhost:8080/BackDesk";
         }
         return baseUrl;
     }

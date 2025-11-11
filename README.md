@@ -1,4 +1,4 @@
-# Hidariude - Java Web アプリケーション
+# BackDesk - Java Web アプリケーション
 
 ## 概要
 
@@ -229,10 +229,10 @@ pgAdmin を起動し、以下の SQL を実行してデータベースとユー�
 
 ```sql
 -- PostgreSQL に接続して実行
-CREATE DATABASE hidariude;
+CREATE DATABASE BackDesk;
 CREATE USER postgres WITH PASSWORD 'password';
 ALTER USER postgres WITH PASSWORD 'password';
-GRANT ALL PRIVILEGES ON DATABASE hidariude TO postgres;
+GRANT ALL PRIVILEGES ON DATABASE BackDesk TO postgres;
 ```
 
 #### (3) 接続設定の確認
@@ -240,7 +240,7 @@ GRANT ALL PRIVILEGES ON DATABASE hidariude TO postgres;
 データベース接続設定は `src/main/java/dao/TransactionManager.java` で管理されています：
 
 ```java
-private static final String DB_URL = "jdbc:postgresql://localhost:5433/hidariude";
+private static final String DB_URL = "jdbc:postgresql://localhost:5433/BackDesk";
 private static final String SCHEMA = "?currentSchema=public";
 private static final String DB_USER = "postgres";
 private static final String DB_PASSWORD = "password";
@@ -274,7 +274,7 @@ private static final String DB_PASSWORD = "password";
 ## プロジェクト構成
 
 ```
-hidariude/
+BackDesk/
 ├── src/
 │   ├── main/
 │   │   ├── java/
@@ -317,10 +317,10 @@ hidariude/
 
 ```bash
 # リポジトリのクローン
-git clone https://github.com/jbn-komiyama/hidariude.git
+git clone https://github.com/jbn-komiyama/BackDesk.git
 
 # プロジェクトディレクトリに移動
-cd hidariude
+cd BackDesk
 
 # VS Code でプロジェクトを開く
 code .
@@ -340,9 +340,9 @@ code .
 SENDGRID_API_KEY=your_sendgrid_api_key_here(※管理者に確認してください)
 
 # アプリケーション設定
-# 開発環境: http://localhost:8080/hidariude
-# 本番環境: http://ik1-224-81260.vs.sakura.ne.jp:8080/hidariude
-APP_BASE_URL=http://localhost:8080/hidariude
+# 開発環境: http://localhost:8080/BackDesk
+# 本番環境: https://ourdesk.n-learning.jp/BackDesk
+APP_BASE_URL=http://localhost:8080/BackDesk
 ```
 
 3. `SENDGRID_API_KEY` に実際の SendGrid API キーを設定してください
@@ -355,10 +355,10 @@ APP_BASE_URL=http://localhost:8080/hidariude
 
 #### 環境変数の説明
 
-| 変数名             | 説明                                   | デフォルト値                      |
-| ------------------ | -------------------------------------- | --------------------------------- |
-| `SENDGRID_API_KEY` | SendGrid のメール送信 API キー（必須） | なし                              |
-| `APP_BASE_URL`     | アプリケーションのベース URL           | `http://localhost:8080/hidariude` |
+| 変数名             | 説明                                   | デフォルト値                     |
+| ------------------ | -------------------------------------- | -------------------------------- |
+| `SENDGRID_API_KEY` | SendGrid のメール送信 API キー（必須） | なし                             |
+| `APP_BASE_URL`     | アプリケーションのベース URL           | `http://localhost:8080/BackDesk` |
 
 #### 本番環境での設定
 
@@ -367,7 +367,7 @@ APP_BASE_URL=http://localhost:8080/hidariude
 1. **.env ファイルを使用**（推奨）:
 
     ```bash
-    cd /opt/hidariude
+    cd /opt/BackDesk
     vi .env
     # 上記の内容を記述
     ```
@@ -375,7 +375,7 @@ APP_BASE_URL=http://localhost:8080/hidariude
 2. **システム環境変数を使用**:
     ```bash
     export SENDGRID_API_KEY=your_actual_key_here
-    export APP_BASE_URL=http://ik1-224-81260.vs.sakura.ne.jp:8080/hidariude
+    export APP_BASE_URL=https://ourdesk.n-learning.jp/BackDesk
     ```
 
 ### 3. VS Code での初期設定
@@ -485,7 +485,7 @@ Tomcat Deploy
 Tomcat 起動後、以下の URL でアプリケーションにアクセスできます：
 
 ```
-http://localhost:8080/hidariude/
+http://localhost:8080/BackDesk/
 ```
 
 ---
@@ -604,7 +604,7 @@ echo %PATH%   # Windows
 ```xml
 <configuration>
   <port>8081</port>  <!-- 8080から変更 -->
-  <path>/hidariude</path>
+  <path>/BackDesk</path>
 </configuration>
 ```
 
@@ -626,7 +626,7 @@ echo %PATH%   # Windows
 
 3. **データベースとユーザーが作成されているか確認**
 
-    - pgAdmin で `hidariude` データベースが存在するか確認
+    - pgAdmin で `BackDesk` データベースが存在するか確認
     - `postgres` ユーザーが存在し、パスワードが `password` であることを確認
     - 作成手順は「**7. PostgreSQL データベースセットアップ**」を参照
 
@@ -657,7 +657,7 @@ echo %PATH%   # Windows
 -   **Apache Tomcat 10.1.46** - `/opt/tomcat/apache-tomcat-10.1.46`
     -   systemctl で自動起動設定済み
 -   **PostgreSQL 15** - ポート 5433 で稼働
-    -   データベース `hidariude` 作成済み
+    -   データベース `BackDesk` 作成済み
     -   ユーザー `postgres` / パスワード `password`
     -   systemctl で自動起動設定済み
     -   TCP 接続（localhost:5433）が許可されていること（pg_hba.conf）
@@ -677,8 +677,8 @@ sudo dnf install -y postgresql15-contrib
 sudo systemctl restart postgresql-15
 
 # pgcrypto 拡張が利用可能か確認
-sudo -u postgres psql -p 5433 -d hidariude -c "CREATE EXTENSION IF NOT EXISTS pgcrypto;"
-sudo -u postgres psql -p 5433 -d hidariude -c "SELECT gen_random_uuid();"
+sudo -u postgres psql -p 5433 -d BackDesk -c "CREATE EXTENSION IF NOT EXISTS pgcrypto;"
+sudo -u postgres psql -p 5433 -d BackDesk -c "SELECT gen_random_uuid();"
 ```
 
 > **重要**: `postgresql15-contrib` がインストールされていないと、テーブル作成時に以下のエラーが発生します：
@@ -704,7 +704,7 @@ HTTPS 化とログイン回数制限を実装するため、nginx リバース�
 #### 方法 1: セットアップスクリプトを使用（推奨）
 
 ```bash
-cd /opt/hidariude
+cd /opt/BackDesk
 chmod +x nginx/setup_nginx.sh
 sudo ./nginx/setup_nginx.sh
 ```
@@ -724,8 +724,8 @@ sudo firewall-cmd --reload
 sudo mkdir -p /var/www/certbot
 
 # 4. nginx設定ファイルをコピー
-cd /opt/hidariude
-sudo cp nginx/hidariude.conf /etc/nginx/conf.d/hidariude.conf
+cd /opt/BackDesk
+sudo cp nginx/BackDesk.conf /etc/nginx/conf.d/BackDesk.conf
 
 # 5. nginx設定をテスト
 sudo nginx -t
@@ -738,7 +738,7 @@ sudo systemctl start nginx
 sudo certbot --nginx -d ourdesk.n-learning.jp
 
 # 8. 最終的な設定ファイルを再適用（ログイン制限を含む）
-sudo cp nginx/hidariude.conf /etc/nginx/conf.d/hidariude.conf
+sudo cp nginx/BackDesk.conf /etc/nginx/conf.d/BackDesk.conf
 sudo nginx -t
 sudo systemctl reload nginx
 ```
@@ -748,14 +748,14 @@ sudo systemctl reload nginx
 -   **HTTPS 化**: Let's Encrypt 証明書を使用した SSL/TLS 暗号化
 -   **ログイン回数制限**: `/admin/login`, `/secretary/login`, `/customer/login` への POST リクエストを 1 分間に 10 回までに制限
 -   **セキュリティヘッダー**: HSTS、XSS 対策、クリックジャッキング対策など
--   **プロキシ先**: `http://localhost:8080/hidariude`
+-   **プロキシ先**: `http://localhost:8080/BackDesk`
 
 ### nginx 設定の再適用
 
 設定ファイルを変更した場合は、以下のコマンドで再設定を実行してください：
 
 ```bash
-cd /opt/hidariude
+cd /opt/BackDesk
 sudo ./nginx/setup_nginx.sh
 ```
 
@@ -763,7 +763,7 @@ sudo ./nginx/setup_nginx.sh
 
 -   nginx と certbot のインストール確認
 -   ファイアウォール設定（HTTP/HTTPS ポート開放）
--   設定ファイルの配置（`nginx/hidariude.conf` → `/etc/nginx/conf.d/hidariude.conf`）
+-   設定ファイルの配置（`nginx/BackDesk.conf` → `/etc/nginx/conf.d/BackDesk.conf`）
 -   nginx 設定のテストと再読み込み
 -   Let's Encrypt 証明書の取得・更新（必要に応じて）
 
@@ -775,41 +775,41 @@ nginx は以下のようにリクエストを Tomcat に転送します：
 
 #### プロキシ設定の概要
 
--   **外部 URL**: `https://ourdesk.n-learning.jp/hidariude/...`
--   **内部 URL**: `http://localhost:8080/hidariude/...`
--   **転送方式**: `/hidariude` で始まるパスをそのまま Tomcat に転送（パス変換なし）
+-   **外部 URL**: `https://ourdesk.n-learning.jp/BackDesk/...`
+-   **内部 URL**: `http://localhost:8080/BackDesk/...`
+-   **転送方式**: `/BackDesk` で始まるパスをそのまま Tomcat に転送（パス変換なし）
 
 #### パスマッピング
 
-| 外部からのアクセス           | Tomcat への転送先             | 説明                        |
-| ---------------------------- | ----------------------------- | --------------------------- |
-| `/hidariude/`                | `/hidariude/`                 | トップページ（index.jsp）   |
-| `/hidariude/admin`           | `/hidariude/admin`            | 管理者ログイン画面（GET）   |
-| `/hidariude/admin/login`     | `/hidariude/admin/login`      | 管理者ログイン処理（POST）  |
-| `/hidariude/secretary`       | `/hidariude/secretary`        | 秘書ログイン画面（GET）     |
-| `/hidariude/secretary/login` | `/hidariude/secretary/login`  | 秘書ログイン処理（POST）    |
-| `/hidariude/customer`        | `/hidariude/customer`         | 顧客ログイン画面（GET）     |
-| `/hidariude/customer/login`  | `/hidariude/customer/login`   | 顧客ログイン処理（POST）    |
-| `/hidariude/...`（その他）   | `/hidariude/...`              | そのまま転送                |
-| `/`（ルートパス）            | `/hidariude/`（リダイレクト） | `/hidariude/`にリダイレクト |
+| 外部からのアクセス          | Tomcat への転送先            | 説明                       |
+| --------------------------- | ---------------------------- | -------------------------- |
+| `/BackDesk/`                | `/BackDesk/`                 | トップページ（index.jsp）  |
+| `/BackDesk/admin`           | `/BackDesk/admin`            | 管理者ログイン画面（GET）  |
+| `/BackDesk/admin/login`     | `/BackDesk/admin/login`      | 管理者ログイン処理（POST） |
+| `/BackDesk/secretary`       | `/BackDesk/secretary`        | 秘書ログイン画面（GET）    |
+| `/BackDesk/secretary/login` | `/BackDesk/secretary/login`  | 秘書ログイン処理（POST）   |
+| `/BackDesk/customer`        | `/BackDesk/customer`         | 顧客ログイン画面（GET）    |
+| `/BackDesk/customer/login`  | `/BackDesk/customer/login`   | 顧客ログイン処理（POST）   |
+| `/BackDesk/...`（その他）   | `/BackDesk/...`              | そのまま転送               |
+| `/`（ルートパス）           | `/BackDesk/`（リダイレクト） | `/BackDesk/`にリダイレクト |
 
 #### レート制限
 
 以下のエンドポイントにはレート制限が適用されます：
 
--   **ログイン画面（GET）**: `/hidariude/admin`, `/hidariude/secretary`, `/hidariude/customer`
+-   **ログイン画面（GET）**: `/BackDesk/admin`, `/BackDesk/secretary`, `/BackDesk/customer`
     -   1 分間に 10 リクエストまで（バースト 2）
--   **ログイン処理（POST）**: `/hidariude/admin/login`, `/hidariude/secretary/login`, `/hidariude/customer/login`
+-   **ログイン処理（POST）**: `/BackDesk/admin/login`, `/BackDesk/secretary/login`, `/BackDesk/customer/login`
     -   1 分間に 10 リクエストまで（バースト 2）
-    -   試行ログを `/var/log/nginx/hidariude_login_attempts.log` に記録
+    -   試行ログを `/var/log/nginx/BackDesk_login_attempts.log` に記録
 
 制限を超えた場合、HTTP ステータス 429（Too Many Requests）が返されます。
 
 #### リダイレクト処理
 
--   **HTTP から HTTPS**: `http://ourdesk.n-learning.jp/` → `https://ourdesk.n-learning.jp/hidariude/`
--   **ルートパス**: `https://ourdesk.n-learning.jp/` → `https://ourdesk.n-learning.jp/hidariude/`
--   **Tomcat からのリダイレクト**: `/hidariude/...` のまま転送（変換なし）
+-   **HTTP から HTTPS**: `http://ourdesk.n-learning.jp/` → `https://ourdesk.n-learning.jp/BackDesk/`
+-   **ルートパス**: `https://ourdesk.n-learning.jp/` → `https://ourdesk.n-learning.jp/BackDesk/`
+-   **Tomcat からのリダイレクト**: `/BackDesk/...` のまま転送（変換なし）
 
 外部 URL と内部 URL が同じパス構造のため、リダイレクトの変換は不要です。
 
@@ -836,7 +836,7 @@ echo | openssl s_client -connect ourdesk.n-learning.jp:443 -servername ourdesk.n
 
 # ログインレート制限のテスト
 for i in {1..15}; do
-  curl -X POST https://ourdesk.n-learning.jp/hidariude/admin/login \
+  curl -X POST https://ourdesk.n-learning.jp/BackDesk/admin/login \
     -H "Content-Type: application/x-www-form-urlencoded" \
     -d "email=test@example.com&password=test" \
     -w "\nHTTP Status: %{http_code}\n" \
@@ -849,13 +849,13 @@ done
 
 ```bash
 # nginxアクセスログ
-sudo tail -f /var/log/nginx/hidariude_access.log
+sudo tail -f /var/log/nginx/BackDesk_access.log
 
 # nginxエラーログ
-sudo tail -f /var/log/nginx/hidariude_error.log
+sudo tail -f /var/log/nginx/BackDesk_error.log
 
 # ログイン試行ログ（レート制限対象）
-sudo tail -f /var/log/nginx/hidariude_login_attempts.log
+sudo tail -f /var/log/nginx/BackDesk_login_attempts.log
 ```
 
 ### トラブルシューティング
@@ -880,7 +880,7 @@ sudo tail -f /var/log/nginx/hidariude_login_attempts.log
 sudo nginx -t
 
 # エラーがある場合は設定ファイルを確認
-sudo vi /etc/nginx/conf.d/hidariude.conf
+sudo vi /etc/nginx/conf.d/BackDesk.conf
 
 # 設定変更後は再読み込み
 sudo nginx -t && sudo systemctl reload nginx
@@ -896,7 +896,7 @@ sudo systemctl status tomcat
 sudo netstat -tlnp | grep :8080
 
 # ローカルから直接アクセステスト
-curl http://localhost:8080/hidariude
+curl http://localhost:8080/BackDesk
 ```
 
 ## デプロイ手順
@@ -905,8 +905,8 @@ curl http://localhost:8080/hidariude
 
 ```bash
 cd /opt
-git clone <repository-url> hidariude
-cd hidariude
+git clone <repository-url> BackDesk
+cd BackDesk
 ```
 
 ### 2. 環境変数の設定（.env ファイル）
@@ -915,7 +915,7 @@ cd hidariude
 
 ```bash
 # プロジェクトルートに.envファイルを作成
-cd /opt/hidariude
+cd /opt/BackDesk
 vi .env
 ```
 
@@ -964,7 +964,7 @@ APP_BASE_URL=https://ourdesk.n-learning.jp
 
 ```bash
 # 更新内容を破棄して最新のコードを取得
-cd /opt/hidariude
+cd /opt/BackDesk
 git restore . # 変更内容を破棄
 git pull origin deploy
 
@@ -992,14 +992,14 @@ chmod +x deploy.sh
 **nginx リバースプロキシ経由（推奨）**:
 
 ```
-https://ourdesk.n-learning.jp/hidariude/
+https://ourdesk.n-learning.jp/BackDesk/
 ```
 
 **直接アクセス（開発・デバッグ用）**:
 
 ```
-http://localhost:8080/hidariude
-http://<サーバーのIPアドレス>:8080/hidariude
+http://localhost:8080/BackDesk
+http://<サーバーのIPアドレス>:8080/BackDesk
 ```
 
 **動作確認**:
@@ -1053,20 +1053,20 @@ systemctl restart tomcat
 systemctl status postgresql-15
 
 # データベース接続確認（peer認証）
-sudo -u postgres psql -p 5433 -d hidariude
+sudo -u postgres psql -p 5433 -d BackDesk
 
 # テーブル一覧
-sudo -u postgres psql -p 5433 -d hidariude -c "\dt"
+sudo -u postgres psql -p 5433 -d BackDesk -c "\dt"
 
 # TCP接続確認（Javaアプリケーションが使用）
-PGPASSWORD=password psql -h localhost -p 5433 -U postgres -d hidariude -c "SELECT 1;"
+PGPASSWORD=password psql -h localhost -p 5433 -U postgres -d BackDesk -c "SELECT 1;"
 ```
 
 > **注意**: Java アプリケーションは `localhost:5433` に TCP 接続します。`pg_hba.conf` で以下の設定が必要です：
 
 ```
 # IPv4 local connections:
-host    hidariude       postgres        127.0.0.1/32            scram-sha-256
+host    BackDesk       postgres        127.0.0.1/32            scram-sha-256
 ```
 
 設定後は PostgreSQL を再起動：
@@ -1109,7 +1109,7 @@ tail -100 /opt/tomcat/apache-tomcat-10.1.46/logs/catalina.out | grep -A 20 "Data
 2. ビルドログを確認（Maven エラー）
 
 ```bash
-cd /opt/hidariude
+cd /opt/BackDesk
 mvn clean package
 ```
 
@@ -1120,7 +1120,7 @@ mvn clean package
 systemctl status postgresql-15
 
 # 接続テスト
-sudo -u postgres psql -p 5433 -d hidariude -c "SELECT 1;"
+sudo -u postgres psql -p 5433 -d BackDesk -c "SELECT 1;"
 ```
 
 4. pgcrypto 拡張機能エラーの場合
@@ -1135,7 +1135,7 @@ sudo dnf install -y postgresql15-contrib
 sudo systemctl restart postgresql-15
 
 # 再デプロイ
-cd /opt/hidariude
+cd /opt/BackDesk
 ./deploy.sh
 ```
 
@@ -1146,10 +1146,10 @@ cd /opt/hidariude
 sudo nginx -t
 
 # nginxログを確認
-sudo tail -f /var/log/nginx/hidariude_error.log
+sudo tail -f /var/log/nginx/BackDesk_error.log
 
 # nginx設定ファイルを確認
-sudo vi /etc/nginx/conf.d/hidariude.conf
+sudo vi /etc/nginx/conf.d/BackDesk.conf
 
 # 設定変更後は再読み込み
 sudo nginx -t && sudo systemctl reload nginx
@@ -1162,7 +1162,7 @@ sudo nginx -t && sudo systemctl reload nginx
 ```bash
 # 連続リクエストを送信（11回目以降で429エラーが返るはず）
 for i in {1..15}; do
-  curl -X POST https://ourdesk.n-learning.jp/hidariude/admin/login \
+  curl -X POST https://ourdesk.n-learning.jp/BackDesk/admin/login \
     -H "Content-Type: application/x-www-form-urlencoded" \
     -d "email=test@example.com&password=test" \
     -w "\nHTTP Status: %{http_code}\n" \
@@ -1171,7 +1171,7 @@ for i in {1..15}; do
 done
 
 # ログイン試行ログを確認
-sudo tail -f /var/log/nginx/hidariude_login_attempts.log
+sudo tail -f /var/log/nginx/BackDesk_login_attempts.log
 ```
 
 ---

@@ -36,9 +36,9 @@ log_error() {
 
 # 設定
 DOMAIN="ourdesk.n-learning.jp"
-PROJECT_DIR="/opt/hidariude"
+PROJECT_DIR="/opt/BackDesk"
 NGINX_CONF_DIR="/etc/nginx/conf.d"
-NGINX_CONF_FILE="${NGINX_CONF_DIR}/hidariude.conf"
+NGINX_CONF_FILE="${NGINX_CONF_DIR}/BackDesk.conf"
 CERTBOT_WEBROOT="/var/www/certbot"
 
 #####################################################################
@@ -102,13 +102,13 @@ log_info "ディレクトリ作成完了: $CERTBOT_WEBROOT"
 
 log_info "=== nginx設定ファイルの配置 ==="
 
-if [ ! -f "${PROJECT_DIR}/nginx/hidariude.conf" ]; then
-    log_error "nginx設定ファイルが見つかりません: ${PROJECT_DIR}/nginx/hidariude.conf"
+if [ ! -f "${PROJECT_DIR}/nginx/BackDesk.conf" ]; then
+    log_error "nginx設定ファイルが見つかりません: ${PROJECT_DIR}/nginx/BackDesk.conf"
     exit 1
 fi
 
 log_info "nginx設定ファイルをコピー中..."
-cp "${PROJECT_DIR}/nginx/hidariude.conf" "$NGINX_CONF_FILE"
+cp "${PROJECT_DIR}/nginx/BackDesk.conf" "$NGINX_CONF_FILE"
 log_info "設定ファイル配置完了: $NGINX_CONF_FILE"
 
 # nginx設定をテスト
@@ -178,7 +178,7 @@ log_info "=== 最終的なnginx設定の適用 ==="
 
 # certbotが証明書を取得した後、完全な設定ファイルを再適用
 log_info "ログイン制限を含む完全な設定ファイルを適用中..."
-cp "${PROJECT_DIR}/nginx/hidariude.conf" "$NGINX_CONF_FILE"
+cp "${PROJECT_DIR}/nginx/BackDesk.conf" "$NGINX_CONF_FILE"
 
 # nginx設定をテスト
 if nginx -t; then
@@ -202,8 +202,8 @@ log_info "動作確認コマンド:"
 log_info "  curl -I https://${DOMAIN}"
 log_info ""
 log_info "nginxログ確認:"
-log_info "  tail -f /var/log/nginx/hidariude_access.log"
-log_info "  tail -f /var/log/nginx/hidariude_error.log"
+log_info "  tail -f /var/log/nginx/BackDesk_access.log"
+log_info "  tail -f /var/log/nginx/BackDesk_error.log"
 log_info ""
 log_info "nginxステータス:"
 log_info "  systemctl status nginx"
@@ -212,4 +212,4 @@ log_info "証明書の自動更新確認:"
 log_info "  certbot renew --dry-run"
 
 exit 0
-
+ 

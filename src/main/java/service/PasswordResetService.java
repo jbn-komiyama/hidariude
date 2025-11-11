@@ -405,7 +405,7 @@ public class PasswordResetService extends BaseService {
             
             /** 件名（ロールに応じて変更） */
             String roleLabel = getRoleLabel(userType);
-            String subject = "【Hidariude】パスワードリセットのご案内（" + roleLabel + "）";
+            String subject = "【BackDesk】パスワードリセットのご案内（" + roleLabel + "）";
             
             /** パスワードリセット用URL */
             String resetUrl = MailConfig.getPasswordResetUrl(token, userType);
@@ -477,7 +477,7 @@ public class PasswordResetService extends BaseService {
     private String buildPasswordResetEmailBody(String resetUrl, String roleLabel) {
         StringBuilder body = new StringBuilder();
         
-        body.append("Hidariude をご利用いただきありがとうございます。\n\n");
+        body.append("BackDesk をご利用いただきありがとうございます。\n\n");
         body.append("【").append(roleLabel).append("】パスワードリセットのリクエストを受け付けました。\n\n");
         body.append("以下のURLにアクセスして、新しいパスワードを設定してください。\n");
         body.append("このリンクは24時間有効です。\n\n");
@@ -486,7 +486,7 @@ public class PasswordResetService extends BaseService {
         body.append("※このメールに心当たりがない場合は、破棄してください。\n");
         body.append("※このメールは送信専用です。返信はできません。\n\n");
         body.append("────────────────────────────\n");
-        body.append("Hidariude\n");
+        body.append("BackDesk\n");
         body.append(MailConfig.getFromEmail()).append("\n");
         
         return body.toString();
