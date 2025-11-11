@@ -11,7 +11,7 @@ import java.util.UUID;
 public class CustomerDTO implements Serializable {
 	private static final long serialVersionUID = 1L;
 	
-	private UUID id;
+	private UUID customerId;
 	private List<AssignmentDTO> assignments = new ArrayList<>();
 	private String companyCode;
 	private String companyName;
@@ -28,10 +28,10 @@ public class CustomerDTO implements Serializable {
 	private Timestamp deletedAt;
 	
 	public UUID getId() {
-		return id;
+		return customerId;
 	}
 	public void setId(UUID id) {
-		this.id = id;
+		this.customerId = customerId;
 	}
 	public String getCompanyCode() {
 		return companyCode;
