@@ -26,7 +26,6 @@ import service.TaskService;
 /**
  * フロントコントローラーのServlet実装クラス
  * すべてのリクエストを受け取り、ロールに応じて適切な処理に分岐します
- * 管理者・秘書・顧客それぞれのログイン画面、ログアウト、ホーム画面、エラー画面を表示します
  */
 @WebServlet(urlPatterns={"/admin/*", "/secretary/*", "/customer/*"})
 public class FrontController extends HttpServlet {
